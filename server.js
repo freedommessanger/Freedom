@@ -29,11 +29,8 @@ const PORT = process.env.PORT || 3000;
 // PostgreSQL подключение
 // ──────────────────────────────────────────────
 const pool = new Pool({
-  host:     process.env.DB_HOST || 'localhost',
-  port:     process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'freedom_chat',
-  user:     process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASS || 'postgres',
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
 
 const db = {
@@ -160,10 +157,10 @@ async function getContacts(username) {
 // ──────────────────────────────────────────────
 // Статика
 // ──────────────────────────────────────────────
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ──────────────────────────────────────────────
