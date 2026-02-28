@@ -163,6 +163,16 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// ── REST: Список пользователей ────────────
+app.get('/api/users', async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM users ORDER BY created_at ASC');
+    res.json(rows.map(r => userPublic(r)));
+  } catch (e) {
+    res.json([]);
+  }
+});
+
 // ──────────────────────────────────────────────
 // Socket.IO
 // ──────────────────────────────────────────────
