@@ -941,6 +941,12 @@ function connectSocket() {
   socket.on('new_message', onNewMessage);
   socket.on('user_online', u => updateUserStatus(u.username, true));
   socket.on('user_offline', u => updateUserStatus(u.username, false, u.lastSeen));
+  socket.on('new_user', u => {
+    if (!allUsers.find(x => x.username === u.username)) {
+      allUsers.push(u);
+      renderChatList();
+    }
+  });
   socket.on('user_updated', onUserUpdated);
   socket.on('user_typing', onTyping);
   socket.on('messages_read', ({by}) => markMessagesRead(by));
@@ -3982,6 +3988,12 @@ function connectSocket() {
   socket.on('new_message', onNewMessage);
   socket.on('user_online', u => updateUserStatus(u.username, true));
   socket.on('user_offline', u => updateUserStatus(u.username, false, u.lastSeen));
+  socket.on('new_user', u => {
+    if (!allUsers.find(x => x.username === u.username)) {
+      allUsers.push(u);
+      renderChatList();
+    }
+  });
   socket.on('user_updated', onUserUpdated);
   socket.on('user_typing', onTyping);
   socket.on('messages_read', ({by}) => markMessagesRead(by));
