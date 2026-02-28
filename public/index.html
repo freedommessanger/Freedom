@@ -937,7 +937,7 @@ var EMOJIS = ['😀','😂','🥰','😍','🤔','😎','😭','😤','🥺','�
 
 // ─── Socket ───────────────────────────────────────────────────────────────────
 function connectSocket() {
-  socket = io("https://freedommessanger.com");
+  socket = io();
   socket.on('new_message', onNewMessage);
   socket.on('user_online', u => updateUserStatus(u.username, true));
   socket.on('user_offline', u => updateUserStatus(u.username, false, u.lastSeen));
@@ -2653,7 +2653,7 @@ let callInt=null, callSecs=0, callUser=null, callKind='audio';
 let attachImg=null, toastTimer=null, toastUser=null, pmUser=null;
 
 function init(){
-  socket = io("https://freedommessanger.com");
+  socket = io();
   socket.on('new_message',onMsg);
   socket.on('user_online',({username})=>setStatus(username,true));
   socket.on('user_offline',({username,lastSeen})=>setStatus(username,false,lastSeen));
@@ -3978,7 +3978,7 @@ var EMOJIS = ['😀','😂','🥰','😍','🤔','😎','😭','😤','🥺','�
 
 // ─── Socket ───────────────────────────────────────────────────────────────────
 function connectSocket() {
-  socket = io("https://freedommessanger.com");
+  socket = io();
   socket.on('new_message', onNewMessage);
   socket.on('user_online', u => updateUserStatus(u.username, true));
   socket.on('user_offline', u => updateUserStatus(u.username, false, u.lastSeen));
@@ -7033,7 +7033,7 @@ $('messages-area')?.addEventListener('contextmenu', e => e.preventDefault());
     </div>
 
     <script>
-        var socket2 = io("https://freedommessanger.com");
+        var socket2 = io();
         var sharedSecret = null;
         // --- DH ALGORITHM ---
         var P = 0xFFFFFFFB;
