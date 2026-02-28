@@ -215,9 +215,10 @@ io.on('connection', (socket) => {
       const { rows } = await db.query('SELECT * FROM users WHERE username = $1', [username]);
       me = rows[0];
       onlineUsers.set(me.username, socket.id);
-      io.emit('user_online', { username: me.username });
+      // Notify all connected users about the new user
+      io.emit('new_user', userPublic(me));
 
-      cb({ ok: true, user: userPublic(me), token, contacts: [] });
+      cb({ ok: true, user: userPublic(me), token, contacts: await getContacts(me.username) });
     } catch (e) {
       console.error('register:', e.message);
       cb({ ok: false, error: 'Ошибка сервера' });
@@ -263,6 +264,16 @@ io.on('connection', (socket) => {
       io.emit('user_offline', { username: me.username, lastSeen: ts });
     } catch (e) { /* игнорируем */ }
     me = null;
+  });
+
+  // ── Обновить список контактов ────────────
+  socket.on('get_contacts', async (cb) => {
+    if (!me) return cb?.([]);
+    try {
+      cb?.(await getContacts(me.username));
+    } catch (e) {
+      cb?.([]);
+    }
   });
 
   // ── Получить сообщения ───────────────────
