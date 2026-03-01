@@ -276,8 +276,11 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .pm-over { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:400; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
 .pm-over.on { display:flex; }
 .pm-card { background:var(--sidebar); border:1px solid var(--border); border-radius:22px; width:340px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.3); }
-.pm-banner { height:90px; position:relative; overflow:visible; }
+.pm-banner { height:110px; position:relative; overflow:visible; }
 .pm-banner-grad { position:absolute; inset:0; background:linear-gradient(135deg,var(--accent) 0%,#7c4dff 100%); border-radius:22px 22px 0 0; }
+.pm-banner-img { position:absolute; inset:0; background-size:cover; background-position:center; border-radius:22px 22px 0 0; }
+.pm-banner-edit { position:absolute; bottom:8px; right:44px; width:28px; height:28px; background:rgba(0,0,0,0.5); border:none; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; transition:background .2s; }
+.pm-banner-edit:hover { background:rgba(0,0,0,0.75); }
 .pm-body { padding:0 20px 20px; position:relative; z-index:2; }
 .pm-av-row { display:flex; align-items:flex-end; justify-content:space-between; margin-top:-36px; margin-bottom:12px; position:relative; z-index:3; }
 .pm-av { width:72px; height:72px; border-radius:50%; border:3px solid var(--sidebar); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700; overflow:hidden; position:relative; z-index:4; flex-shrink:0; }
@@ -690,6 +693,20 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:12px">Редактирование профиля</div>
       <input class="sett-inp" id="en" placeholder="Отображаемое имя">
       <textarea class="sett-ta" id="eb" placeholder="Расскажите о себе..."></textarea>
+      <!-- Баннер профиля -->
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Баннер профиля</div>
+        <div id="sett-banner-preview" style="height:70px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7c4dff);margin-bottom:8px;background-size:cover;background-position:center;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('sett-banner-input').click()">
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.25);border-radius:12px;gap:6px;color:#fff;font-size:12px;font-weight:600">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Сменить баннер
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <input type="file" id="sett-banner-input" accept="image/*" style="display:none" onchange="settUploadBanner(event)">
+          <button class="btn-sec" onclick="settRemoveBanner()" style="flex:1;font-size:12px;padding:7px">Убрать баннер</button>
+        </div>
+      </div>
       <div class="btn-row">
         <button class="btn-prim" onclick="saveProf()">Сохранить</button>
         <button class="btn-sec" onclick="toggleEdit()">Отмена</button>
@@ -792,9 +809,12 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 <!-- PROFILE MODAL -->
 <div class="pm-over" id="pmo" onclick="if(event.target===this)closePM()">
   <div class="pm-card">
-    <div class="pm-banner">
-      <div class="pm-banner-grad"></div>
-      <button class="ib" onclick="closePM()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.4)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div class="pm-banner" id="pm-banner">
+      <div class="pm-banner-grad" id="pm-banner-grad"></div>
+      <div class="pm-banner-img" id="pm-banner-img" style="display:none"></div>
+      <button class="ib" onclick="closePM()" style="position:absolute;top:10px;right:10px;z-index:10;background:rgba(0,0,0,0.4)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <button class="pm-banner-edit" id="pm-banner-edit-btn" style="display:none" title="Сменить баннер" onclick="document.getElementById('banner-file-input').click()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+      <input type="file" id="banner-file-input" accept="image/*" style="display:none" onchange="uploadBanner(event)">
     </div>
     <div class="pm-body">
       <div class="pm-av-row">
@@ -957,17 +977,30 @@ function connectSocket() {
   socket.on('call_ended', onCallEnded);
   socket.on('call_rejected', () => { showCallStatus('Отклонено', true); try{_injectCallMsg(currentCallUser,'missed');}catch(e){} });
   socket.on('call_busy', () => showCallStatus('Занято', true));
-  // ФИКС #2: Восстановление сессии при переподключении
+  // ФИКС: используем токен сессии для восстановления (надёжнее)
   socket.on('connect', () => {
+    const token = localStorage.getItem('fcToken');
     const savedSession = localStorage.getItem('userSession');
-    if (savedSession && !me) {
-      const session = JSON.parse(savedSession);
-      socket.emit('restore_session', session, (res) => {
+    const creds = token ? token : (savedSession ? JSON.parse(savedSession) : null);
+    if (creds && !me) {
+      socket.emit('restore_session', creds, (res) => {
         if (res && res.user) {
           onLoggedIn(res.user);
+        } else if (token) {
+          // токен устарел — пробуем по паролю
+          localStorage.removeItem('fcToken');
+          if (savedSession) {
+            socket.emit('restore_session', JSON.parse(savedSession), (r2) => {
+              if (r2 && r2.user) onLoggedIn(r2.user);
+            });
+          }
         }
       });
     }
+  });
+  // ФИКС: сервер может прислать обновлённый токен
+  socket.on('upgrade_token', (newToken) => {
+    if (newToken) localStorage.setItem('fcToken', newToken);
   });
 }
 
@@ -986,6 +1019,8 @@ function doLogin() {
 
   socket.emit('login', {username, password}, res => {
     if (res.error) return setErr('le', res.error);
+    // ФИКС: сохраняем настоящий токен сессии, а не пароль
+    if (res.token) localStorage.setItem('fcToken', res.token);
     localStorage.setItem('userSession', JSON.stringify({username, password}));
     onLoggedIn(res.user);
   });
@@ -1000,6 +1035,8 @@ function doRegister() {
 
   socket.emit('register', {username, password, displayName}, res => {
     if (res.error) return setErr('re', res.error);
+    // ФИКС: сохраняем настоящий токен сессии
+    if (res.token) localStorage.setItem('fcToken', res.token);
     localStorage.setItem('userSession', JSON.stringify({username, password}));
     onLoggedIn(res.user);
   });
@@ -1011,15 +1048,25 @@ function onLoggedIn(user) {
   document.getElementById('app').classList.add('on');
   updateMyUI();
   loadUsers();
-  // ФИКС #11: Применение сохраненного фона
+  // ФИКС: применение сохраненного фона
   applyChatBackground();
+}
+
+// ФИКС: функция применения сохранённого фона (была вызвана но не определена)
+function applyChatBackground() {
+  var saved = localStorage.getItem('chatWallpaper');
+  var css   = localStorage.getItem('chatWallpaperCSS');
+  if (!saved || saved === 'none' || !css) return;
+  var area = document.getElementById('msgs') || document.getElementById('chat-view') || document.querySelector('.chat-area');
+  if (area) { area.style.backgroundImage = css; area.style.backgroundSize = 'cover'; area.classList.add('has-wall'); }
 }
 
 function doLogout() {
   socket.emit('logout');
   me = null; currentChat = null; allUsers = [];
   chatHistory = {}; unread = {}; chatPreviews = {};
-  // ФИКС #2: Очистка сохраненной сессии
+  // ФИКС: Очистка токена и сессии
+  localStorage.removeItem('fcToken');
   localStorage.removeItem('userSession');
   document.getElementById('app').classList.remove('on');
   document.getElementById('auth-screen').style.display = 'flex';
@@ -1630,15 +1677,24 @@ function updateUserStatus(username, isOnline, lastSeen) {
   renderChatList();
 }
 
-function onUserUpdated({username, avatar, displayName, bio, privacy}) {
+function onUserUpdated({username, avatar, banner, displayName, bio, privacy}) {
   const user = allUsers.find(u => u.username === username);
   if (user) {
     if (avatar !== undefined) user.avatar = avatar;
+    if (banner !== undefined) user.banner = banner;
     if (displayName) user.displayName = displayName;
     if (bio !== undefined) user.bio = bio;
     if (privacy) user.privacy = privacy;
   }
-  
+  // Если открыт профиль этого пользователя — обновляем баннер в модалке
+  if (typeof pmUser !== 'undefined' && pmUser === username) {
+    var bannerImg=document.getElementById('pm-banner-img')||document.getElementById('pm-banner-img2');
+    var bannerGrad=document.getElementById('pm-banner-grad')||document.getElementById('pm-banner-grad2');
+    if(bannerImg&&bannerGrad){
+      if(banner){ bannerImg.style.backgroundImage='url("'+banner+'")'; bannerImg.style.display='block'; bannerGrad.style.display='none'; }
+      else { bannerImg.style.display='none'; bannerGrad.style.display='block'; }
+    }
+  }
   if (currentChat === username) {
     const hdrAvatar = document.getElementById('chat-hdr-avatar');
     setAvatarEl(hdrAvatar, user);
@@ -2064,10 +2120,8 @@ function doReg() {
   });
 }
 // ──────────────────────────────────────────────────────────────────────────────
-// ── Periodic refresh ──
-setInterval(()=>{ if(me) loadUsers(); }, 30000);
-// connectSocket() отключён — сокет запускается через init() во втором блоке скрипта
-// connectSocket();
+// ── Periodic refresh — онлайн статусы обновляются каждые 10 сек ──
+setInterval(()=>{ if(me) loadUsers(); }, 10000);
 </script>
 
 <style>
@@ -2275,8 +2329,9 @@ setInterval(()=>{ if(me) loadUsers(); }, 30000);
 .pm-over { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:400; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
 .pm-over.on { display:flex; }
 .pm-card { background:var(--sidebar); border:1px solid var(--border); border-radius:22px; width:340px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.6); }
-.pm-banner { height:90px; position:relative; }
+.pm-banner { height:110px; position:relative; }
 .pm-banner-grad { position:absolute; inset:0; background:linear-gradient(135deg,var(--accent) 0%,#7c4dff 100%); }
+.pm-banner-img { position:absolute; inset:0; background-size:cover; background-position:center; }
 .pm-body { padding:0 20px 20px; }
 .pm-av-row { display:flex; align-items:flex-end; justify-content:space-between; margin-top:-32px; margin-bottom:12px; }
 .pm-av { width:68px; height:68px; border-radius:18px; border:3px solid var(--sidebar); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700; overflow:hidden; }
@@ -2536,6 +2591,14 @@ setInterval(()=>{ if(me) loadUsers(); }, 30000);
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:12px">Редактирование</div>
       <input class="sett-inp" id="en" placeholder="Отображаемое имя">
       <textarea class="sett-ta" id="eb" placeholder="Расскажите о себе..."></textarea>
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Баннер профиля</div>
+        <div id="sett-banner-preview" style="height:70px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7c4dff);margin-bottom:8px;background-size:cover;background-position:center;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('sett-banner-input').click()">
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.25);border-radius:12px;gap:6px;color:#fff;font-size:12px;font-weight:600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Сменить баннер</div>
+        </div>
+        <input type="file" id="sett-banner-input" accept="image/*" style="display:none" onchange="settUploadBanner(event)">
+        <button class="btn-sec" onclick="settRemoveBanner()" style="width:100%;font-size:12px;padding:7px">Убрать баннер</button>
+      </div>
       <div class="btn-row">
         <button class="btn-prim" onclick="saveProf()">Сохранить</button>
         <button class="btn-sec" onclick="toggleEdit()">Отмена</button>
@@ -2591,9 +2654,10 @@ setInterval(()=>{ if(me) loadUsers(); }, 30000);
 <!-- PROFILE MODAL -->
 <div class="pm-over" id="pmo" onclick="if(event.target===this)closePM()">
   <div class="pm-card">
-    <div class="pm-banner">
-      <div class="pm-banner-grad"></div>
-      <button class="ib" onclick="closePM()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.4)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div class="pm-banner" id="pm-banner2">
+      <div class="pm-banner-grad" id="pm-banner-grad2"></div>
+      <div class="pm-banner-img" id="pm-banner-img2" style="display:none"></div>
+      <button class="ib" onclick="closePM()" style="position:absolute;top:10px;right:10px;z-index:10;background:rgba(0,0,0,0.4)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="pm-body">
       <div class="pm-av-row">
@@ -2676,18 +2740,18 @@ function init(){
   // ── Восстановление сессии после переподключения ──
   socket.on('connect',()=>{
     if(!me){
-      const saved=localStorage.getItem('userSession');
-      if(saved){
-        try{
-          const {username,password}=JSON.parse(saved);
-          socket.emit('login',{username,password},r=>{
-            if(r&&!r.error)onAuth(r.user);
-            else localStorage.removeItem('userSession');
-          });
-        }catch(e){localStorage.removeItem('userSession');}
+      const token = localStorage.getItem('fcToken');
+      const saved = localStorage.getItem('userSession');
+      const creds = token ? token : (saved ? JSON.parse(saved) : null);
+      if(creds){
+        socket.emit('restore_session', creds, r=>{
+          if(r&&r.user) onAuth(r.user);
+          else if(token){ localStorage.removeItem('fcToken'); if(saved){ socket.emit('restore_session',JSON.parse(saved),r2=>{if(r2&&r2.user)onAuth(r2.user);}); } }
+        });
       }
     }
   });
+  socket.on('upgrade_token', t=>{ if(t) localStorage.setItem('fcToken',t); });
   // ── Применяем сохранённую тему ──
   const savedTheme=localStorage.getItem('theme')||'dark';
   document.documentElement.setAttribute('data-theme',savedTheme);
@@ -2716,6 +2780,7 @@ function doLogin(){
   if(!u||!p||!u.value.trim()||!p.value)return E('le','Заполните все поля');
   socket.emit('login',{username:u.value.trim(),password:p.value},r=>{
     if(r.error)return E('le',r.error);
+    if(r.token) localStorage.setItem('fcToken', r.token);
     localStorage.setItem('userSession',JSON.stringify({username:u.value.trim(),password:p.value}));
     onAuth(r.user);
   });
@@ -2727,6 +2792,7 @@ function doReg(){
   if(!n||!u||!p||!n.value.trim()||!u.value.trim()||!p.value)return E('re','Заполните все поля');
   socket.emit('register',{username:u.value.trim(),password:p.value,displayName:n.value.trim()},r=>{
     if(r.error)return E('re',r.error);
+    if(r.token) localStorage.setItem('fcToken', r.token);
     localStorage.setItem('userSession',JSON.stringify({username:u.value.trim(),password:p.value}));
     onAuth(r.user);
   });
@@ -2981,14 +3047,77 @@ function openSett(){G('sp').classList.add('on');G('sef').classList.remove('on');
 function closeSett(){G('sp').classList.remove('on');}
 function toggleEdit(){
   const f=G('sef');
-  if(!f.classList.contains('on')){G('en').value=me.displayName||'';G('eb').value=me.bio||'';f.classList.add('on');}
+  if(!f.classList.contains('on')){
+    G('en').value=me.displayName||'';
+    G('eb').value=me.bio||'';
+    // Обновляем превью баннера
+    var prev=G('sett-banner-preview');
+    if(prev){ if(me.banner){ prev.style.backgroundImage='url("'+me.banner+'")'; } else { prev.style.backgroundImage=''; } }
+    f.classList.add('on');
+  }
   else f.classList.remove('on');
 }
 function saveProf(){
   const n=G('en').value.trim(),b=G('eb').value.trim();
   socket.emit('update_profile',{displayName:n,bio:b},r=>{if(r?.ok){me=r.user;updMe();G('sef').classList.remove('on');}});
 }
-function chgAv(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{fetch('/api/avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:me.username,avatar:ev.target.result})}).then(()=>{me.avatar=ev.target.result;updMe();});};r.readAsDataURL(f);e.target.value='';}
+// ФИКС: аватар через socket (REST /api/avatar не реализован на сервере)
+function chgAv(e){
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    socket.emit('update_profile',{avatar:ev.target.result},res=>{
+      if(res?.ok){ me=res.user; updMe(); }
+    });
+  };
+  r.readAsDataURL(f); e.target.value='';
+}
+// Загрузка баннера из модалки профиля (кнопка редактирования прямо на баннере)
+function uploadBanner(e){
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    socket.emit('update_profile',{banner:ev.target.result},res=>{
+      if(res?.ok){
+        me=res.user;
+        var bannerImg=G('pm-banner-img')||G('pm-banner-img2');
+        var bannerGrad=G('pm-banner-grad')||G('pm-banner-grad2');
+        if(bannerImg){ bannerImg.style.backgroundImage='url("'+me.banner+'")'; bannerImg.style.display='block'; }
+        if(bannerGrad) bannerGrad.style.display='none';
+        var prev=G('sett-banner-preview'); if(prev) prev.style.backgroundImage='url("'+me.banner+'")';
+      }
+    });
+  };
+  r.readAsDataURL(f); e.target.value='';
+}
+// Загрузка баннера из настроек
+function settUploadBanner(e){
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    socket.emit('update_profile',{banner:ev.target.result},res=>{
+      if(res?.ok){
+        me=res.user;
+        var prev=G('sett-banner-preview'); if(prev) prev.style.backgroundImage='url("'+me.banner+'")';
+        updMe();
+      }
+    });
+  };
+  r.readAsDataURL(f); e.target.value='';
+}
+// Удалить баннер
+function settRemoveBanner(){
+  socket.emit('update_profile',{banner:null},res=>{
+    if(res?.ok){
+      me=res.user;
+      var prev=G('sett-banner-preview'); if(prev) prev.style.backgroundImage='';
+      var bannerImg=G('pm-banner-img')||G('pm-banner-img2');
+      var bannerGrad=G('pm-banner-grad')||G('pm-banner-grad2');
+      if(bannerImg) bannerImg.style.display='none';
+      if(bannerGrad) bannerGrad.style.display='block';
+    }
+  });
+}
 
 // Profile Modal
 function showPM(username){
@@ -3006,6 +3135,22 @@ function showPM(username){
     st.textContent=u.online?'В сети':'Не в сети';st.className='pm-status '+(u.online?'on':'off');
   }
   G('pmbio').textContent=u.bio||'Нет описания';
+  // Баннер профиля
+  var bannerImg = G('pm-banner-img') || G('pm-banner-img2');
+  var bannerGrad = G('pm-banner-grad') || G('pm-banner-grad2');
+  var bannerEditBtn = G('pm-banner-edit-btn');
+  if(bannerImg && bannerGrad){
+    if(u.banner){
+      bannerImg.style.backgroundImage='url("'+u.banner+'")';
+      bannerImg.style.display='block';
+      bannerGrad.style.display='none';
+    } else {
+      bannerImg.style.display='none';
+      bannerGrad.style.display='block';
+    }
+  }
+  if(bannerEditBtn) bannerEditBtn.style.display=isSelf?'flex':'none';
+  if(isSelf){ var prev=G('sett-banner-preview'); if(prev&&me.banner){ prev.style.backgroundImage='url("'+me.banner+'")'; } }
   // Joined date
   const jEl=G('pm-joined');
   if(jEl){
@@ -4019,6 +4164,8 @@ function doLogin() {
   if (!username || !password) return setErr('login-error','Заполните все поля');
   socket.emit('login', {username, password}, res => {
     if (res.error) return setErr('login-error', res.error);
+    if(res.token) localStorage.setItem('fcToken', res.token);
+    localStorage.setItem('userSession', JSON.stringify({username, password}));
     onLoggedIn(res.user);
   });
 }
@@ -4030,6 +4177,8 @@ function doRegister() {
   if (!displayName || !username || !password) return setErr('reg-error','Заполните все поля');
   socket.emit('register', {username, password, displayName}, res => {
     if (res.error) return setErr('reg-error', res.error);
+    if(res.token) localStorage.setItem('fcToken', res.token);
+    localStorage.setItem('userSession', JSON.stringify({username, password}));
     onLoggedIn(res.user);
   });
 }
@@ -5976,6 +6125,8 @@ function doLogin() {
   if (!username || !password) { $('auth-err').textContent='Please fill all fields'; return; }
   socket.emit('login', { username, password }, res => {
     if (res.error) { $('auth-err').textContent = res.error; return; }
+    if(res.token) localStorage.setItem('fcToken', res.token);
+    localStorage.setItem('userSession', JSON.stringify({username, password}));
     onAuth(res.user);
   });
 }
@@ -5987,6 +6138,8 @@ function doRegister() {
   if (!displayName || !username || !password) { $('auth-err').textContent='Please fill all fields'; return; }
   socket.emit('register', { username, password, displayName }, res => {
     if (res.error) { $('auth-err').textContent = res.error; return; }
+    if(res.token) localStorage.setItem('fcToken', res.token);
+    localStorage.setItem('userSession', JSON.stringify({username, password}));
     onAuth(res.user);
   });
 }
@@ -7643,7 +7796,15 @@ window.masterAccept=async function(offer,ctype,from,u){
     var cst=document.getElementById('cst'),cbtns=document.getElementById('cbtns'),ctmr=document.getElementById('ctmr');
     if(cst)cst.textContent=ctype==='video'?'Видеозвонок':'Аудиозвонок';
     if(ctmr)ctmr.style.display='block';
-    if(cbtns)cbtns.innerHTML='<div class="call-btn-wrap"><button class="cbtn end-call" onclick="endCall()">'+PHONE_ICO+'</button><span>Завершить</span></div>';
+    // ФИКС: добавляем кнопки микрофона и камеры для принявшего звонок
+    if(cbtns)cbtns.innerHTML=
+      '<div class="call-btn-wrap"><button class="cbtn neutral" id="m-mute-btn" onclick="masterToggleMute(this)" title="Микрофон">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M12 2a3 3 0 013 3v7a3 3 0 01-6 0V5a3 3 0 013-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>'+
+      '</button><span>Микрофон</span></div>'+
+      (ctype==='video'?'<div class="call-btn-wrap"><button class="cbtn neutral" id="m-cam-btn" onclick="masterToggleCam(this)" title="Камера">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>'+
+      '</button><span>Камера</span></div>':'')+
+      '<div class="call-btn-wrap"><button class="cbtn end-call" onclick="endCall()">'+PHONE_ICO+'</button><span>Завершить</span></div>';
     if(typeof startCallTimer==='function')startCallTimer();
     else if(callInt===undefined||callInt===null){callSecs=0;var el2=document.getElementById('ctmr');if(el2){el2.style.display='block';callInt=setInterval(function(){callSecs++;el2.textContent=fs(callSecs);},1000);}}
   }catch(err){
@@ -7652,6 +7813,28 @@ window.masterAccept=async function(offer,ctype,from,u){
     alert('Ошибка принятия звонка: '+emsg);
     window._doCleanCall&&window._doCleanCall();
   }
+};
+
+// ФИКС: функции управления микрофоном и камерой для принявшего звонок
+window.masterToggleMute = function(btn) {
+  var s = null;
+  try{ s = stream; }catch(e){}
+  try{ if(!s) s = localStream; }catch(e){}
+  if(!s) return;
+  var track = s.getAudioTracks()[0];
+  if(!track) return;
+  track.enabled = !track.enabled;
+  if(btn){ btn.classList.toggle('muted', !track.enabled); btn.title = track.enabled ? 'Микрофон' : 'Микрофон выкл'; }
+};
+window.masterToggleCam = function(btn) {
+  var s = null;
+  try{ s = stream; }catch(e){}
+  try{ if(!s) s = localStream; }catch(e){}
+  if(!s) return;
+  var track = s.getVideoTracks()[0];
+  if(!track) return;
+  track.enabled = !track.enabled;
+  if(btn){ btn.classList.toggle('muted', !track.enabled); btn.title = track.enabled ? 'Камера' : 'Камера выкл'; }
 };
 
 /* ── openChat ── */
@@ -8461,13 +8644,14 @@ window._initWallGrid = function(){
   });
 };
 window.setWallpaper = function(id, css){
-  var msgs=document.getElementById('msgs'); if(!msgs){ window.closeWallModal(); return; }
+  // ФИКС: применяем фон к области чата глобально, не требуем открытый чат
+  var area = document.getElementById('msgs') || document.getElementById('chat-view') || document.querySelector('.chat-area');
   if(!id){
-    msgs.style.backgroundImage=''; msgs.classList.remove('has-wall');
+    if(area){ area.style.backgroundImage=''; area.style.background=''; area.classList.remove('has-wall'); }
     localStorage.removeItem('chatWallpaper'); localStorage.removeItem('chatWallpaperCSS');
     var sub=document.getElementById('wall-sub'); if(sub) sub.textContent='Без фона';
   } else {
-    msgs.style.backgroundImage=css; msgs.classList.add('has-wall');
+    if(area){ area.style.backgroundImage=css; area.style.backgroundSize='cover'; area.classList.add('has-wall'); }
     localStorage.setItem('chatWallpaper',id); localStorage.setItem('chatWallpaperCSS',css);
     var w=WALLS.find(function(x){return x.id===id;}); var sub=document.getElementById('wall-sub');
     if(sub) sub.textContent=w?w.label:'Своя';
@@ -8494,18 +8678,26 @@ window.handleWallFile = function(e){
     var saved=localStorage.getItem('chatWallpaper');
     var css=localStorage.getItem('chatWallpaperCSS');
     if(!saved||saved==='none'||!css) return;
-    var msgs=document.getElementById('msgs');
-    if(msgs){msgs.style.backgroundImage=css;msgs.classList.add('has-wall');}
+    // ФИКС: применяем к любому доступному контейнеру
+    var area = document.getElementById('msgs') || document.getElementById('chat-view') || document.querySelector('.chat-area');
+    if(area){area.style.backgroundImage=css;area.style.backgroundSize='cover';area.classList.add('has-wall');}
     var sub=document.getElementById('wall-sub');
     var w=WALLS.find(function(x){return x.id===saved;});
     if(sub) sub.textContent=w?w.label:(saved==='custom'?'Своя картинка':'Своя');
   }
   setTimeout(_applySavedWall, 300);
   // Re-apply when chat opens (msgs area may be recreated)
+  // ФИКС: вместо оборачивания openChat (которое перезаписывается позже),
+  // делаем периодическую проверку и применение фона
+  setTimeout(_applySavedWall, 300);
+  setTimeout(_applySavedWall, 1000);
+  // Патчим openChat если он ещё не переопределён финальным блоком
   var _origOpenChat2=window.openChat;
   if(typeof _origOpenChat2==='function'){
-    window.openChat=function(u){ _origOpenChat2(u); setTimeout(_applySavedWall,50); };
+    window.openChat=function(u){ _origOpenChat2(u); setTimeout(_applySavedWall,80); };
   }
+  // После загрузки страницы ещё раз применяем с задержкой
+  window.addEventListener('load', function(){ setTimeout(_applySavedWall, 500); });
 })();
 
 // ── CALL MINIMIZE / RESTORE ──
