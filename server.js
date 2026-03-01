@@ -446,8 +446,15 @@ io.on('connection', (socket) => {
   // ── WebRTC ─────────────────────────────────────────────────────────────
   socket.on('call_user', ({ to, offer, callType }) => {
     if (!me) return;
-    if (!isOnline(to)) { socket.emit('call_busy'); return; }
+    // ФИКС: не блокируем звонок из-за isOnline — отправляем и смотрим
+    // isOnline может быть устаревшим если сокет только что реконнектнулся
     sendTo(to, 'incoming_call', { from: me.username, offer, callType });
+    // Если получатель не в онлайн-списке — шлём busy только после паузы
+    if (!isOnline(to)) {
+      setTimeout(() => {
+        if (!isOnline(to)) socket.emit('call_busy');
+      }, 800);
+    }
   });
 
   socket.on('call_answer', ({ to, answer }) => {
