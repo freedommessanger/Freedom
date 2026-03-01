@@ -9982,5 +9982,504 @@ setTimeout(upgradeDateDivs, 300);
 /* ══ END PREMIUM MESSENGER REDESIGN ══ */
 
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+  MEGA FIX: 1) Mic/Cam в видеозвонке  2) Качество видео + ICE
+            3) Обои  4) Dynamic Island с drag и кастомизацией
+════════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+'use strict';
+
+/* ─────────────────────────────────────────────────────────────
+   FIX 1 & 2: Видеозвонок — качество HD, микрофон всегда работает
+   Перебиваем startCall, tMute, tCam глобально
+───────────────────────────────────────────────────────────── */
+window._callStream = null; // всегда актуальный стрим
+
+var HD_VIDEO = { width:{ideal:1280,max:1920}, height:{ideal:720,max:1080}, frameRate:{ideal:30,max:60}, facingMode:'user' };
+var HD_AUDIO = { echoCancellation:true, noiseSuppression:true, autoGainControl:true };
+var ICE_CFG  = { iceServers:[
+  {urls:'stun:stun.l.google.com:19302'},
+  {urls:'stun:stun1.l.google.com:19302'},
+  {urls:'stun:stun2.l.google.com:19302'},
+  {urls:'stun:openrelay.metered.ca:80'},
+  {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'}
+]};
+
+// Патчим getUserMedia для HD через MutationObserver-независимый способ
+var _origGUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+navigator.mediaDevices.getUserMedia = function(constraints){
+  if(constraints && constraints.video === true){
+    constraints.video = HD_VIDEO;
+  }
+  if(constraints && constraints.audio === true){
+    constraints.audio = HD_AUDIO;
+  }
+  return _origGUM(constraints).then(function(s){
+    window._callStream = s;
+    return s;
+  });
+};
+
+// Фикс tMute — всегда берёт актуальный трек
+window.tMute = function(btn){
+  var s = window._callStream || window.stream;
+  if(!s){ console.warn('tMute: no stream'); return; }
+  var tracks = s.getAudioTracks();
+  if(!tracks.length){ console.warn('tMute: no audio tracks'); return; }
+  var t = tracks[0];
+  t.enabled = !t.enabled;
+  if(btn) btn.classList.toggle('muted', !t.enabled);
+};
+
+// Фикс tCam — аналогично
+window.tCam = function(btn){
+  var s = window._callStream || window.stream;
+  if(!s){ return; }
+  var tracks = s.getVideoTracks();
+  if(!tracks.length){ return; }
+  var t = tracks[0];
+  t.enabled = !t.enabled;
+  if(btn) btn.classList.toggle('muted', !t.enabled);
+};
+
+// Патчим showCallUI чтобы кнопки всегда вешали свежий обработчик
+var _origShowCallUI = window.showCallUI;
+window.showCallUI = function(u, type, mode, offer){
+  if(typeof _origShowCallUI === 'function') _origShowCallUI(u, type, mode, offer);
+  // Перепривязываем кнопки после рендера
+  setTimeout(function(){
+    var mb = document.getElementById('cbmute');
+    if(mb){ mb.onclick = function(){ window.tMute(this); }; }
+    var cb = document.getElementById('cbcam');
+    if(cb){ cb.onclick = function(){ window.tCam(this); }; }
+  }, 50);
+};
+
+/* ─────────────────────────────────────────────────────────────
+   FIX 3: Обои — применяем после каждого renderMsgs/openChat
+   Используем MutationObserver на #msgs
+───────────────────────────────────────────────────────────── */
+function _applyWallNow(){
+  var saved = localStorage.getItem('chatWallpaper');
+  var css   = localStorage.getItem('chatWallpaperCSS');
+  if(!saved || saved==='none' || !css) return;
+  var targets = ['msgs','chat-view','chat-body','messages'];
+  targets.forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){
+      el.style.setProperty('background-image', css, 'important');
+      el.style.setProperty('background-size',  'cover', 'important');
+      el.style.setProperty('background-position','center','important');
+      el.classList.add('has-wall');
+    }
+  });
+  // также querySelector для запасного варианта
+  var ms = document.querySelector('.msgs');
+  if(ms){
+    ms.style.setProperty('background-image', css, 'important');
+    ms.style.setProperty('background-size',  'cover', 'important');
+    ms.style.setProperty('background-position','center','important');
+    ms.classList.add('has-wall');
+  }
+}
+
+// Переопределяем setWallpaper чтобы тоже применял везде
+window.setWallpaper = function(id, css){
+  if(!id){
+    ['msgs','chat-view','chat-body','messages'].forEach(function(i){
+      var el=document.getElementById(i); if(el){el.style.backgroundImage='';el.classList.remove('has-wall');}
+    });
+    var ms=document.querySelector('.msgs'); if(ms){ms.style.backgroundImage='';ms.classList.remove('has-wall');}
+    localStorage.removeItem('chatWallpaper'); localStorage.removeItem('chatWallpaperCSS');
+    var sub=document.getElementById('wall-sub'); if(sub) sub.textContent='Без фона';
+  } else {
+    localStorage.setItem('chatWallpaper', id);
+    localStorage.setItem('chatWallpaperCSS', css);
+    _applyWallNow();
+    var walls=window.WALLS||[];
+    var w=walls.find(function(x){return x.id===id;});
+    var sub=document.getElementById('wall-sub'); if(sub) sub.textContent=w?w.label:'Своя';
+  }
+  if(typeof window.closeWallModal==='function') window.closeWallModal();
+};
+
+// Патчим openChat чтобы обои применялись после загрузки сообщений
+var _wcOrigOC = window.openChat;
+window.openChat = function(username){
+  if(typeof _wcOrigOC === 'function') _wcOrigOC(username);
+  setTimeout(_applyWallNow, 120);
+  setTimeout(_applyWallNow, 400);
+};
+
+// MutationObserver: применяем обои при добавлении #msgs в DOM
+var _wallObs = new MutationObserver(function(){
+  var saved = localStorage.getItem('chatWallpaper');
+  if(saved && saved !== 'none') _applyWallNow();
+});
+_wallObs.observe(document.body, {childList:true, subtree:true});
+
+// Применяем сразу и через задержки
+_applyWallNow();
+setTimeout(_applyWallNow, 500);
+setTimeout(_applyWallNow, 1500);
+
+/* ─────────────────────────────────────────────────────────────
+   FIX 4: Dynamic Island — перетаскиваемый, кастомизируемый
+───────────────────────────────────────────────────────────── */
+
+// Настройки острова из localStorage
+var DI_DEFAULTS = {
+  shape:   'pill',   // pill | rounded | circle | sharp
+  color:   'dark',   // dark | accent | green | gradient | glass
+  size:    'normal', // compact | normal | large
+  glow:    '1',      // 0 | 1
+  showTimer: '1',
+  position: 'top-center' // top-center | top-right | top-left | floating
+};
+function diGet(k){ return localStorage.getItem('di_'+k) || DI_DEFAULTS[k]; }
+function diSet(k,v){ localStorage.setItem('di_'+k, v); }
+
+// Стили острова
+var DI_STYLES = {
+  shape:{
+    pill:     'border-radius:50px',
+    rounded:  'border-radius:20px',
+    circle:   'border-radius:50%',
+    sharp:    'border-radius:8px'
+  },
+  color:{
+    dark:     'background:rgba(10,10,16,0.95);border:1px solid rgba(255,255,255,0.1)',
+    accent:   'background:linear-gradient(135deg,rgba(79,142,247,0.95),rgba(124,77,255,0.95));border:1px solid rgba(255,255,255,0.2)',
+    green:    'background:linear-gradient(135deg,rgba(20,180,80,0.95),rgba(0,140,60,0.95));border:1px solid rgba(255,255,255,0.15)',
+    gradient: 'background:linear-gradient(135deg,rgba(15,15,30,0.97),rgba(79,142,247,0.3));border:1px solid rgba(79,142,247,0.4)',
+    glass:    'background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)'
+  },
+  size:{
+    compact: 'padding:6px 14px;font-size:11px',
+    normal:  'padding:10px 18px;font-size:13px',
+    large:   'padding:14px 22px;font-size:15px'
+  },
+  glow:{
+    '0': '',
+    '1': 'box-shadow:0 0 24px rgba(79,142,247,0.35),0 8px 32px rgba(0,0,0,0.5)'
+  }
+};
+
+// Инициализируем DI HTML
+function buildDI(){
+  var old = document.getElementById('dynamic-island');
+  if(old) old.remove();
+
+  var di = document.createElement('div');
+  di.id = 'dynamic-island';
+  var shape = diGet('shape'), color = diGet('color'), size = diGet('size'), glow = diGet('glow');
+
+  di.style.cssText = [
+    'position:fixed',
+    'top:16px',
+    'left:50%',
+    'transform:translateX(-50%)',
+    'z-index:9999',
+    'display:none',
+    'align-items:center',
+    'gap:10px',
+    'cursor:pointer',
+    'user-select:none',
+    'transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+    'color:#fff',
+    DI_STYLES.shape[shape]||DI_STYLES.shape.pill,
+    DI_STYLES.color[color]||DI_STYLES.color.dark,
+    DI_STYLES.size[size]||DI_STYLES.size.normal,
+    glow==='1' ? DI_STYLES.glow['1'] : ''
+  ].join(';');
+
+  // Восстанавливаем позицию если была плавающей
+  var savedX = localStorage.getItem('di_x'), savedY = localStorage.getItem('di_y');
+  if(savedX && savedY){
+    di.style.left   = savedX;
+    di.style.top    = savedY;
+    di.style.transform = 'none';
+  }
+
+  di.innerHTML = [
+    '<div id="di-pulse" style="width:8px;height:8px;border-radius:50%;background:#34d058;animation:diPulse 1.4s ease infinite;flex-shrink:0"></div>',
+    '<div id="di-av" style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;overflow:hidden"></div>',
+    '<div style="display:flex;flex-direction:column;min-width:0">',
+      '<div id="di-name" style="font-weight:700;white-space:nowrap;line-height:1.2">В звонке</div>',
+      '<div id="di-timer" style="color:rgba(255,255,255,0.65);font-size:11px;font-weight:500;line-height:1.2">0:00</div>',
+    '</div>',
+    '<div style="display:flex;align-items:center;gap:6px;margin-left:4px">',
+      '<button id="di-mute-btn" onclick="event.stopPropagation();diToggleMute()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0" title="Микрофон">',
+        _micSVG(),
+      '</button>',
+      '<button id="di-end-btn" onclick="event.stopPropagation();endCall()" style="width:28px;height:28px;border-radius:50%;border:none;background:#ef4444;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .2s;flex-shrink:0" title="Завершить">',
+        _endSVG(),
+      '</button>',
+      '<button id="di-settings-btn" onclick="event.stopPropagation();openDISettings()" style="width:24px;height:24px;border-radius:50%;border:none;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0" title="Настройки острова">',
+        _gearSVG(),
+      '</button>',
+    '</div>'
+  ].join('');
+
+  document.body.appendChild(di);
+
+  // Клик = развернуть звонок
+  di.addEventListener('click', function(e){
+    if(e.target.closest('button')) return;
+    if(typeof window.restoreCallOverlay === 'function') window.restoreCallOverlay();
+  });
+
+  // Drag
+  _makeDraggable(di);
+
+  // Анимация
+  var style = document.getElementById('di-keyframes');
+  if(!style){
+    style = document.createElement('style');
+    style.id = 'di-keyframes';
+    style.textContent = '@keyframes diPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(0.85)}} @keyframes diIn{from{opacity:0;transform:translateX(-50%) scale(0.7)}to{opacity:1;transform:translateX(-50%) scale(1)}}';
+    document.head.appendChild(style);
+  }
+
+  return di;
+}
+
+function _micSVG(muted){
+  if(muted) return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+}
+function _endSVG(){
+  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" transform="rotate(135,12,12)"/></svg>';
+}
+function _gearSVG(){
+  return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+}
+
+// Drag реализация
+function _makeDraggable(el){
+  var isDragging=false, startX=0, startY=0, elX=0, elY=0;
+  var handle = el;
+  handle.addEventListener('mousedown', function(e){
+    if(e.target.closest('button')) return;
+    isDragging=true;
+    var rect=el.getBoundingClientRect();
+    elX=rect.left; elY=rect.top;
+    startX=e.clientX-elX; startY=e.clientY-elY;
+    el.style.transition='none';
+    e.preventDefault();
+  });
+  handle.addEventListener('touchstart', function(e){
+    if(e.target.closest('button')) return;
+    isDragging=true;
+    var rect=el.getBoundingClientRect();
+    elX=rect.left; elY=rect.top;
+    startX=e.touches[0].clientX-elX; startY=e.touches[0].clientY-elY;
+    el.style.transition='none';
+  },{passive:true});
+  document.addEventListener('mousemove', function(e){
+    if(!isDragging) return;
+    var nx=e.clientX-startX, ny=e.clientY-startY;
+    nx=Math.max(0,Math.min(nx,window.innerWidth-el.offsetWidth));
+    ny=Math.max(0,Math.min(ny,window.innerHeight-el.offsetHeight));
+    el.style.left=nx+'px'; el.style.top=ny+'px'; el.style.transform='none';
+    localStorage.setItem('di_x', nx+'px'); localStorage.setItem('di_y', ny+'px');
+  });
+  document.addEventListener('touchmove', function(e){
+    if(!isDragging) return;
+    var nx=e.touches[0].clientX-startX, ny=e.touches[0].clientY-startY;
+    nx=Math.max(0,Math.min(nx,window.innerWidth-el.offsetWidth));
+    ny=Math.max(0,Math.min(ny,window.innerHeight-el.offsetHeight));
+    el.style.left=nx+'px'; el.style.top=ny+'px'; el.style.transform='none';
+    localStorage.setItem('di_x', nx+'px'); localStorage.setItem('di_y', ny+'px');
+  },{passive:true});
+  document.addEventListener('mouseup', function(){ isDragging=false; el.style.transition=''; });
+  document.addEventListener('touchend', function(){ isDragging=false; el.style.transition=''; });
+}
+
+// Кнопка мут в острове
+window._diMuted = false;
+window.diToggleMute = function(){
+  var s = window._callStream || window.stream;
+  if(s){
+    var t = s.getAudioTracks()[0];
+    if(t){ t.enabled=!t.enabled; window._diMuted=!t.enabled; }
+  }
+  var btn = document.getElementById('di-mute-btn');
+  if(btn){
+    btn.innerHTML = _micSVG(window._diMuted);
+    btn.style.background = window._diMuted ? 'rgba(239,68,68,0.7)' : 'rgba(255,255,255,0.15)';
+  }
+  // Синхронизируем с основной кнопкой
+  var mb = document.getElementById('cbmute');
+  if(mb) mb.classList.toggle('muted', window._diMuted);
+};
+
+// Настройки Dynamic Island
+window.openDISettings = function(){
+  var old = document.getElementById('di-settings-modal');
+  if(old){old.remove();return;}
+
+  var m = document.createElement('div');
+  m.id = 'di-settings-modal';
+  m.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:10000;background:var(--sidebar);border:1px solid var(--border);border-radius:20px;padding:20px;width:320px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.5)';
+
+  m.innerHTML = [
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">',
+      '<div style="font-weight:700;font-size:15px">⚙️ Dynamic Island</div>',
+      '<button onclick="document.getElementById(\'di-settings-modal\').remove()" style="border:none;background:none;color:var(--text2);cursor:pointer;font-size:20px;line-height:1">×</button>',
+    '</div>',
+
+    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Форма</div>',
+    '<div style="display:flex;gap:6px;margin-bottom:14px">',
+      _diBtn('shape','pill','💊 Пилюля'),
+      _diBtn('shape','rounded','⬛ Скруглённый'),
+      _diBtn('shape','circle','⭕ Круглый'),
+      _diBtn('shape','sharp','📐 Острый'),
+    '</div>',
+
+    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Цвет</div>',
+    '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">',
+      _diBtn('color','dark','🖤 Тёмный'),
+      _diBtn('color','accent','💙 Акцент'),
+      _diBtn('color','green','💚 Зелёный'),
+      _diBtn('color','gradient','🌈 Градиент'),
+      _diBtn('color','glass','🔮 Стекло'),
+    '</div>',
+
+    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Размер</div>',
+    '<div style="display:flex;gap:6px;margin-bottom:14px">',
+      _diBtn('size','compact','S Компакт'),
+      _diBtn('size','normal','M Нормал'),
+      _diBtn('size','large','L Большой'),
+    '</div>',
+
+    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Свечение</div>',
+    '<div style="display:flex;gap:6px;margin-bottom:14px">',
+      _diBtn('glow','1','✨ Включено'),
+      _diBtn('glow','0','🚫 Выключено'),
+    '</div>',
+
+    '<div style="display:flex;gap:8px;margin-top:4px">',
+      '<button onclick="diResetPos()" style="flex:1;padding:9px;border:1px solid var(--border);background:var(--surface);color:var(--text2);border-radius:10px;cursor:pointer;font-size:13px;font-family:inherit">📍 Сбросить позицию</button>',
+      '<button onclick="document.getElementById(\'di-settings-modal\').remove()" style="flex:1;padding:9px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit">Готово</button>',
+    '</div>'
+  ].join('');
+
+  document.body.appendChild(m);
+
+  // Клик вне — закрыть
+  setTimeout(function(){
+    document.addEventListener('click', function _cls(e){
+      if(!m.contains(e.target) && !e.target.closest('#dynamic-island')){m.remove();document.removeEventListener('click',_cls);}
+    });
+  }, 10);
+};
+
+function _diBtn(param, val, label){
+  var active = diGet(param) === val;
+  return '<button onclick="diApply(\''+param+'\',\''+val+'\')" style="padding:7px 10px;border-radius:8px;border:1px solid '+(active?'var(--accent)':'var(--border)')+';background:'+(active?'var(--accent-dim)':'var(--surface)')+';color:'+(active?'var(--accent)':'var(--text2)')+';cursor:pointer;font-size:11px;font-weight:600;font-family:inherit;transition:all .15s">'+label+'</button>';
+}
+
+window.diApply = function(param, val){
+  diSet(param, val);
+  buildDI();
+  // Показываем если был показан
+  if(window._callMinimized2){
+    var di=document.getElementById('dynamic-island'); if(di) di.style.display='flex';
+  }
+  // Обновляем панель настроек
+  var m=document.getElementById('di-settings-modal');
+  if(m){
+    var tmp=document.createElement('div');
+    tmp.innerHTML=m.outerHTML;
+    m.remove();
+    window.openDISettings();
+  }
+};
+
+window.diResetPos = function(){
+  localStorage.removeItem('di_x'); localStorage.removeItem('di_y');
+  var di=document.getElementById('dynamic-island');
+  if(di){ di.style.left='50%'; di.style.top='16px'; di.style.transform='translateX(-50%)'; }
+};
+
+// Строим остров при загрузке
+buildDI();
+
+/* Переопределяем minimizeCallOverlay чтобы использовать Dynamic Island */
+window._callMinimized2 = false;
+window.minimizeCallOverlay = function(){
+  var co = document.getElementById('co');
+  if(co){ co.classList.remove('on'); co.style.display='none'; }
+
+  var di = document.getElementById('dynamic-island');
+  if(!di) di = buildDI();
+
+  // Копируем аватар и имя
+  var cav = document.getElementById('cav');
+  var diAv = document.getElementById('di-av');
+  if(cav && diAv){
+    diAv.style.background = cav.style.background;
+    diAv.innerHTML = cav.innerHTML;
+  }
+  var cnm = document.getElementById('cnm'), diNm = document.getElementById('di-name');
+  if(cnm && diNm) diNm.textContent = cnm.textContent;
+
+  di.style.display = 'flex';
+  window._callMinimized2 = true;
+  window._inCall = true;
+
+  // Таймер синхронизация
+  clearInterval(window._diTimerSync);
+  window._diTimerSync = setInterval(function(){
+    var ct = document.getElementById('ctmr'), dt = document.getElementById('di-timer');
+    if(ct && dt) dt.textContent = ct.textContent||'0:00';
+    if(!window._inCall){ clearInterval(window._diTimerSync); }
+  }, 500);
+
+  // Скрываем старый mini-call-bar
+  var old = document.getElementById('mini-call-bar'); if(old) old.style.display='none';
+  var sb  = document.getElementById('sb-call-status'); if(sb)  sb.style.display='none';
+};
+
+window.restoreCallOverlay = function(){
+  clearInterval(window._diTimerSync);
+  var di = document.getElementById('dynamic-island'); if(di) di.style.display='none';
+  var co = document.getElementById('co');
+  if(co){ co.style.display=''; co.classList.add('on'); }
+  window._callMinimized2 = false;
+  var old = document.getElementById('mini-call-bar'); if(old) old.style.display='none';
+};
+
+// Прячем Dynamic Island при завершении звонка
+var _origDCC2 = window._doCleanCall;
+window._doCleanCall = function(){
+  if(typeof _origDCC2==='function') _origDCC2();
+  clearInterval(window._diTimerSync);
+  var di=document.getElementById('dynamic-island'); if(di) di.style.display='none';
+  window._callMinimized2=false; window._inCall=false;
+};
+
+// Также перехватываем endCall для чистки
+var _origEndCall = window.endCall;
+window.endCall = function(){
+  clearInterval(window._diTimerSync);
+  var di=document.getElementById('dynamic-island'); if(di) di.style.display='none';
+  window._callMinimized2=false; window._inCall=false;
+  if(typeof _origEndCall==='function') _origEndCall();
+};
+
+// Скрываем старый mini-call-bar стилями
+(function(){
+  var s=document.createElement('style');
+  s.textContent='#mini-call-bar{display:none!important}';
+  document.head.appendChild(s);
+})();
+
+})();
+</script>
 </body>
 </html>
