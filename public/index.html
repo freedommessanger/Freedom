@@ -276,11 +276,11 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .pm-over { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:400; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
 .pm-over.on { display:flex; }
 .pm-card { background:var(--sidebar); border:1px solid var(--border); border-radius:22px; width:340px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.3); }
-.pm-banner { height:110px; position:relative; overflow:visible; }
-.pm-banner-grad { position:absolute; inset:0; background:linear-gradient(135deg,var(--accent) 0%,#7c4dff 100%); border-radius:22px 22px 0 0; }
-.pm-banner-img { position:absolute; inset:0; background-size:cover; background-position:center; border-radius:22px 22px 0 0; }
-.pm-banner-edit { position:absolute; bottom:8px; right:44px; width:28px; height:28px; background:rgba(0,0,0,0.5); border:none; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; transition:background .2s; }
-.pm-banner-edit:hover { background:rgba(0,0,0,0.75); }
+.pm-banner { height:120px; position:relative; overflow:hidden; border-radius:22px 22px 0 0; }
+.pm-banner-grad { position:absolute; inset:0; background:linear-gradient(135deg,var(--accent) 0%,#7c4dff 100%); }
+.pm-banner-img { position:absolute; inset:0; background-size:cover; background-position:center; background-repeat:no-repeat; }
+.pm-banner-edit { position:absolute; bottom:8px; right:44px; width:30px; height:30px; background:rgba(0,0,0,0.55); border:1.5px solid rgba(255,255,255,0.2); border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; transition:background .2s; z-index:5; }
+.pm-banner-edit:hover { background:rgba(0,0,0,0.8); }
 .pm-body { padding:0 20px 20px; position:relative; z-index:2; }
 .pm-av-row { display:flex; align-items:flex-end; justify-content:space-between; margin-top:-36px; margin-bottom:12px; position:relative; z-index:3; }
 .pm-av { width:72px; height:72px; border-radius:50%; border:3px solid var(--sidebar); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700; overflow:hidden; position:relative; z-index:4; flex-shrink:0; }
@@ -982,12 +982,13 @@ function connectSocket() {
     const token = localStorage.getItem('fcToken');
     const savedSession = localStorage.getItem('userSession');
     const creds = token ? token : (savedSession ? JSON.parse(savedSession) : null);
-    if (creds && !me) {
+    if (creds) {
+      // ФИКС: убран !me — reconnect тоже должен перерегистрироваться на сервере
       socket.emit('restore_session', creds, (res) => {
         if (res && res.user) {
-          onLoggedIn(res.user);
+          if (!me) onLoggedIn(res.user);
+          else { me = res.user; updateMyUI(); }
         } else if (token) {
-          // токен устарел — пробуем по паролю
           localStorage.removeItem('fcToken');
           if (savedSession) {
             socket.emit('restore_session', JSON.parse(savedSession), (r2) => {
@@ -2329,9 +2330,9 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 .pm-over { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:400; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
 .pm-over.on { display:flex; }
 .pm-card { background:var(--sidebar); border:1px solid var(--border); border-radius:22px; width:340px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.6); }
-.pm-banner { height:110px; position:relative; }
+.pm-banner { height:120px; position:relative; overflow:hidden; border-radius:22px 22px 0 0; }
 .pm-banner-grad { position:absolute; inset:0; background:linear-gradient(135deg,var(--accent) 0%,#7c4dff 100%); }
-.pm-banner-img { position:absolute; inset:0; background-size:cover; background-position:center; }
+.pm-banner-img { position:absolute; inset:0; background-size:cover; background-position:center; background-repeat:no-repeat; }
 .pm-body { padding:0 20px 20px; }
 .pm-av-row { display:flex; align-items:flex-end; justify-content:space-between; margin-top:-32px; margin-bottom:12px; }
 .pm-av { width:68px; height:68px; border-radius:18px; border:3px solid var(--sidebar); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700; overflow:hidden; }
@@ -2737,18 +2738,30 @@ function init(){
   socket.on('call_ended',()=>callSt('Звонок завершён',true));
   socket.on('call_rejected',()=>{callSt('Отклонено',true);try{_injectCallMsg(callUser,'missed');}catch(e){}});
   socket.on('call_busy',()=>callSt('Занято',true));
-  // ── Восстановление сессии после переподключения ──
+  // ФИКС: ВСЕГДА переподключаемся при reconnect — иначе сервер теряет socket и
+  // сообщения/звонки не доходят (sendTo пишет в мёртвый сокет)
   socket.on('connect',()=>{
-    if(!me){
-      const token = localStorage.getItem('fcToken');
-      const saved = localStorage.getItem('userSession');
-      const creds = token ? token : (saved ? JSON.parse(saved) : null);
-      if(creds){
-        socket.emit('restore_session', creds, r=>{
-          if(r&&r.user) onAuth(r.user);
-          else if(token){ localStorage.removeItem('fcToken'); if(saved){ socket.emit('restore_session',JSON.parse(saved),r2=>{if(r2&&r2.user)onAuth(r2.user);}); } }
-        });
-      }
+    const token = localStorage.getItem('fcToken');
+    const saved = localStorage.getItem('userSession');
+    const creds = token ? token : (saved ? JSON.parse(saved) : null);
+    if(creds){
+      socket.emit('restore_session', creds, r=>{
+        if(r&&r.user){
+          me=r.user; // обновляем me даже если уже были залогинены
+          if(G('auth-screen')&&G('auth-screen').style.display!=='none'){
+            // Первый вход — показываем приложение
+            G('auth-screen').style.display='none';
+            G('app').classList.add('on');
+            updMe(); loadUsers();
+          } else {
+            // Reconnect — тихо обновляем, не мешаем UI
+            updMe();
+          }
+        } else if(token){
+          localStorage.removeItem('fcToken');
+          if(saved){ socket.emit('restore_session',JSON.parse(saved),r2=>{if(r2&&r2.user)onAuth(r2.user);}); }
+        }
+      });
     }
   });
   socket.on('upgrade_token', t=>{ if(t) localStorage.setItem('fcToken',t); });
@@ -3052,7 +3065,17 @@ function toggleEdit(){
     G('eb').value=me.bio||'';
     // Обновляем превью баннера
     var prev=G('sett-banner-preview');
-    if(prev){ if(me.banner){ prev.style.backgroundImage='url("'+me.banner+'")'; } else { prev.style.backgroundImage=''; } }
+    if(prev){
+      if(me&&me.banner){
+        prev.style.backgroundImage='url("'+me.banner+'")';
+        prev.style.backgroundSize='cover';
+        prev.style.backgroundPosition='center';
+        prev.style.backgroundRepeat='no-repeat';
+      } else {
+        prev.style.backgroundImage='';
+        prev.style.background='linear-gradient(135deg,var(--accent),#7c4dff)';
+      }
+    }
     f.classList.add('on');
   }
   else f.classList.remove('on');
@@ -3072,7 +3095,7 @@ function chgAv(e){
   };
   r.readAsDataURL(f); e.target.value='';
 }
-// Загрузка баннера из модалки профиля (кнопка редактирования прямо на баннере)
+// Загрузка баннера из модалки профиля
 function uploadBanner(e){
   const f=e.target.files[0]; if(!f)return;
   const r=new FileReader();
@@ -3082,9 +3105,20 @@ function uploadBanner(e){
         me=res.user;
         var bannerImg=G('pm-banner-img')||G('pm-banner-img2');
         var bannerGrad=G('pm-banner-grad')||G('pm-banner-grad2');
-        if(bannerImg){ bannerImg.style.backgroundImage='url("'+me.banner+'")'; bannerImg.style.display='block'; }
+        if(bannerImg&&me.banner){
+          bannerImg.style.backgroundImage='url("'+me.banner+'")';
+          bannerImg.style.backgroundSize='cover';
+          bannerImg.style.backgroundPosition='center';
+          bannerImg.style.backgroundRepeat='no-repeat';
+          bannerImg.style.display='block';
+        }
         if(bannerGrad) bannerGrad.style.display='none';
-        var prev=G('sett-banner-preview'); if(prev) prev.style.backgroundImage='url("'+me.banner+'")';
+        var prev=G('sett-banner-preview');
+        if(prev&&me.banner){
+          prev.style.backgroundImage='url("'+me.banner+'")';
+          prev.style.backgroundSize='cover';
+          prev.style.backgroundPosition='center';
+        }
       }
     });
   };
@@ -3098,7 +3132,21 @@ function settUploadBanner(e){
     socket.emit('update_profile',{banner:ev.target.result},res=>{
       if(res?.ok){
         me=res.user;
-        var prev=G('sett-banner-preview'); if(prev) prev.style.backgroundImage='url("'+me.banner+'")';
+        var prev=G('sett-banner-preview');
+        if(prev&&me.banner){
+          prev.style.backgroundImage='url("'+me.banner+'")';
+          prev.style.backgroundSize='cover';
+          prev.style.backgroundPosition='center';
+        }
+        var bannerImg=G('pm-banner-img')||G('pm-banner-img2');
+        var bannerGrad=G('pm-banner-grad')||G('pm-banner-grad2');
+        if(bannerImg&&me.banner){
+          bannerImg.style.backgroundImage='url("'+me.banner+'")';
+          bannerImg.style.backgroundSize='cover';
+          bannerImg.style.backgroundPosition='center';
+          bannerImg.style.display='block';
+          if(bannerGrad) bannerGrad.style.display='none';
+        }
         updMe();
       }
     });
@@ -3141,7 +3189,8 @@ function showPM(username){
   var bannerEditBtn = G('pm-banner-edit-btn');
   if(bannerImg && bannerGrad){
     if(u.banner){
-      bannerImg.style.backgroundImage='url("'+u.banner+'")';
+      if(typeof _applyBannerToEl==='function') _applyBannerToEl(bannerImg, u.banner);
+      else { bannerImg.style.backgroundImage='url("'+u.banner+'")'; bannerImg.style.backgroundSize='cover'; bannerImg.style.backgroundPosition='center'; }
       bannerImg.style.display='block';
       bannerGrad.style.display='none';
     } else {
@@ -3150,7 +3199,7 @@ function showPM(username){
     }
   }
   if(bannerEditBtn) bannerEditBtn.style.display=isSelf?'flex':'none';
-  if(isSelf){ var prev=G('sett-banner-preview'); if(prev&&me.banner){ prev.style.backgroundImage='url("'+me.banner+'")'; } }
+  if(isSelf){ var prev=G('sett-banner-preview'); if(prev&&me.banner){ if(typeof _applyBannerToEl==='function') _applyBannerToEl(prev, me.banner); else prev.style.backgroundImage='url("'+me.banner+'")'; } }
   // Joined date
   const jEl=G('pm-joined');
   if(jEl){
@@ -7816,6 +7865,15 @@ window.masterAccept=async function(offer,ctype,from,u){
 };
 
 // ФИКС: функции управления микрофоном и камерой для принявшего звонок
+// ФИКС: правильно применяем баннер с cover
+function _applyBannerToEl(el, url) {
+  if (!el) return;
+  el.style.backgroundImage = 'url("' + url + '")';
+  el.style.backgroundSize = 'cover';
+  el.style.backgroundPosition = 'center';
+  el.style.backgroundRepeat = 'no-repeat';
+}
+
 window.masterToggleMute = function(btn) {
   var s = null;
   try{ s = stream; }catch(e){}
