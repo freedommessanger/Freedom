@@ -979,24 +979,18 @@ function connectSocket() {
   socket.on('call_busy', () => showCallStatus('Занято', true));
   // ФИКС: используем токен сессии для восстановления (надёжнее)
   socket.on('connect', () => {
-    const token = localStorage.getItem('fcToken');
-    const savedSession = localStorage.getItem('userSession');
-    const creds = token ? token : (savedSession ? JSON.parse(savedSession) : null);
-    if (creds) {
-      // ФИКС: убран !me — reconnect тоже должен перерегистрироваться на сервере
-      socket.emit('restore_session', creds, (res) => {
-        if (res && res.user) {
-          if (!me) onLoggedIn(res.user);
-          else { me = res.user; updateMyUI(); }
-        } else if (token) {
-          localStorage.removeItem('fcToken');
-          if (savedSession) {
-            socket.emit('restore_session', JSON.parse(savedSession), (r2) => {
-              if (r2 && r2.user) onLoggedIn(r2.user);
+    if(!me){
+      const saved = localStorage.getItem('userSession');
+      if(saved){
+        try{
+          const {username,password}=JSON.parse(saved);
+          if(username&&password){
+            socket.emit('login',{username,password},res=>{
+              if(res&&(res.user||res.ok)) onAuth(res.user||res);
             });
           }
-        }
-      });
+        }catch(e){}
+      }
     }
   });
   // ФИКС: сервер может прислать обновлённый токен
@@ -2737,34 +2731,24 @@ function init(){
   socket.on('ice_candidate',({candidate})=>{try{if(pc)pc.addIceCandidate(candidate);}catch(e){}});
   socket.on('call_ended',()=>callSt('Звонок завершён',true));
   socket.on('call_rejected',()=>{callSt('Отклонено',true);try{_injectCallMsg(callUser,'missed');}catch(e){}});
-  socket.on('call_busy',()=>callSt('Занято',true));
-  // ФИКС: ВСЕГДА переподключаемся при reconnect — иначе сервер теряет socket и
-  // сообщения/звонки не доходят (sendTo пишет в мёртвый сокет)
+  socket.on('call_busy',()=>callSt('Пользователь недоступен',true));
+  // Восстановление сессии на reconnect — используем login (надёжнее токенов)
   socket.on('connect',()=>{
-    const token = localStorage.getItem('fcToken');
-    const saved = localStorage.getItem('userSession');
-    const creds = token ? token : (saved ? JSON.parse(saved) : null);
-    if(creds){
-      socket.emit('restore_session', creds, r=>{
-        if(r&&r.user){
-          me=r.user; // обновляем me даже если уже были залогинены
-          if(G('auth-screen')&&G('auth-screen').style.display!=='none'){
-            // Первый вход — показываем приложение
-            G('auth-screen').style.display='none';
-            G('app').classList.add('on');
-            updMe(); loadUsers();
-          } else {
-            // Reconnect — тихо обновляем, не мешаем UI
-            updMe();
+    if(!me){
+      const saved = localStorage.getItem('userSession');
+      if(saved){
+        try{
+          const {username,password}=JSON.parse(saved);
+          if(username&&password){
+            socket.emit('login',{username,password},r=>{
+              if(r&&(r.user||r.ok)) onAuth(r.user||r);
+              else localStorage.removeItem('userSession');
+            });
           }
-        } else if(token){
-          localStorage.removeItem('fcToken');
-          if(saved){ socket.emit('restore_session',JSON.parse(saved),r2=>{if(r2&&r2.user)onAuth(r2.user);}); }
-        }
-      });
+        }catch(e){ localStorage.removeItem('userSession'); }
+      }
     }
   });
-  socket.on('upgrade_token', t=>{ if(t) localStorage.setItem('fcToken',t); });
   // ── Применяем сохранённую тему ──
   const savedTheme=localStorage.getItem('theme')||'dark';
   document.documentElement.setAttribute('data-theme',savedTheme);
@@ -7247,7 +7231,7 @@ $('messages-area')?.addEventListener('contextmenu', e => e.preventDefault());
     </div>
 
     <script>
-        var socket2 = io();
+        var socket2 = { emit:function(){}, on:function(){} }; // отключён — не создаём лишний сокет
         var sharedSecret = null;
         // --- DH ALGORITHM ---
         var P = 0xFFFFFFFB;
@@ -7959,7 +7943,10 @@ window.sendMsg=function(){
   try{attachImg=null;}catch(e){}try{replyTo=null;replyMsg=null;}catch(e){}
   var rs=document.getElementById('rs'),is=document.getElementById('is');
   if(rs)rs.classList.remove('on');if(is)is.classList.remove('on');
-  socket.emit('send_message',{to:target,text:text,replyTo:rid,image:img},function(res){
+  // ФИКС: сервер принимает 'content'+'type', а не 'text'+'image'
+  var msgContent = img || text;
+  var msgType = img ? 'image' : 'text';
+  socket.emit('send_message',{to:target,content:msgContent,type:msgType,replyTo:rid},function(res){
     if(!res||!res.ok)return;
     if(res.message){
       var alreadyRendered=document.getElementById('mw-'+res.message.id);
