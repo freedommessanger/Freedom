@@ -332,15 +332,18 @@ io.on('connection', (socket) => {
   });
 
   // ── Отправить сообщение ────────────────────────────────────────────────
-  socket.on('send_message', async ({ to, content, type = 'text', replyTo, duration }, cb) => {
-    if (!me || !to || !content) return cb?.({ ok: false });
+  socket.on('send_message', async ({ to, content, text, image, type, replyTo, duration }, cb) => {
+    // ФИКС: клиент может слать 'text'/'image' вместо 'content'/'type'
+    const msgContent = content || text || image || null;
+    const msgType = type || (image ? 'image' : 'text');
+    if (!me || !to || !msgContent) return cb?.({ ok: false });
     try {
       const msg = {
         id:        makeId(),
         from:      me.username,
         to,
-        content,
-        type,
+        content:   msgContent,
+        type:      msgType,
         replyTo:   replyTo  || null,
         duration:  duration || null,
         timestamp: Date.now(),
@@ -446,15 +449,12 @@ io.on('connection', (socket) => {
   // ── WebRTC ─────────────────────────────────────────────────────────────
   socket.on('call_user', ({ to, offer, callType }) => {
     if (!me) return;
-    // ФИКС: не блокируем звонок из-за isOnline — отправляем и смотрим
-    // isOnline может быть устаревшим если сокет только что реконнектнулся
-    sendTo(to, 'incoming_call', { from: me.username, offer, callType });
-    // Если получатель не в онлайн-списке — шлём busy только после паузы
     if (!isOnline(to)) {
-      setTimeout(() => {
-        if (!isOnline(to)) socket.emit('call_busy');
-      }, 800);
+      // Пользователь оффлайн — сразу говорим звонящему
+      socket.emit('call_busy');
+      return;
     }
+    sendTo(to, 'incoming_call', { from: me.username, offer, callType });
   });
 
   socket.on('call_answer', ({ to, answer }) => {
