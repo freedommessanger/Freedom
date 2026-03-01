@@ -10425,20 +10425,6 @@ window.endCall = function(){
   BEAUTIFUL CUSTOMIZATION v3 — Панель настроек + Обои + Dynamic Island
 ════════════════════════════════════════════════════════ -->
 <style>
-/* ── INPUT FIX: prevent pseudo-elements from shifting compose bar ── */
-.iwrap, .input-wrap, .input-bar, .input-row, .cinp {
-  position: relative !important;
-  z-index: 2 !important;
-  transform: translateZ(0);
-}
-.msgs.has-wall > .iwrap,
-.msgs.has-wall > .input-bar,
-.chat-area > div:last-child,
-#chat-view > div:last-child {
-  z-index: 2 !important;
-  background: var(--sidebar) !important;
-}
-
 /* ── Базовые переменные ── */
 :root {
   --accent2: #7c4dff;
@@ -11439,6 +11425,280 @@ function _waitSocket(n){
 }
 setTimeout(_waitSocket,300);
 if(window.socket) _patchSocketForContacts(window.socket);
+
+})();
+</script>
+
+<!-- ═══ FINAL FIX ═══
+  1. Обои — полный ребилд _initWallGridCD
+  2. Инпут не съезжает — чистый CSS без z-index/position хаков
+  3. Убираем кнопку "Кастомизация" из настроек (бесит)
+  4. Dynamic Island — openDISettings открывает drawer правильно
+-->
+<style>
+/* ── 1. Инпут — фиксируем сдвиг ── */
+/* Убираем все хаки с z-index/position на ibar */
+.ibar {
+  position: static !important;
+  z-index: auto !important;
+  transform: none !important;
+  flex-shrink: 0 !important;
+  background: var(--sidebar) !important;
+  border-top: 1px solid var(--border) !important;
+  padding: 10px 14px 12px !important;
+}
+/* msgs НЕ должен быть position:relative из-за has-wall — только внутри самого msgs */
+.msgs.has-wall {
+  position: relative !important;
+}
+.msgs.has-wall::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+/* Всё внутри msgs поверх оверлея */
+.msgs.has-wall > * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+/* ibar и chat-hd НЕ участвуют в has-wall стекинге */
+.ibar, .chat-hd {
+  position: static !important;
+  z-index: auto !important;
+}
+</style>
+
+<script>
+(function(){
+'use strict';
+
+/* ── 2. ОБОИ: полностью переписываем _initWallGridCD ── */
+var WALLS_FINAL = [
+  {id:'none',   label:'Нет',      css:null},
+  {id:'wf1',    label:'Сумерки',  css:'linear-gradient(160deg,#0a0015,#1a0533,#2d1b69)'},
+  {id:'wf2',    label:'Закат',    css:'linear-gradient(160deg,#1a0a00,#4a1500,#ff6b35,#ff9a56)'},
+  {id:'wf3',    label:'Океан',    css:'linear-gradient(160deg,#000d1a,#001f3f,#0070a8,#00b4d8)'},
+  {id:'wf4',    label:'Лес',      css:'linear-gradient(160deg,#010d03,#0a2311,#1a5c2a,#34d058)'},
+  {id:'wf5',    label:'Розовый',  css:'linear-gradient(160deg,#1a0010,#4a0025,#cc1f5e,#ff6b9d)'},
+  {id:'wf6',    label:'Космос',   css:'radial-gradient(ellipse at 20% 30%,#4f8ef7,transparent 50%),radial-gradient(ellipse at 80% 70%,#7c4dff,transparent 50%),#050510'},
+  {id:'wf7',    label:'Аврора',   css:'linear-gradient(135deg,#001a12,#003322,#00aa66,#7c4dff)'},
+  {id:'wf8',    label:'Сахара',   css:'linear-gradient(160deg,#1a0d00,#3d1f00,#8b4513,#d4a050)'},
+  {id:'wf9',    label:'Радуга',   css:'linear-gradient(135deg,#ff0080,#ff8c00,#40e0d0)'},
+  {id:'wf10',   label:'Ночь',     css:'linear-gradient(160deg,#000000,#0a0a2e,#1a1a4e)'},
+  {id:'wf11',   label:'Мята',     css:'linear-gradient(160deg,#001a10,#00331f,#00cc66,#80ffcc)'},
+];
+
+window._WALLS_FINAL = WALLS_FINAL;
+
+// Применение обоев — единая функция
+function applyWallFinal(css) {
+  var targets = document.querySelectorAll('#msgs, .msgs');
+  targets.forEach(function(el) {
+    if (css) {
+      el.style.backgroundImage = css;
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundPosition = 'center';
+      el.classList.add('has-wall');
+    } else {
+      el.style.backgroundImage = '';
+      el.style.backgroundSize = '';
+      el.classList.remove('has-wall');
+    }
+  });
+}
+
+// Переопределяем setWallpaper полностью
+window.setWallpaper = function(id, css) {
+  if (!id || id === 'none') {
+    localStorage.removeItem('chatWallpaper');
+    localStorage.removeItem('chatWallpaperCSS');
+    applyWallFinal(null);
+    var sub = document.getElementById('wall-sub');
+    if (sub) sub.textContent = 'Без фона';
+  } else {
+    localStorage.setItem('chatWallpaper', id);
+    localStorage.setItem('chatWallpaperCSS', css);
+    applyWallFinal(css);
+    var w = WALLS_FINAL.find(function(x){ return x.id === id; });
+    var sub = document.getElementById('wall-sub');
+    if (sub) sub.textContent = w ? w.label : 'Своя';
+  }
+  // Обновить грид
+  _buildWallGrid();
+  if (typeof closeCustomDrawer !== 'undefined' && false) closeCustomDrawer(); // не закрываем
+};
+
+// Для загрузки своего фото
+window.handleWallFile = function(e) {
+  var f = e.target.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function(ev) {
+    var css = 'url("' + ev.target.result + '")';
+    localStorage.setItem('chatWallpaper', 'custom');
+    localStorage.setItem('chatWallpaperCSS', css);
+    applyWallFinal(css);
+    var sub = document.getElementById('wall-sub');
+    if (sub) sub.textContent = 'Своя картинка';
+    _buildWallGrid();
+  };
+  r.readAsDataURL(f);
+  e.target.value = '';
+};
+
+// Строим грид обоев
+function _buildWallGrid() {
+  var g = document.getElementById('cd-wall-grid');
+  if (!g) return;
+  var saved = localStorage.getItem('chatWallpaper') || 'none';
+  g.innerHTML = '';
+  WALLS_FINAL.forEach(function(w) {
+    var d = document.createElement('div');
+    var isActive = w.id === saved || (saved === 'none' && w.id === 'none');
+    if (w.id === 'none') {
+      d.className = 'wall-item-new wall-none-new' + (isActive ? ' active' : '');
+      d.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Нет</span>';
+      d.onclick = function() { window.setWallpaper(null); };
+    } else {
+      d.className = 'wall-item-new' + (isActive ? ' active' : '');
+      d.style.background = w.css;
+      d.innerHTML = '<div class="wall-label">' + w.label + '</div>';
+      d.onclick = (function(ww){ return function() { window.setWallpaper(ww.id, ww.css); }; })(w);
+    }
+    g.appendChild(d);
+  });
+}
+
+// Экспортируем для switchCDTab
+window._initWallGridCD = _buildWallGrid;
+
+// Применяем сохранённые обои при любом рендере msgs
+var _wallObs = new MutationObserver(function(muts) {
+  var css = localStorage.getItem('chatWallpaperCSS');
+  var id  = localStorage.getItem('chatWallpaper');
+  if (!css || !id || id === 'none') return;
+  muts.forEach(function(m) {
+    m.addedNodes.forEach(function(n) {
+      if (n.nodeType !== 1) return;
+      if (n.id === 'msgs' || n.classList && n.classList.contains('msgs')) {
+        n.style.backgroundImage = css;
+        n.style.backgroundSize  = 'cover';
+        n.style.backgroundPosition = 'center';
+        n.classList.add('has-wall');
+      }
+    });
+  });
+});
+_wallObs.observe(document.body, { childList: true, subtree: true });
+
+// Применяем сразу
+(function(){
+  var css = localStorage.getItem('chatWallpaperCSS');
+  var id  = localStorage.getItem('chatWallpaper');
+  if (css && id && id !== 'none') {
+    setTimeout(function(){ applyWallFinal(css); }, 100);
+    setTimeout(function(){ applyWallFinal(css); }, 600);
+  }
+})();
+
+// Патчим openChat чтобы обои применялись после загрузки сообщений
+var _origOC_wall = window.openChat;
+window.openChat = function(u) {
+  if (typeof _origOC_wall === 'function') _origOC_wall(u);
+  var css = localStorage.getItem('chatWallpaperCSS');
+  var id  = localStorage.getItem('chatWallpaper');
+  if (css && id && id !== 'none') {
+    setTimeout(function(){ applyWallFinal(css); }, 80);
+  }
+};
+
+
+/* ── 3. Убираем кнопку "Кастомизация" из настроек ── */
+setTimeout(function() {
+  document.querySelectorAll('.open-custom-btn').forEach(function(b) {
+    b.style.display = 'none';
+  });
+  // Убираем из будущих вставок
+  var orig = window.openSett || window.openSettings;
+}, 600);
+// Перехватываем добавление кнопки
+var _origSetBody = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+// Более простой способ — просто убираем через MutationObserver
+var _settObs = new MutationObserver(function() {
+  document.querySelectorAll('.open-custom-btn').forEach(function(b) {
+    b.remove();
+  });
+});
+_settObs.observe(document.body, { childList: true, subtree: true });
+
+
+/* ── 4. Dynamic Island настройки ── */
+// openDISettings → открывает drawer на вкладку Island
+window.openDISettings = function() {
+  if (typeof openCustomDrawer === 'function') {
+    openCustomDrawer('island');
+  }
+};
+
+// Добавляем кнопку настроек прямо на Dynamic Island (через buildDI)
+// Патчим buildDI чтобы кнопка шестерёнки правильно работала
+var _origBuildDI = window.buildDI;
+window.buildDI = function() {
+  var di = typeof _origBuildDI === 'function' ? _origBuildDI() : null;
+  // Перепривязываем кнопку настроек
+  setTimeout(function() {
+    var btn = document.getElementById('di-settings-btn');
+    if (btn) {
+      btn.onclick = function(e) {
+        e.stopPropagation();
+        openDISettings();
+      };
+    }
+  }, 50);
+  return di;
+};
+// Перепривязываем сразу если остров уже есть
+setTimeout(function() {
+  var btn = document.getElementById('di-settings-btn');
+  if (btn) btn.onclick = function(e) { e.stopPropagation(); openDISettings(); };
+}, 300);
+
+/* ── openCustomDrawer: правильное переключение вкладок ── */
+var _origOCD = window.openCustomDrawer;
+window.openCustomDrawer = function(tab) {
+  var d = document.getElementById('custom-drawer');
+  var o = document.getElementById('custom-drawer-overlay');
+  if (!d) return;
+  d.classList.add('open');
+  if (o) o.classList.add('open');
+  if (typeof _initCD === 'function') _initCD();
+  
+  var targetTab = tab || 'appearance';
+  // Деактивируем все
+  d.querySelectorAll('.cd-section').forEach(function(s){ s.classList.remove('active'); });
+  d.querySelectorAll('.cd-tab').forEach(function(b){ b.classList.remove('active'); });
+  // Активируем нужную
+  var sec = document.getElementById('cds-' + targetTab);
+  if (sec) sec.classList.add('active');
+  d.querySelectorAll('.cd-tab').forEach(function(b) {
+    if ((b.getAttribute('onclick') || '').indexOf("'" + targetTab + "'") !== -1) {
+      b.classList.add('active');
+    }
+  });
+  // Инициализируем грид обоев при переходе на chat
+  if (targetTab === 'chat') setTimeout(_buildWallGrid, 50);
+  setTimeout(_buildWallGrid, 100);
+  // Обновить превью DI
+  if (typeof _updateDIPreview === 'function') setTimeout(_updateDIPreview, 50);
+};
+
+// При клике на вкладку chat — строим грид
+var _origSwitchCDTab = window.switchCDTab;
+window.switchCDTab = function(name, btn) {
+  if (typeof _origSwitchCDTab === 'function') _origSwitchCDTab(name, btn);
+  if (name === 'chat') setTimeout(_buildWallGrid, 50);
+};
 
 })();
 </script>
