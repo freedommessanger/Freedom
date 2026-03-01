@@ -159,8 +159,10 @@ async function getContacts(username) {
 
   return rows.map(r => ({
     ...userPublic(r),
-    lastMessage: r.lastMessage || null,
-    unread:      r.unread || 0,
+    lastMessage: r.lastMessage
+      ? { ...r.lastMessage, timestamp: Number(r.lastMessage.timestamp) }
+      : null,
+    unread: r.unread || 0,
   }));
 }
 
@@ -324,7 +326,7 @@ io.on('connection', (socket) => {
             OR (from_user = $2 AND to_user = $1))
         ORDER BY timestamp ASC
       `, [me.username, partner]);
-      cb(rows);
+      cb(rows.map(r => ({ ...r, timestamp: Number(r.timestamp) })));
     } catch (e) {
       console.error('get_messages:', e.message);
       cb([]);
