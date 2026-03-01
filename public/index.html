@@ -10319,70 +10319,15 @@ window.diToggleMute = function(){
 
 // Настройки Dynamic Island
 window.openDISettings = function(){
-  var old = document.getElementById('di-settings-modal');
-  if(old){old.remove();return;}
-
-  var m = document.createElement('div');
-  m.id = 'di-settings-modal';
-  m.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:10000;background:var(--sidebar);border:1px solid var(--border);border-radius:20px;padding:20px;width:320px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.5)';
-
-  m.innerHTML = [
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">',
-      '<div style="font-weight:700;font-size:15px">⚙️ Dynamic Island</div>',
-      '<button onclick="document.getElementById(\'di-settings-modal\').remove()" style="border:none;background:none;color:var(--text2);cursor:pointer;font-size:20px;line-height:1">×</button>',
-    '</div>',
-
-    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Форма</div>',
-    '<div style="display:flex;gap:6px;margin-bottom:14px">',
-      _diBtn('shape','pill','💊 Пилюля'),
-      _diBtn('shape','rounded','⬛ Скруглённый'),
-      _diBtn('shape','circle','⭕ Круглый'),
-      _diBtn('shape','sharp','📐 Острый'),
-    '</div>',
-
-    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Цвет</div>',
-    '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">',
-      _diBtn('color','dark','🖤 Тёмный'),
-      _diBtn('color','accent','💙 Акцент'),
-      _diBtn('color','green','💚 Зелёный'),
-      _diBtn('color','gradient','🌈 Градиент'),
-      _diBtn('color','glass','🔮 Стекло'),
-    '</div>',
-
-    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Размер</div>',
-    '<div style="display:flex;gap:6px;margin-bottom:14px">',
-      _diBtn('size','compact','S Компакт'),
-      _diBtn('size','normal','M Нормал'),
-      _diBtn('size','large','L Большой'),
-    '</div>',
-
-    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Свечение</div>',
-    '<div style="display:flex;gap:6px;margin-bottom:14px">',
-      _diBtn('glow','1','✨ Включено'),
-      _diBtn('glow','0','🚫 Выключено'),
-    '</div>',
-
-    '<div style="display:flex;gap:8px;margin-top:4px">',
-      '<button onclick="diResetPos()" style="flex:1;padding:9px;border:1px solid var(--border);background:var(--surface);color:var(--text2);border-radius:10px;cursor:pointer;font-size:13px;font-family:inherit">📍 Сбросить позицию</button>',
-      '<button onclick="document.getElementById(\'di-settings-modal\').remove()" style="flex:1;padding:9px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit">Готово</button>',
-    '</div>'
-  ].join('');
-
-  document.body.appendChild(m);
-
-  // Клик вне — закрыть
-  setTimeout(function(){
-    document.addEventListener('click', function _cls(e){
-      if(!m.contains(e.target) && !e.target.closest('#dynamic-island')){m.remove();document.removeEventListener('click',_cls);}
-    });
-  }, 10);
+  // Открываем красивый drawer на вкладку Island
+  if(typeof openCustomDrawer==='function'){
+    openCustomDrawer('island');
+    return;
+  }
+  // fallback: старое окно не нужно
+  return;
 };
-
-function _diBtn(param, val, label){
-  var active = diGet(param) === val;
-  return '<button onclick="diApply(\''+param+'\',\''+val+'\')" style="padding:7px 10px;border-radius:8px;border:1px solid '+(active?'var(--accent)':'var(--border)')+';background:'+(active?'var(--accent-dim)':'var(--surface)')+';color:'+(active?'var(--accent)':'var(--text2)')+';cursor:pointer;font-size:11px;font-weight:600;font-family:inherit;transition:all .15s">'+label+'</button>';
-}
-
+// (old DI settings modal removed)
 window.diApply = function(param, val){
   diSet(param, val);
   buildDI();
@@ -10390,14 +10335,8 @@ window.diApply = function(param, val){
   if(window._callMinimized2){
     var di=document.getElementById('dynamic-island'); if(di) di.style.display='flex';
   }
-  // Обновляем панель настроек
-  var m=document.getElementById('di-settings-modal');
-  if(m){
-    var tmp=document.createElement('div');
-    tmp.innerHTML=m.outerHTML;
-    m.remove();
-    window.openDISettings();
-  }
+  // Обновляем превью в drawer если открыт
+  if(typeof _updateDIPreview==='function') _updateDIPreview();
 };
 
 window.diResetPos = function(){
@@ -10486,6 +10425,20 @@ window.endCall = function(){
   BEAUTIFUL CUSTOMIZATION v3 — Панель настроек + Обои + Dynamic Island
 ════════════════════════════════════════════════════════ -->
 <style>
+/* ── INPUT FIX: prevent pseudo-elements from shifting compose bar ── */
+.iwrap, .input-wrap, .input-bar, .input-row, .cinp {
+  position: relative !important;
+  z-index: 2 !important;
+  transform: translateZ(0);
+}
+.msgs.has-wall > .iwrap,
+.msgs.has-wall > .input-bar,
+.chat-area > div:last-child,
+#chat-view > div:last-child {
+  z-index: 2 !important;
+  background: var(--sidebar) !important;
+}
+
 /* ── Базовые переменные ── */
 :root {
   --accent2: #7c4dff;
@@ -10663,10 +10616,12 @@ window.endCall = function(){
 .wall-item-new:hover { transform: scale(1.04); border-color: var(--accent); }
 .wall-item-new.active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 .wall-item-new.active::after {
-  content: '✓'; position: absolute; top: 8px; right: 8px;
-  width: 22px; height: 22px; background: var(--accent); border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 12px; font-weight: 700;
+  content: '✓';
+  position: absolute; top: 8px; right: 8px;
+  width: 22px; height: 22px;
+  background: var(--accent); border-radius: 50%;
+  display: block; line-height: 22px; text-align: center;
+  color: #fff; font-size: 13px; font-weight: 800;
 }
 .wall-none-new {
   background: var(--surface2); display: flex; flex-direction: column;
@@ -11020,8 +10975,15 @@ window.openCustomDrawer = function(tab){
   var o=document.getElementById('custom-drawer-overlay');
   d.classList.add('open'); o.classList.add('open');
   _initCD();
-  if(tab) switchCDTab(tab, d.querySelector('[onclick*="\''+tab+'\'"]'));
-};
+  // Switch to requested tab
+  var targetTab = tab || 'appearance';
+  var tabBtns = d.querySelectorAll('.cd-tab');
+  tabBtns.forEach(function(b){
+    if((b.getAttribute('onclick')||'').indexOf("'"+targetTab+"'") !== -1) b.click();
+  });
+  // Always init wall grid
+  setTimeout(_initWallGridCD, 100);
+}
 window.closeCustomDrawer = function(){
   document.getElementById('custom-drawer').classList.remove('open');
   document.getElementById('custom-drawer-overlay').classList.remove('open');
@@ -11034,6 +10996,7 @@ window.switchCDTab = function(name, btn){
   if(sec) sec.classList.add('active');
   if(btn) btn.classList.add('active');
   if(name==='chat') _initWallGridCD();
+  setTimeout(_initWallGridCD, 0); // lazy init in case drawer not yet rendered
 };
 
 /* ─── Темы ─── */
@@ -11199,10 +11162,12 @@ function _initWallGridCD(){
 }
 
 window.setWallOpacity = function(val){
-  document.getElementById('wall-opacity-val').textContent=val+'%';
+  var el=document.getElementById('wall-opacity-val'); if(el) el.textContent=val+'%';
+  localStorage.setItem('wallOpacity', val);
+  var overlay = (1-(val/100)).toFixed(2);
   var s=document.getElementById('wall-opacity-style');
   if(!s){s=document.createElement('style');s.id='wall-opacity-style';document.head.appendChild(s);}
-  s.textContent='.msgs.has-wall,.chat-body.has-wall{opacity:1 !important}.msgs.has-wall::before,.has-wall::after{content:"";position:absolute;inset:0;background:rgba(var(--bg-rgb,13,15,20),'+((100-val)/100).toFixed(2)+');pointer-events:none;z-index:0}';
+  s.textContent='.msgs.has-wall{position:relative !important}.msgs.has-wall::before{content:"";position:absolute;inset:0;background:rgba(13,15,20,'+overlay+');pointer-events:none;z-index:0}.msgs.has-wall > *{position:relative;z-index:1}';
 };
 
 /* ─── Dynamic Island опции ─── */
@@ -11366,6 +11331,114 @@ setTimeout(function(){
 window.openWallModal = function(){
   openCustomDrawer('chat');
 };
+
+})();
+</script>
+
+<!-- MEGA FIX v4 -->
+<style>
+.sidebar { overflow: hidden !important; height: 100vh !important; max-height: 100vh !important; }
+#clist, .chat-list {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+</style>
+
+<script>
+(function(){
+'use strict';
+
+/* FIX 2+3+4: contacts из сервера */
+function _applyContacts(contacts) {
+  if (!contacts || !contacts.length) return;
+  try { window.users = contacts; } catch(e){}
+  try { window.allUsers = contacts; } catch(e){}
+  contacts.forEach(function(c) {
+    var lm = c.lastMessage;
+    if (lm) {
+      var msg = { content: lm.content||'', timestamp: Number(lm.timestamp), type: lm.type||'text', from: lm.from, to: lm.to, read: lm.read };
+      try { window.prev[c.username] = msg; } catch(e){}
+      try { window.chatPreviews[c.username] = msg; } catch(e){}
+    }
+    if (c.unread > 0) {
+      try { if(!window.unread[c.username]) window.unread[c.username] = c.unread; } catch(e){}
+    }
+  });
+  setTimeout(function(){
+    try { if(typeof renderList==='function') renderList(); } catch(e){}
+    try { if(typeof renderChatList==='function') renderChatList(); } catch(e){}
+  }, 0);
+}
+
+function _patchSocketForContacts(sock) {
+  if (sock._contactsPatched) return;
+  sock._contactsPatched = true;
+  var _origEmit = sock.emit.bind(sock);
+  sock.emit = function() {
+    var args = Array.prototype.slice.call(arguments);
+    var event = args[0];
+    if ((event === 'login' || event === 'register') && typeof args[args.length-1] === 'function') {
+      var origCb = args[args.length-1];
+      args[args.length-1] = function(res) {
+        if (res && res.ok && res.contacts) {
+          setTimeout(function(){ _applyContacts(res.contacts); }, 80);
+        }
+        origCb.apply(this, arguments);
+      };
+    }
+    return _origEmit.apply(sock, args);
+  };
+}
+
+/* FIX 2: "Неизвестно" */
+var _origOpenChat3 = window.openChat;
+window.openChat = function(username) {
+  var arr = (window.users||[]).concat(window.allUsers||[]);
+  var found = arr.find(function(x){ return x.username===username; });
+  if (!found) {
+    var ph = {username:username, displayName:username, online:false};
+    try { if(window.users && !window.users.find(function(x){return x.username===username;})) window.users.push(ph); } catch(e){}
+    try { if(window.allUsers && !window.allUsers.find(function(x){return x.username===username;})) window.allUsers.push(ph); } catch(e){}
+    // Асинхронно обновляем имя
+    fetch('/api/users').then(function(r){return r.json();}).then(function(all){
+      var real = (all||[]).find(function(x){return x.username===username;});
+      if(real){
+        var n=document.getElementById('ch-name'); if(n) n.textContent=real.displayName||username;
+        var n2=document.getElementById('cnm'); if(n2) n2.textContent=real.displayName||username;
+        try { window.users = (all||[]).filter(function(u){return window.me&&u.username!==window.me.username;}); } catch(e){}
+        try { window.allUsers = window.users; } catch(e){}
+      }
+    }).catch(function(){});
+  }
+  if (typeof _origOpenChat3==='function') return _origOpenChat3(username);
+};
+
+/* FIX 1: Скролл */
+function _fixScroll(){
+  ['clist','chat-list'].forEach(function(id){
+    var el=document.getElementById(id); if(!el) return;
+    el.style.overflowY='auto'; el.style.flex='1 1 0'; el.style.minHeight='0';
+  });
+  var sb=document.querySelector('.sidebar');
+  if(sb){ sb.style.height='100vh'; sb.style.maxHeight='100vh'; sb.style.overflow='hidden'; }
+}
+setTimeout(_fixScroll,200); setTimeout(_fixScroll,800);
+window.addEventListener('resize',_fixScroll);
+['renderList','renderChatList'].forEach(function(fn){
+  var orig=window[fn];
+  window[fn]=function(){ if(typeof orig==='function') orig.apply(this,arguments); _fixScroll(); };
+});
+
+/* Ждём socket */
+function _waitSocket(n){
+  n=n||0; var s=window.socket;
+  if(!s&&n<50){ return setTimeout(function(){_waitSocket(n+1);},150); }
+  if(s) _patchSocketForContacts(s);
+}
+setTimeout(_waitSocket,300);
+if(window.socket) _patchSocketForContacts(window.socket);
 
 })();
 </script>
