@@ -357,7 +357,7 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 @media(max-width:640px){
   .sidebar{width:100%!important;max-width:100%!important;}
   .chat-area{display:none;}
-  .chat-area.mob{display:flex!important;position:fixed;inset:0;z-index:50;width:100%;height:100%;}
+  .chat-area.mob{display:flex!important;position:fixed;inset:0;z-index:50;width:100%;height:auto;}
   .back-btn{display:flex!important;}
   .sett-panel{width:100%;right:-100%;}
   .sett-body{padding-bottom:160px !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important;}
@@ -2385,7 +2385,7 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 @media(max-width:640px){
   .sidebar{width:100%;}
   .chat-area{display:none;}
-  .chat-area.mob{display:flex;position:fixed;inset:0;z-index:50;}
+  .chat-area.mob{display:flex;position:fixed;inset:0;z-index:50;height:auto;}
   .back-btn{display:flex!important;}
   .sett-panel{width:100%;right:-100%;}
 }
@@ -7681,7 +7681,7 @@ input, textarea, .sett-inp, .sett-ta,
 /* ── 8. Мобайл ── */
 @media (max-width:768px) {
   .sett-panel { width:100% !important; }
-  #app.on .chat-area.mob { display:flex !important; flex-direction:column !important; height:100vh !important; overflow:hidden !important; }
+  #app.on .chat-area.mob { display:flex !important; flex-direction:column !important; overflow:hidden !important; }
 }
  END-STYLE-DISABLED -->
 
@@ -12287,6 +12287,209 @@ window.switchCDTab = function(name, btn) {
   new MutationObserver(function () {
     document.querySelectorAll('.open-custom-btn').forEach(function (b) { b.remove(); });
   }).observe(document.body, { childList: true, subtree: true });
+
+})();
+</script>
+
+<!-- ████ OVERRIDE: перебиваем ВСЕ конфликты ████ -->
+<style id="master-override">
+/* Мобильный чат — точная высота через JS */
+.chat-area.mob,
+.chat-area.mobile-open {
+  position: fixed !important;
+  top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important; /* JS перезапишет через el.style.height */
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  z-index: 50 !important;
+}
+/* chat-view внутри */
+#chat-view {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+/* messages */
+#msgs, .msgs {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+/* ibar — ФИНАЛЬНЫЙ победитель */
+.ibar {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  z-index: 2 !important;
+  transform: none !important;
+  will-change: auto !important;
+  background: var(--sidebar) !important;
+  border-top: 1px solid var(--border) !important;
+  padding: 10px 14px max(12px, env(safe-area-inset-bottom)) !important;
+}
+/* DI drawer поверх всего */
+#custom-drawer { z-index: 100000 !important; }
+#custom-drawer-overlay { z-index: 99999 !important; }
+</style>
+<script>
+/* OVERRIDE JS */
+(function(){
+  /* VisualViewport — точная высота на Android */
+  function _vh(){
+    var vv = window.visualViewport;
+    var h = vv ? vv.height : window.innerHeight;
+    document.querySelectorAll('.chat-area.mob,.chat-area.mobile-open').forEach(function(el){
+      el.style.setProperty('height', h+'px', 'important');
+    });
+  }
+  _vh();
+  window.addEventListener('resize', _vh);
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', _vh);
+    window.visualViewport.addEventListener('scroll', _vh);
+  }
+  // При открытии мобайл-чата
+  var _oc0 = window.openChat;
+  function _tryPatch(){
+    if(typeof window.openChat!=='function'){ return setTimeout(_tryPatch,300); }
+    if(window.openChat._vhPatched) return;
+    var _prev = window.openChat;
+    window.openChat = function(){
+      _prev.apply(this,arguments);
+      setTimeout(_vh,50); setTimeout(_vh,200); setTimeout(_vh,600);
+    };
+    window.openChat._vhPatched = true;
+  }
+  setTimeout(_tryPatch, 600);
+
+  /* Обои через <style> тег — перебивает всё */
+  function _applyWall(){
+    var id=localStorage.getItem('chatWallpaper');
+    var css=localStorage.getItem('chatWallpaperCSS');
+    var s=document.getElementById('wall-live');
+    if(!s){s=document.createElement('style');s.id='wall-live';document.head.appendChild(s);}
+    if(css && id && id!=='none'){
+      s.textContent='#msgs,.msgs{background-image:'+css+' !important;background-size:cover !important;background-position:center !important;}';
+      document.querySelectorAll('#msgs,.msgs').forEach(function(e){e.classList.add('has-wall');});
+    } else {
+      s.textContent='';
+      document.querySelectorAll('#msgs,.msgs').forEach(function(e){e.classList.remove('has-wall');});
+    }
+  }
+  _applyWall();
+  new MutationObserver(_applyWall).observe(document.body,{childList:true,subtree:true});
+
+  /* setWallpaper */
+  var _WALLS=[
+    {id:'none',label:'Нет',css:null},
+    {id:'wv1',label:'Сумерки',css:'linear-gradient(160deg,#0a0015,#1a0533,#2d1b69)'},
+    {id:'wv2',label:'Закат',css:'linear-gradient(160deg,#1a0a00,#4a1500,#ff6b35,#ff9a56)'},
+    {id:'wv3',label:'Океан',css:'linear-gradient(160deg,#000d1a,#001f3f,#0070a8,#00b4d8)'},
+    {id:'wv4',label:'Лес',css:'linear-gradient(160deg,#010d03,#0a2311,#1a5c2a,#34d058)'},
+    {id:'wv5',label:'Розовый',css:'linear-gradient(160deg,#1a0010,#4a0025,#cc1f5e,#ff6b9d)'},
+    {id:'wv6',label:'Космос',css:'radial-gradient(ellipse at 20% 30%,#4f8ef7,transparent 50%),radial-gradient(ellipse at 80% 70%,#7c4dff,transparent 50%),#050510'},
+    {id:'wv7',label:'Аврора',css:'linear-gradient(135deg,#001a12,#003322,#00aa66,#7c4dff)'},
+    {id:'wv8',label:'Сахара',css:'linear-gradient(160deg,#1a0d00,#3d1f00,#8b4513,#d4a050)'},
+    {id:'wv9',label:'Радуга',css:'linear-gradient(135deg,#ff0080,#ff8c00,#40e0d0)'},
+    {id:'wv10',label:'Ночь',css:'linear-gradient(160deg,#000,#0a0a2e,#1a1a4e)'},
+    {id:'wv11',label:'Мята',css:'linear-gradient(160deg,#001a10,#00331f,#00cc66,#80ffcc)'},
+  ];
+  window.setWallpaper=function(id,css){
+    if(!id||id==='none'){
+      localStorage.removeItem('chatWallpaper');localStorage.removeItem('chatWallpaperCSS');
+    } else {
+      var w=_WALLS.find(function(x){return x.id===id;});
+      var c=css||(w&&w.css); if(!c)return;
+      localStorage.setItem('chatWallpaper',id); localStorage.setItem('chatWallpaperCSS',c);
+    }
+    _applyWall(); _buildGrid();
+  };
+  function _buildGrid(){
+    var g=document.getElementById('cd-wall-grid'); if(!g)return;
+    var sv=localStorage.getItem('chatWallpaper')||'none';
+    g.innerHTML='';
+    _WALLS.forEach(function(w){
+      var d=document.createElement('div');
+      var act=w.id===sv;
+      if(w.id==='none'){
+        d.className='wall-item-new wall-none-new'+(act?' active':'');
+        d.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Нет</span>';
+        d.onclick=function(){window.setWallpaper(null);};
+      } else {
+        d.className='wall-item-new'+(act?' active':'');
+        d.style.background=w.css;
+        d.innerHTML='<div class="wall-label">'+w.label+'</div>';
+        d.onclick=(function(ww){return function(){window.setWallpaper(ww.id,ww.css);};})(w);
+      }
+      g.appendChild(d);
+    });
+  }
+  window._initWallGridCD=_buildGrid;
+
+  /* DI настройки */
+  window.openDISettings=function(){
+    var d=document.getElementById('custom-drawer');
+    var o=document.getElementById('custom-drawer-overlay');
+    if(!d)return;
+    d.classList.add('open'); if(o)o.classList.add('open');
+    d.querySelectorAll('.cd-section').forEach(function(s){s.classList.remove('active');});
+    d.querySelectorAll('.cd-tab').forEach(function(b){b.classList.remove('active');});
+    var sec=d.querySelector('#cds-island'); if(sec)sec.classList.add('active');
+    d.querySelectorAll('.cd-tab').forEach(function(b){
+      if((b.getAttribute('onclick')||'').indexOf("'island'")!==-1)b.classList.add('active');
+    });
+    if(typeof _updateDIPreview==='function')setTimeout(_updateDIPreview,60);
+  };
+  document.addEventListener('click',function(e){
+    var btn=e.target.closest&&e.target.closest('#di-settings-btn,[title="Настройки острова"]');
+    if(btn){e.stopImmediatePropagation();e.preventDefault();window.openDISettings();}
+  },true);
+
+  /* openCustomDrawer */
+  window.openCustomDrawer=function(tab){
+    var d=document.getElementById('custom-drawer');
+    var o=document.getElementById('custom-drawer-overlay');
+    if(!d)return;
+    d.classList.add('open'); if(o)o.classList.add('open');
+    var t=tab||'appearance';
+    d.querySelectorAll('.cd-section').forEach(function(s){s.classList.remove('active');});
+    d.querySelectorAll('.cd-tab').forEach(function(b){b.classList.remove('active');});
+    var sec=d.querySelector('#cds-'+t); if(sec)sec.classList.add('active');
+    d.querySelectorAll('.cd-tab').forEach(function(b){
+      if((b.getAttribute('onclick')||'').indexOf("'"+t+"'")!==-1)b.classList.add('active');
+    });
+    setTimeout(_buildGrid,80);
+    if(typeof _updateDIPreview==='function')setTimeout(_updateDIPreview,80);
+    if(typeof _initThemeGrid==='function')setTimeout(_initThemeGrid,80);
+    if(typeof _initAccentGrid==='function')setTimeout(_initAccentGrid,80);
+  };
+  window.switchCDTab=function(name,btn){
+    var d=document.getElementById('custom-drawer'); if(!d)return;
+    d.querySelectorAll('.cd-section').forEach(function(s){s.classList.remove('active');});
+    d.querySelectorAll('.cd-tab').forEach(function(b){b.classList.remove('active');});
+    var sec=d.querySelector('#cds-'+name); if(sec)sec.classList.add('active');
+    if(btn)btn.classList.add('active');
+    if(name==='chat')setTimeout(_buildGrid,50);
+    if(name==='island'&&typeof _updateDIPreview==='function')setTimeout(_updateDIPreview,50);
+  };
+  window.closeCustomDrawer=function(){
+    var d=document.getElementById('custom-drawer');
+    var o=document.getElementById('custom-drawer-overlay');
+    if(d)d.classList.remove('open'); if(o)o.classList.remove('open');
+  };
+
+  /* Убираем кнопку кастомизации из настроек */
+  new MutationObserver(function(){
+    document.querySelectorAll('.open-custom-btn').forEach(function(b){b.remove();});
+  }).observe(document.body,{childList:true,subtree:true});
 
 })();
 </script>
