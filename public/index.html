@@ -2,7 +2,7 @@
 <html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Freedom</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -12008,6 +12008,285 @@ window.switchCDTab = function(name, btn) {
   if (name === 'chat') setTimeout(window._initWallGridCD, 50);
   if (name === 'island' && typeof _updateDIPreview === 'function') setTimeout(_updateDIPreview, 50);
 };
+
+})();
+</script>
+
+<!-- ████ ABSOLUTE FINAL FIX ████ -->
+<style>
+/* === МОБИЛЬНЫЙ БАР: не съезжает === */
+/* Метод: JS задаёт --vh через visualViewport */
+:root { --vh: 1svh; }
+
+.chat-area.mob,
+.chat-area.mobile-open {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: auto !important;          /* НЕ 100vh — иначе под клавиатуру уедет */
+  display: flex !important;
+  flex-direction: column !important;
+  z-index: 50 !important;
+  overflow: hidden !important;
+}
+
+/* chat-view заполняет всё внутри chat-area */
+#chat-view {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
+/* msgs — прокручиваемая область */
+#msgs, .msgs {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* ibar — прилипает к низу, не выходит за экран */
+.ibar {
+  flex-shrink: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  background: var(--sidebar) !important;
+  border-top: 1px solid var(--border) !important;
+  padding: 10px 14px 12px !important;
+  padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+  position: relative !important;
+  z-index: 2 !important;
+  /* ВАЖНО: убираем transform который ломал layout */
+  transform: none !important;
+  will-change: auto !important;
+}
+
+/* === ОБОИ: только на msgs === */
+#msgs.has-wall {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: local !important;
+}
+
+/* === DI DRAWER: поверх всего === */
+#custom-drawer {
+  z-index: 100000 !important;
+}
+#custom-drawer-overlay {
+  z-index: 99999 !important;
+}
+</style>
+
+<script>
+/* ████ ABSOLUTE FINAL SCRIPT ████ */
+(function () {
+  'use strict';
+
+  /* ── 1. VisualViewport API: бар не съезжает на Android ── */
+  function _setHeight() {
+    var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    // Задаём высоту .chat-area.mob напрямую
+    document.querySelectorAll('.chat-area.mob, .chat-area.mobile-open').forEach(function (el) {
+      el.style.height = h + 'px';
+      el.style.maxHeight = h + 'px';
+    });
+    document.documentElement.style.setProperty('--vh', (h * 0.01) + 'px');
+  }
+  _setHeight();
+  window.addEventListener('resize', _setHeight);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', _setHeight);
+    window.visualViewport.addEventListener('scroll', _setHeight);
+  }
+  // Переприменяем при открытии чата (мобайл)
+  var _origCloseMob = window.closeMob;
+  window.closeMob = function () {
+    if (typeof _origCloseMob === 'function') _origCloseMob();
+    setTimeout(_setHeight, 50);
+  };
+
+  /* ── 2. Патч openChat — применяем высоту и обои ── */
+  var _hookedOC = false;
+  function _hookOpenChat() {
+    if (_hookedOC || typeof window.openChat !== 'function') {
+      if (!_hookedOC) return setTimeout(_hookOpenChat, 200);
+      return;
+    }
+    _hookedOC = true;
+    var _orig = window.openChat;
+    window.openChat = function (username) {
+      _orig.apply(this, arguments);
+      // Даём время для display:flex
+      requestAnimationFrame(function () {
+        _setHeight();
+        _applyWallNow();
+      });
+      setTimeout(function () { _setHeight(); _applyWallNow(); }, 150);
+      setTimeout(function () { _setHeight(); _applyWallNow(); }, 500);
+    };
+  }
+  setTimeout(_hookOpenChat, 400);
+
+  /* ── 3. Обои: надёжное применение ── */
+  function _applyWallNow() {
+    var id  = localStorage.getItem('chatWallpaper');
+    var css = localStorage.getItem('chatWallpaperCSS');
+    if (!id || id === 'none' || !css) return;
+    // Применяем через <style> тег — переопределяет всё
+    var styleId = 'wall-style-live';
+    var s = document.getElementById(styleId);
+    if (!s) { s = document.createElement('style'); s.id = styleId; document.head.appendChild(s); }
+    s.textContent = '#msgs, .msgs { background-image: ' + css + ' !important; background-size: cover !important; background-position: center !important; background-attachment: local !important; }';
+    // Также добавляем класс
+    document.querySelectorAll('#msgs, .msgs').forEach(function (el) { el.classList.add('has-wall'); });
+  }
+
+  function _clearWall() {
+    var s = document.getElementById('wall-style-live');
+    if (s) s.textContent = '';
+    document.querySelectorAll('#msgs, .msgs').forEach(function (el) { el.classList.remove('has-wall'); });
+  }
+
+  // Применяем сразу + при любом изменении DOM (новый msgs)
+  _applyWallNow();
+  var _wallObs = new MutationObserver(_applyWallNow);
+  _wallObs.observe(document.body, { childList: true, subtree: true });
+
+  // setWallpaper — финальная версия
+  var WALLS = [
+    { id: 'none',  label: 'Нет',      css: null },
+    { id: 'wv1',   label: 'Сумерки',  css: 'linear-gradient(160deg,#0a0015,#1a0533,#2d1b69)' },
+    { id: 'wv2',   label: 'Закат',    css: 'linear-gradient(160deg,#1a0a00,#4a1500,#ff6b35,#ff9a56)' },
+    { id: 'wv3',   label: 'Океан',    css: 'linear-gradient(160deg,#000d1a,#001f3f,#0070a8,#00b4d8)' },
+    { id: 'wv4',   label: 'Лес',      css: 'linear-gradient(160deg,#010d03,#0a2311,#1a5c2a,#34d058)' },
+    { id: 'wv5',   label: 'Розовый',  css: 'linear-gradient(160deg,#1a0010,#4a0025,#cc1f5e,#ff6b9d)' },
+    { id: 'wv6',   label: 'Космос',   css: 'radial-gradient(ellipse at 20% 30%,#4f8ef7,transparent 50%),radial-gradient(ellipse at 80% 70%,#7c4dff,transparent 50%),#050510' },
+    { id: 'wv7',   label: 'Аврора',   css: 'linear-gradient(135deg,#001a12,#003322,#00aa66,#7c4dff)' },
+    { id: 'wv8',   label: 'Сахара',   css: 'linear-gradient(160deg,#1a0d00,#3d1f00,#8b4513,#d4a050)' },
+    { id: 'wv9',   label: 'Радуга',   css: 'linear-gradient(135deg,#ff0080,#ff8c00,#40e0d0)' },
+    { id: 'wv10',  label: 'Ночь',     css: 'linear-gradient(160deg,#000,#0a0a2e,#1a1a4e)' },
+    { id: 'wv11',  label: 'Мята',     css: 'linear-gradient(160deg,#001a10,#00331f,#00cc66,#80ffcc)' },
+  ];
+
+  window.setWallpaper = function (id, css) {
+    if (!id || id === 'none') {
+      localStorage.removeItem('chatWallpaper');
+      localStorage.removeItem('chatWallpaperCSS');
+      _clearWall();
+    } else {
+      var w = WALLS.find(function (x) { return x.id === id; });
+      var finalCss = css || (w && w.css);
+      if (!finalCss) return;
+      localStorage.setItem('chatWallpaper', id);
+      localStorage.setItem('chatWallpaperCSS', finalCss);
+      _applyWallNow();
+    }
+    _buildWallGrid();
+  };
+
+  // Грид обоев
+  function _buildWallGrid() {
+    var g = document.getElementById('cd-wall-grid');
+    if (!g) return;
+    var saved = localStorage.getItem('chatWallpaper') || 'none';
+    g.innerHTML = '';
+    WALLS.forEach(function (w) {
+      var d = document.createElement('div');
+      var active = w.id === saved;
+      if (w.id === 'none') {
+        d.className = 'wall-item-new wall-none-new' + (active ? ' active' : '');
+        d.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Нет</span>';
+        d.onclick = function () { window.setWallpaper(null); };
+      } else {
+        d.className = 'wall-item-new' + (active ? ' active' : '');
+        d.style.background = w.css;
+        d.innerHTML = '<div class="wall-label">' + w.label + '</div>';
+        d.onclick = (function (ww) { return function () { window.setWallpaper(ww.id, ww.css); }; })(w);
+      }
+      g.appendChild(d);
+    });
+  }
+  window._initWallGridCD = _buildWallGrid;
+
+  /* ── 4. Dynamic Island настройки ── */
+  window.openDISettings = function () {
+    var d = document.getElementById('custom-drawer');
+    if (!d) { console.error('custom-drawer not found!'); return; }
+    var o = document.getElementById('custom-drawer-overlay');
+    // Показываем drawer
+    d.classList.add('open');
+    if (o) o.classList.add('open');
+    // Активируем вкладку island
+    d.querySelectorAll('.cd-section').forEach(function (s) { s.classList.remove('active'); });
+    d.querySelectorAll('.cd-tab').forEach(function (b) { b.classList.remove('active'); });
+    var sec = d.querySelector('#cds-island');
+    if (sec) sec.classList.add('active');
+    d.querySelectorAll('.cd-tab').forEach(function (b) {
+      if ((b.getAttribute('onclick') || '').indexOf("'island'") !== -1) b.classList.add('active');
+    });
+    if (typeof _updateDIPreview === 'function') setTimeout(_updateDIPreview, 60);
+  };
+
+  window.closeCustomDrawer = function () {
+    var d = document.getElementById('custom-drawer');
+    var o = document.getElementById('custom-drawer-overlay');
+    if (d) d.classList.remove('open');
+    if (o) o.classList.remove('open');
+  };
+
+  // Перехват клика по шестерёнке DI — capturing phase
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('#di-settings-btn');
+    if (btn) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      window.openDISettings();
+    }
+  }, true);
+
+  // openCustomDrawer — финальная
+  window.openCustomDrawer = function (tab) {
+    var d = document.getElementById('custom-drawer');
+    var o = document.getElementById('custom-drawer-overlay');
+    if (!d) return;
+    d.classList.add('open');
+    if (o) o.classList.add('open');
+    var t = tab || 'appearance';
+    d.querySelectorAll('.cd-section').forEach(function (s) { s.classList.remove('active'); });
+    d.querySelectorAll('.cd-tab').forEach(function (b) { b.classList.remove('active'); });
+    var sec = d.querySelector('#cds-' + t);
+    if (sec) sec.classList.add('active');
+    d.querySelectorAll('.cd-tab').forEach(function (b) {
+      if ((b.getAttribute('onclick') || '').indexOf("'" + t + "'") !== -1) b.classList.add('active');
+    });
+    setTimeout(_buildWallGrid, 60);
+    if (typeof _updateDIPreview === 'function') setTimeout(_updateDIPreview, 60);
+    if (typeof _initThemeGrid === 'function') setTimeout(_initThemeGrid, 60);
+    if (typeof _initAccentGrid === 'function') setTimeout(_initAccentGrid, 60);
+  };
+
+  window.switchCDTab = function (name, btn) {
+    var d = document.getElementById('custom-drawer');
+    if (!d) return;
+    d.querySelectorAll('.cd-section').forEach(function (s) { s.classList.remove('active'); });
+    d.querySelectorAll('.cd-tab').forEach(function (b) { b.classList.remove('active'); });
+    var sec = d.querySelector('#cds-' + name);
+    if (sec) sec.classList.add('active');
+    if (btn) btn.classList.add('active');
+    if (name === 'chat') setTimeout(_buildWallGrid, 50);
+    if (name === 'island' && typeof _updateDIPreview === 'function') setTimeout(_updateDIPreview, 50);
+  };
+
+  /* ── 5. Убираем кнопку кастомизации из настроек ── */
+  new MutationObserver(function () {
+    document.querySelectorAll('.open-custom-btn').forEach(function (b) { b.remove(); });
+  }).observe(document.body, { childList: true, subtree: true });
 
 })();
 </script>
