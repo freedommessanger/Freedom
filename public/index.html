@@ -10481,5 +10481,893 @@ window.endCall = function(){
 
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════════════════
+  BEAUTIFUL CUSTOMIZATION v3 — Панель настроек + Обои + Dynamic Island
+════════════════════════════════════════════════════════ -->
+<style>
+/* ── Базовые переменные ── */
+:root {
+  --accent2: #7c4dff;
+  --accent3: #ff6b9d;
+  --grad1: linear-gradient(135deg, #4f8ef7, #7c4dff);
+  --grad2: linear-gradient(135deg, #ff6b9d, #ff9a56);
+  --grad3: linear-gradient(135deg, #34d058, #00b4d8);
+}
+
+/* ── CUSTOMIZATION DRAWER ── */
+#custom-drawer {
+  position: fixed; top: 0; right: -480px; width: 440px; max-width: 100vw;
+  height: 100vh; background: var(--bg); z-index: 2000;
+  transition: right .35s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column;
+  box-shadow: -16px 0 60px rgba(0,0,0,0.5);
+  border-left: 1px solid var(--border);
+}
+#custom-drawer.open { right: 0; }
+#custom-drawer-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  z-index: 1999; opacity: 0; pointer-events: none;
+  transition: opacity .3s;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+#custom-drawer-overlay.open { opacity: 1; pointer-events: all; }
+
+/* ── Drawer Header ── */
+.cd-header {
+  padding: 20px 24px 0;
+  flex-shrink: 0;
+}
+.cd-header-top {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+}
+.cd-title { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+.cd-close {
+  width: 36px; height: 36px; border: none; border-radius: 50%;
+  background: var(--surface); color: var(--text2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; font-size: 18px;
+}
+.cd-close:hover { background: var(--surface2); color: var(--text); transform: rotate(90deg); }
+
+/* ── Tabs ── */
+.cd-tabs {
+  display: flex; gap: 4px; background: var(--surface);
+  border-radius: 16px; padding: 4px; margin-bottom: 4px;
+}
+.cd-tab {
+  flex: 1; padding: 9px 4px; border: none; background: none;
+  color: var(--text2); border-radius: 12px; cursor: pointer;
+  font-size: 12px; font-weight: 600; font-family: inherit;
+  transition: all .2s; display: flex; align-items: center;
+  justify-content: center; gap: 5px;
+}
+.cd-tab.active {
+  background: var(--sidebar); color: var(--text);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+.cd-tab-ico { font-size: 15px; }
+
+/* ── Body ── */
+.cd-body { flex: 1; overflow-y: auto; padding: 20px 24px; scrollbar-width: thin; }
+.cd-section { display: none; }
+.cd-section.active { display: block; }
+
+/* ── Section Title ── */
+.cd-sec-title {
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1.8px; color: var(--text3); margin: 20px 0 10px;
+}
+.cd-sec-title:first-child { margin-top: 0; }
+
+/* ── Cards ── */
+.cd-card {
+  background: var(--sidebar); border: 1px solid var(--border);
+  border-radius: 18px; overflow: hidden; margin-bottom: 12px;
+}
+.cd-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background .15s;
+}
+.cd-row:last-child { border-bottom: none; }
+.cd-row:hover { background: var(--surface); }
+.cd-row-ico {
+  width: 38px; height: 38px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 18px;
+}
+.cd-row-body { flex: 1; min-width: 0; }
+.cd-row-label { font-size: 14px; font-weight: 600; }
+.cd-row-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.cd-row-right { color: var(--text3); display: flex; align-items: center; gap: 6px; font-size: 12px; }
+
+/* ── Toggle ── */
+.cd-toggle { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+.cd-toggle input { opacity: 0; width: 0; height: 0; }
+.cd-toggle-slider {
+  position: absolute; inset: 0; background: var(--border2);
+  border-radius: 13px; transition: .25s; cursor: pointer;
+}
+.cd-toggle-slider::before {
+  content: ''; position: absolute; width: 20px; height: 20px;
+  left: 3px; top: 3px; background: #fff; border-radius: 50%;
+  transition: .25s; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.cd-toggle input:checked + .cd-toggle-slider { background: var(--accent); }
+.cd-toggle input:checked + .cd-toggle-slider::before { transform: translateX(20px); }
+
+/* ── Theme Grid ── */
+.theme-grid-new {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 4px;
+}
+.theme-card {
+  border-radius: 16px; border: 2px solid var(--border); cursor: pointer;
+  overflow: hidden; transition: all .2s; position: relative;
+}
+.theme-card:hover { transform: scale(1.03); border-color: var(--accent); }
+.theme-card.active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.theme-card-preview {
+  height: 70px; display: flex; gap: 3px; padding: 8px;
+}
+.tc-sidebar { width: 30%; border-radius: 8px; opacity: .9; }
+.tc-main { flex: 1; border-radius: 8px; opacity: .9; }
+.tc-bubble { width: 60%; height: 12px; border-radius: 6px; margin: auto 0; }
+.theme-card-label {
+  padding: 8px 10px; font-size: 12px; font-weight: 700;
+  background: var(--surface); border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.theme-card-check {
+  width: 16px; height: 16px; border-radius: 50%; background: var(--accent);
+  display: none; align-items: center; justify-content: center;
+}
+.theme-card.active .theme-card-check { display: flex; }
+
+/* ── Accent Colors ── */
+.accent-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 4px;
+}
+.accent-dot {
+  width: 100%; aspect-ratio: 1; border-radius: 50%; cursor: pointer;
+  transition: all .2s; border: 3px solid transparent;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.accent-dot:hover { transform: scale(1.15); }
+.accent-dot.active { border-color: #fff; transform: scale(1.15); box-shadow: 0 0 0 2px var(--accent), 0 4px 12px rgba(0,0,0,0.3); }
+
+/* ── Font Size ── */
+.font-size-row {
+  display: flex; align-items: center; gap: 12px; padding: 4px 0;
+}
+.fs-btn {
+  width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); cursor: pointer;
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+  transition: all .2s; flex-shrink: 0;
+}
+.fs-btn:hover { background: var(--surface2); border-color: var(--accent); }
+.fs-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; position: relative; }
+.fs-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .2s; }
+.fs-label { font-size: 13px; color: var(--text2); min-width: 30px; text-align: center; }
+
+/* ── Wallpaper Grid NEW ── */
+.wall-grid-new {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.wall-item-new {
+  aspect-ratio: 9/16; border-radius: 16px; cursor: pointer;
+  border: 2px solid var(--border); overflow: hidden;
+  transition: all .2s; position: relative;
+}
+.wall-item-new:hover { transform: scale(1.04); border-color: var(--accent); }
+.wall-item-new.active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.wall-item-new.active::after {
+  content: '✓'; position: absolute; top: 8px; right: 8px;
+  width: 22px; height: 22px; background: var(--accent); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 12px; font-weight: 700;
+}
+.wall-none-new {
+  background: var(--surface2); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px;
+  color: var(--text3); font-size: 11px; font-weight: 700;
+}
+.wall-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 20px 8px 8px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.6));
+  color: #fff; font-size: 10px; font-weight: 700;
+  text-align: center;
+}
+
+/* ── Bubble Style ── */
+.bubble-style-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.bubble-style-card {
+  border: 2px solid var(--border); border-radius: 14px; padding: 12px 10px;
+  cursor: pointer; transition: all .2s; text-align: center;
+  background: var(--surface);
+}
+.bubble-style-card:hover { border-color: var(--accent); }
+.bubble-style-card.active { border-color: var(--accent); background: var(--accent-dim); }
+.bs-preview {
+  height: 40px; display: flex; flex-direction: column;
+  align-items: flex-end; gap: 4px; margin-bottom: 8px;
+}
+.bs-bubble {
+  height: 14px; background: var(--accent); opacity: .7;
+}
+.bs-label { font-size: 11px; font-weight: 700; color: var(--text2); }
+.bubble-style-card.active .bs-label { color: var(--accent); }
+
+/* ── DI Island Preview ── */
+.di-preview-wrap {
+  background: linear-gradient(135deg, #0d0f14, #1a1d27);
+  border-radius: 18px; padding: 20px; margin-bottom: 16px;
+  display: flex; justify-content: center; align-items: flex-start;
+  min-height: 100px; position: relative; overflow: hidden;
+  border: 1px solid var(--border);
+}
+.di-preview-wrap::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(79,142,247,0.15), transparent);
+}
+#di-preview-island {
+  position: relative; display: flex; align-items: center;
+  gap: 10px; padding: 10px 18px; color: #fff; cursor: default;
+}
+.di-opt-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+}
+.di-opt-btn {
+  padding: 10px 8px; border: 2px solid var(--border);
+  border-radius: 12px; background: var(--surface);
+  cursor: pointer; transition: all .2s; text-align: center;
+  font-family: inherit;
+}
+.di-opt-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
+.di-opt-btn.active { border-color: var(--accent); background: var(--accent-dim); }
+.di-opt-ico { font-size: 20px; margin-bottom: 4px; }
+.di-opt-label { font-size: 11px; font-weight: 700; color: var(--text2); display: block; }
+.di-opt-btn.active .di-opt-label { color: var(--accent); }
+
+/* ── Color picker для DI ── */
+.di-color-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+}
+.di-color-opt {
+  height: 44px; border-radius: 12px; cursor: pointer; border: 2px solid transparent;
+  transition: all .2s; display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.di-color-opt:hover { transform: scale(1.06); border-color: rgba(255,255,255,0.3); }
+.di-color-opt.active { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); transform: scale(1.06); }
+
+/* ── Separator ── */
+.cd-sep { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* ── Range input ── */
+.cd-range {
+  width: 100%; height: 4px; border-radius: 2px;
+  appearance: none; -webkit-appearance: none;
+  background: var(--border); outline: none; cursor: pointer;
+}
+.cd-range::-webkit-slider-thumb {
+  appearance: none; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--accent);
+  box-shadow: 0 2px 8px rgba(79,142,247,0.4);
+  transition: transform .2s;
+}
+.cd-range::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+/* ── Кнопка открытия кастомизации в настройках ── */
+.open-custom-btn {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; background: var(--grad1);
+  border-radius: 16px; color: #fff; cursor: pointer;
+  margin-bottom: 12px; border: none; width: 100%;
+  font-family: inherit; font-size: 14px; font-weight: 700;
+  transition: all .2s; box-shadow: 0 4px 20px rgba(79,142,247,0.3);
+}
+.open-custom-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(79,142,247,0.4); }
+</style>
+
+<div id="custom-drawer-overlay" onclick="closeCustomDrawer()"></div>
+
+<div id="custom-drawer">
+  <div class="cd-header">
+    <div class="cd-header-top">
+      <div class="cd-title">🎨 Кастомизация</div>
+      <button class="cd-close" onclick="closeCustomDrawer()">×</button>
+    </div>
+    <div class="cd-tabs">
+      <button class="cd-tab active" onclick="switchCDTab('appearance',this)">
+        <span class="cd-tab-ico">🌓</span> Внешний вид
+      </button>
+      <button class="cd-tab" onclick="switchCDTab('chat',this)">
+        <span class="cd-tab-ico">💬</span> Чат
+      </button>
+      <button class="cd-tab" onclick="switchCDTab('island',this)">
+        <span class="cd-tab-ico">🏝</span> Island
+      </button>
+    </div>
+  </div>
+
+  <div class="cd-body">
+
+    <!-- ═══ TAB: ВНЕШНИЙ ВИД ═══ -->
+    <div class="cd-section active" id="cds-appearance">
+
+      <div class="cd-sec-title">Тема</div>
+      <div class="theme-grid-new" id="cd-theme-grid">
+        <!-- filled by JS -->
+      </div>
+
+      <div class="cd-sec-title">Акцентный цвет</div>
+      <div class="accent-grid" id="cd-accent-grid">
+        <!-- filled by JS -->
+      </div>
+
+      <div class="cd-sec-title">Размер шрифта</div>
+      <div class="cd-card">
+        <div style="padding:16px 18px">
+          <div class="font-size-row">
+            <button class="fs-btn" onclick="changeFontSize(-1)">A−</button>
+            <div class="fs-track"><div class="fs-fill" id="fs-fill" style="width:50%"></div></div>
+            <button class="fs-btn" onclick="changeFontSize(1)" style="font-size:20px">A+</button>
+            <span class="fs-label" id="fs-label">14px</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cd-sec-title">Уголки пузырей</div>
+      <div class="bubble-style-grid" id="cd-bubble-grid">
+        <!-- filled by JS -->
+      </div>
+
+      <div class="cd-sec-title">Дополнительно</div>
+      <div class="cd-card">
+        <div class="cd-row" style="cursor:default">
+          <div class="cd-row-ico" style="background:rgba(79,142,247,0.15);font-size:16px">💫</div>
+          <div class="cd-row-body">
+            <div class="cd-row-label">Анимации</div>
+            <div class="cd-row-sub">Эффекты при отправке</div>
+          </div>
+          <label class="cd-toggle">
+            <input type="checkbox" id="cd-anim-toggle" checked onchange="cdToggle('animations',this.checked)">
+            <span class="cd-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="cd-row" style="cursor:default">
+          <div class="cd-row-ico" style="background:rgba(52,208,88,0.15);font-size:16px">👁</div>
+          <div class="cd-row-body">
+            <div class="cd-row-label">Прозрачность</div>
+            <div class="cd-row-sub">Стеклянный эффект</div>
+          </div>
+          <label class="cd-toggle">
+            <input type="checkbox" id="cd-glass-toggle" onchange="cdToggle('glass',this.checked)">
+            <span class="cd-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="cd-row" style="cursor:default">
+          <div class="cd-row-ico" style="background:rgba(255,107,157,0.15);font-size:16px">🌀</div>
+          <div class="cd-row-body">
+            <div class="cd-row-label">Blur фона</div>
+            <div class="cd-row-sub">Размытие под панелями</div>
+          </div>
+          <label class="cd-toggle">
+            <input type="checkbox" id="cd-blur-toggle" checked onchange="cdToggle('blur',this.checked)">
+            <span class="cd-toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: ЧАТ ═══ -->
+    <div class="cd-section" id="cds-chat">
+
+      <div class="cd-sec-title">Обои чата</div>
+      <div class="wall-grid-new" id="cd-wall-grid">
+        <!-- filled by JS -->
+      </div>
+      <button onclick="document.getElementById('wall-file-inp').click()" style="width:100%;padding:12px;background:var(--surface);border:1px dashed var(--border2);border-radius:14px;color:var(--text2);cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;margin-top:10px;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
+        📁 Загрузить своё фото
+      </button>
+
+      <div class="cd-sep"></div>
+      <div class="cd-sec-title">Непрозрачность обоев</div>
+      <div class="cd-card">
+        <div style="padding:16px 18px">
+          <input type="range" class="cd-range" id="wall-opacity-range" min="10" max="100" value="100" oninput="setWallOpacity(this.value)">
+          <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text3)">
+            <span>Прозрачнее</span><span id="wall-opacity-val">100%</span><span>Ярче</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cd-sec-title">Отображение сообщений</div>
+      <div class="cd-card">
+        <div class="cd-row" style="cursor:default">
+          <div class="cd-row-ico" style="background:rgba(79,142,247,0.15);font-size:16px">🕐</div>
+          <div class="cd-row-body"><div class="cd-row-label">Показывать время</div></div>
+          <label class="cd-toggle">
+            <input type="checkbox" checked onchange="cdChatPref('showTime',this.checked)">
+            <span class="cd-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="cd-row" style="cursor:default">
+          <div class="cd-row-ico" style="background:rgba(255,209,102,0.15);font-size:16px">✓</div>
+          <div class="cd-row-body"><div class="cd-row-label">Галочки прочтения</div></div>
+          <label class="cd-toggle">
+            <input type="checkbox" checked onchange="cdChatPref('readTicks',this.checked)">
+            <span class="cd-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="cd-row" style="cursor:default">
+          <div class="cd-row-ico" style="background:rgba(52,208,88,0.15);font-size:16px">👤</div>
+          <div class="cd-row-body"><div class="cd-row-label">Аватарки в чате</div></div>
+          <label class="cd-toggle">
+            <input type="checkbox" checked onchange="cdChatPref('avatarsInChat',this.checked)">
+            <span class="cd-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="cd-row" style="cursor:default">
+          <div class="cd-row-ico" style="background:rgba(255,107,157,0.15);font-size:16px">📐</div>
+          <div class="cd-row-body"><div class="cd-row-label">Компактный режим</div><div class="cd-row-sub">Меньше отступов</div></div>
+          <label class="cd-toggle">
+            <input type="checkbox" id="cd-compact" onchange="cdChatPref('compact',this.checked)">
+            <span class="cd-toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: DYNAMIC ISLAND ═══ -->
+    <div class="cd-section" id="cds-island">
+
+      <div class="cd-sec-title">Превью</div>
+      <div class="di-preview-wrap">
+        <div id="di-preview-island">
+          <div style="width:8px;height:8px;border-radius:50%;background:#34d058;animation:diPulse 1.4s infinite"></div>
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">А</div>
+          <div>
+            <div style="font-weight:700;font-size:13px">Алиса</div>
+            <div style="font-size:11px;opacity:.6">1:24</div>
+          </div>
+          <div style="display:flex;gap:6px;margin-left:4px">
+            <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center">🎙</div>
+            <div style="width:28px;height:28px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center">📵</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cd-sec-title">Форма</div>
+      <div class="di-opt-grid" id="di-shape-grid">
+        <button class="di-opt-btn active" onclick="diOptSelect('shape','pill',this)">
+          <div class="di-opt-ico">💊</div><span class="di-opt-label">Пилюля</span>
+        </button>
+        <button class="di-opt-btn" onclick="diOptSelect('shape','rounded',this)">
+          <div class="di-opt-ico">⬛</div><span class="di-opt-label">Скруглённый</span>
+        </button>
+        <button class="di-opt-btn" onclick="diOptSelect('shape','circle',this)">
+          <div class="di-opt-ico">⭕</div><span class="di-opt-label">Круглый</span>
+        </button>
+        <button class="di-opt-btn" onclick="diOptSelect('shape','sharp',this)">
+          <div class="di-opt-ico">📐</div><span class="di-opt-label">Острый</span>
+        </button>
+      </div>
+
+      <div class="cd-sec-title">Стиль фона</div>
+      <div class="di-color-grid" id="di-color-grid">
+        <div class="di-color-opt active" style="background:rgba(10,10,16,0.95);border:1px solid rgba(255,255,255,0.15)" onclick="diColorSelect('dark',this)" title="Тёмный">🖤</div>
+        <div class="di-color-opt" style="background:linear-gradient(135deg,#4f8ef7,#7c4dff)" onclick="diColorSelect('accent',this)" title="Акцент">💙</div>
+        <div class="di-color-opt" style="background:linear-gradient(135deg,#22c55e,#16a34a)" onclick="diColorSelect('green',this)" title="Зелёный">💚</div>
+        <div class="di-color-opt" style="background:linear-gradient(135deg,#ff6b9d,#ff9a56)" onclick="diColorSelect('sunset',this)" title="Закат">🌅</div>
+        <div class="di-color-opt" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(20px)" onclick="diColorSelect('glass',this)" title="Стекло">🔮</div>
+      </div>
+
+      <div class="cd-sec-title">Размер</div>
+      <div class="di-opt-grid" id="di-size-grid">
+        <button class="di-opt-btn" onclick="diOptSelect('size','compact',this)">
+          <div class="di-opt-ico" style="font-size:14px">▪</div><span class="di-opt-label">Компакт</span>
+        </button>
+        <button class="di-opt-btn active" onclick="diOptSelect('size','normal',this)">
+          <div class="di-opt-ico">◾</div><span class="di-opt-label">Нормал</span>
+        </button>
+        <button class="di-opt-btn" onclick="diOptSelect('size','large',this)">
+          <div class="di-opt-ico" style="font-size:22px">◼</div><span class="di-opt-label">Большой</span>
+        </button>
+      </div>
+
+      <div class="cd-sep"></div>
+      <div class="cd-card">
+        <div class="cd-row" style="cursor:default">
+          <div class="cd-row-ico" style="background:rgba(79,142,247,0.15);font-size:16px">✨</div>
+          <div class="cd-row-body"><div class="cd-row-label">Свечение</div><div class="cd-row-sub">Glow-эффект острова</div></div>
+          <label class="cd-toggle">
+            <input type="checkbox" id="di-glow-toggle" checked onchange="diSet('glow',this.checked?'1':'0');buildDI()">
+            <span class="cd-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="cd-row" style="cursor:default">
+          <div class="cd-row-ico" style="background:rgba(52,208,88,0.15);font-size:16px">⏱</div>
+          <div class="cd-row-body"><div class="cd-row-label">Таймер звонка</div></div>
+          <label class="cd-toggle">
+            <input type="checkbox" id="di-timer-toggle" checked onchange="diSet('showTimer',this.checked?'1':'0');buildDI()">
+            <span class="cd-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="cd-row" onclick="diResetPos()">
+          <div class="cd-row-ico" style="background:rgba(255,107,157,0.15);font-size:16px">📍</div>
+          <div class="cd-row-body"><div class="cd-row-label">Сбросить позицию</div><div class="cd-row-sub">Переместить в центр</div></div>
+          <div class="cd-row-right">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /cd-body -->
+</div><!-- /custom-drawer -->
+
+<script>
+(function(){
+/* ─── Открытие/закрытие ─── */
+window.openCustomDrawer = function(tab){
+  var d=document.getElementById('custom-drawer');
+  var o=document.getElementById('custom-drawer-overlay');
+  d.classList.add('open'); o.classList.add('open');
+  _initCD();
+  if(tab) switchCDTab(tab, d.querySelector('[onclick*="\''+tab+'\'"]'));
+};
+window.closeCustomDrawer = function(){
+  document.getElementById('custom-drawer').classList.remove('open');
+  document.getElementById('custom-drawer-overlay').classList.remove('open');
+};
+
+window.switchCDTab = function(name, btn){
+  document.querySelectorAll('.cd-section').forEach(function(s){ s.classList.remove('active'); });
+  document.querySelectorAll('.cd-tab').forEach(function(b){ b.classList.remove('active'); });
+  var sec = document.getElementById('cds-'+name);
+  if(sec) sec.classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(name==='chat') _initWallGridCD();
+};
+
+/* ─── Темы ─── */
+var THEMES_CD = [
+  {id:'dark',    label:'Тёмная',   sb:'#13151c', bg:'#0d0f14', acc:'#4f8ef7', bubble:'#1c3a6e'},
+  {id:'light',   label:'Светлая',  sb:'#ffffff', bg:'#f0f2f8', acc:'#4f8ef7', bubble:'#dbeafe'},
+  {id:'midnight',label:'Полночь',  sb:'#0e1020', bg:'#090b12', acc:'#7c4dff', bubble:'#2d1b6e'},
+  {id:'forest',  label:'Лес',      sb:'#121a14', bg:'#0c120e', acc:'#34d058', bubble:'#1a3d20'},
+  {id:'rose',    label:'Розовая',  sb:'#1f1218', bg:'#150d10', acc:'#ff6b9d', bubble:'#4a1528'},
+  {id:'ocean',   label:'Океан',    sb:'#0d1929', bg:'#080f1a', acc:'#00b4d8', bubble:'#0a2a40'},
+];
+
+function _initThemeGrid(){
+  var g=document.getElementById('cd-theme-grid'); if(!g) return;
+  var cur=localStorage.getItem('theme')||'dark';
+  g.innerHTML='';
+  THEMES_CD.forEach(function(t){
+    var d=document.createElement('div');
+    d.className='theme-card'+(t.id===cur?' active':'');
+    d.innerHTML='<div class="theme-card-preview" style="background:'+t.bg+'"><div class="tc-sidebar" style="background:'+t.sb+'"></div><div class="tc-main" style="background:'+t.bg+'"><div class="tc-bubble" style="background:'+t.acc+'"></div></div></div><div class="theme-card-label"><span>'+t.label+'</span><span class="theme-card-check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span></div>';
+    d.onclick=function(){
+      if(typeof applyTheme==='function') applyTheme(t.id);
+      document.querySelectorAll('.theme-card').forEach(function(c){c.classList.remove('active');});
+      d.classList.add('active');
+      // Применяем кастомные темы
+      _applyExtraTheme(t.id, t.acc);
+    };
+    g.appendChild(d);
+  });
+}
+
+function _applyExtraTheme(id, acc){
+  var s=document.getElementById('extra-theme-style');
+  if(!s){s=document.createElement('style');s.id='extra-theme-style';document.head.appendChild(s);}
+  var map={
+    rose: '--bg:#150d10;--sidebar:#1f1218;--surface:#26151d;--surface2:#2e1a24;--border:#3a2030;--border2:#4a2840;--accent:#ff6b9d;--accent-dim:rgba(255,107,157,0.15);--accent-hover:#ff85b3;--bubble-out:#4a1528;--text:#f0d8e8;',
+    ocean: '--bg:#080f1a;--sidebar:#0d1929;--surface:#111e33;--surface2:#162440;--border:#1e2f4a;--border2:#263d60;--accent:#00b4d8;--accent-dim:rgba(0,180,216,0.15);--accent-hover:#22d3ee;--bubble-out:#0a2a40;--text:#d8eef8;',
+  };
+  if(map[id]){
+    s.textContent='html{'+map[id]+'}';
+    localStorage.setItem('theme', id);
+  } else {
+    s.textContent='';
+  }
+}
+
+/* ─── Акцентные цвета ─── */
+var ACCENTS = [
+  {hex:'#4f8ef7',name:'Синий'},    {hex:'#7c4dff',name:'Фиолетовый'},
+  {hex:'#ff6b9d',name:'Розовый'},  {hex:'#34d058',name:'Зелёный'},
+  {hex:'#ff9a56',name:'Оранжевый'},{hex:'#00b4d8',name:'Голубой'},
+  {hex:'#ffd166',name:'Жёлтый'},   {hex:'#ef4444',name:'Красный'},
+  {hex:'#a78bfa',name:'Лавандовый'},{hex:'#06d6a0',name:'Мятный'},
+  {hex:'#f72585',name:'Маджента'}, {hex:'#ffffff',name:'Белый'},
+];
+
+function _initAccentGrid(){
+  var g=document.getElementById('cd-accent-grid'); if(!g) return;
+  var cur=localStorage.getItem('accentColor')||'#4f8ef7';
+  g.innerHTML='';
+  ACCENTS.forEach(function(a){
+    var d=document.createElement('div');
+    d.className='accent-dot'+(a.hex===cur?' active':'');
+    d.style.background=a.hex;
+    d.title=a.name;
+    d.onclick=function(){
+      document.querySelectorAll('.accent-dot').forEach(function(x){x.classList.remove('active');});
+      d.classList.add('active');
+      _applyAccent(a.hex);
+    };
+    g.appendChild(d);
+  });
+}
+
+function _applyAccent(hex){
+  localStorage.setItem('accentColor', hex);
+  var s=document.getElementById('accent-style');
+  if(!s){s=document.createElement('style');s.id='accent-style';document.head.appendChild(s);}
+  // Convert hex to rgba components
+  var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  s.textContent='html{--accent:'+hex+';--accent-hover:'+hex+';--accent-dim:rgba('+r+','+g+','+b+',0.15);}';
+  if(typeof buildDI==='function') buildDI();
+}
+
+/* ─── Размер шрифта ─── */
+var _fsMin=11, _fsMax=18, _fsCur=14;
+window.changeFontSize = function(delta){
+  _fsCur = Math.max(_fsMin, Math.min(_fsMax, _fsCur+delta));
+  localStorage.setItem('fontSize', _fsCur);
+  _applyFontSize(_fsCur);
+};
+function _applyFontSize(sz){
+  var s=document.getElementById('font-style');
+  if(!s){s=document.createElement('style');s.id='font-style';document.head.appendChild(s);}
+  s.textContent='html,body,.bubble,.msg-inp,.ci-name,.ci-prev,.bbl-text{font-size:'+sz+'px !important}';
+  var fill=document.getElementById('fs-fill'), label=document.getElementById('fs-label');
+  var pct=((sz-_fsMin)/(_fsMax-_fsMin))*100;
+  if(fill) fill.style.width=pct+'%';
+  if(label) label.textContent=sz+'px';
+}
+
+/* ─── Bubble styles ─── */
+var BUBBLE_STYLES=[
+  {id:'default', label:'Стандарт', r:'18px 18px 4px 18px', r2:'18px 18px 18px 4px'},
+  {id:'round',   label:'Круглый',  r:'50px', r2:'50px'},
+  {id:'square',  label:'Острый',   r:'8px',  r2:'8px'},
+];
+function _initBubbleGrid(){
+  var g=document.getElementById('cd-bubble-grid'); if(!g) return;
+  var cur=localStorage.getItem('bubbleStyle')||'default';
+  g.innerHTML='';
+  BUBBLE_STYLES.forEach(function(bs){
+    var d=document.createElement('div');
+    d.className='bubble-style-card'+(bs.id===cur?' active':'');
+    d.innerHTML='<div class="bs-preview"><div class="bs-bubble" style="width:80%;border-radius:'+bs.r+'"></div><div class="bs-bubble" style="width:55%;border-radius:'+bs.r+'"></div></div><div class="bs-label">'+bs.label+'</div>';
+    d.onclick=function(){
+      document.querySelectorAll('.bubble-style-card').forEach(function(x){x.classList.remove('active');});
+      d.classList.add('active');
+      _applyBubbleStyle(bs);
+    };
+    g.appendChild(d);
+  });
+}
+
+function _applyBubbleStyle(bs){
+  localStorage.setItem('bubbleStyle', bs.id);
+  var s=document.getElementById('bubble-style');
+  if(!s){s=document.createElement('style');s.id='bubble-style';document.head.appendChild(s);}
+  s.textContent='.mrow.out .bubble{border-radius:'+bs.r+' !important}.mrow.in .bubble{border-radius:'+bs.r2+' !important}';
+}
+
+/* ─── Обои в новом дизайне ─── */
+var WALLS_NEW = [
+  {id:'w1', label:'Сумерки', css:'linear-gradient(160deg,#0a0015,#1a0533,#2d1b69)'},
+  {id:'w2', label:'Закат',   css:'linear-gradient(160deg,#1a0a00,#4a1500,#ff6b35,#ff9a56)'},
+  {id:'w3', label:'Океан',   css:'linear-gradient(160deg,#000d1a,#001f3f,#0070a8,#00b4d8)'},
+  {id:'w4', label:'Лес',     css:'linear-gradient(160deg,#010d03,#0a2311,#1a5c2a,#34d058)'},
+  {id:'w5', label:'Розовый', css:'linear-gradient(160deg,#1a0010,#4a0025,#cc1f5e,#ff6b9d)'},
+  {id:'w6', label:'Космос',  css:'radial-gradient(ellipse at 20% 30%,#4f8ef7 0%,transparent 50%),radial-gradient(ellipse at 80% 70%,#7c4dff 0%,transparent 50%),#050510'},
+  {id:'w7', label:'Аврора',  css:'linear-gradient(135deg,#001a12,#003322,#00aa66,#4ff0a0,#7c4dff)'},
+  {id:'w8', label:'Сахара',  css:'linear-gradient(160deg,#1a0d00,#3d1f00,#8b4513,#d4a050)'},
+  {id:'w9', label:'Радуга',  css:'linear-gradient(135deg,#ff0080,#ff8c00,#40e0d0)'},
+];
+
+function _initWallGridCD(){
+  var g=document.getElementById('cd-wall-grid'); if(!g) return;
+  var saved=localStorage.getItem('chatWallpaper')||'none';
+  g.innerHTML='';
+  // None
+  var none=document.createElement('div');
+  none.className='wall-item-new wall-none-new'+(saved==='none'?' active':'');
+  none.innerHTML='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Нет</span>';
+  none.onclick=function(){ window.setWallpaper(null); _initWallGridCD(); };
+  g.appendChild(none);
+  WALLS_NEW.forEach(function(w){
+    var d=document.createElement('div');
+    d.className='wall-item-new'+(w.id===saved?' active':'');
+    d.style.background=w.css;
+    d.innerHTML='<div class="wall-label">'+w.label+'</div>';
+    d.onclick=function(){ window.setWallpaper(w.id, w.css); _initWallGridCD(); };
+    g.appendChild(d);
+  });
+}
+
+window.setWallOpacity = function(val){
+  document.getElementById('wall-opacity-val').textContent=val+'%';
+  var s=document.getElementById('wall-opacity-style');
+  if(!s){s=document.createElement('style');s.id='wall-opacity-style';document.head.appendChild(s);}
+  s.textContent='.msgs.has-wall,.chat-body.has-wall{opacity:1 !important}.msgs.has-wall::before,.has-wall::after{content:"";position:absolute;inset:0;background:rgba(var(--bg-rgb,13,15,20),'+((100-val)/100).toFixed(2)+');pointer-events:none;z-index:0}';
+};
+
+/* ─── Dynamic Island опции ─── */
+var _diColorMap = {
+  dark:    'dark',
+  accent:  'accent',
+  green:   'green',
+  sunset:  'sunset',
+  glass:   'glass',
+};
+
+var DI_STYLES_EXT = {
+  shape:{
+    pill:'border-radius:50px',
+    rounded:'border-radius:20px',
+    circle:'border-radius:50%',
+    sharp:'border-radius:8px'
+  },
+  color:{
+    dark:    'background:rgba(10,10,16,0.97);border:1px solid rgba(255,255,255,0.1)',
+    accent:  'background:linear-gradient(135deg,rgba(79,142,247,0.97),rgba(124,77,255,0.97));border:1px solid rgba(255,255,255,0.2)',
+    green:   'background:linear-gradient(135deg,rgba(34,197,94,0.97),rgba(22,163,74,0.97));border:1px solid rgba(255,255,255,0.2)',
+    sunset:  'background:linear-gradient(135deg,rgba(255,107,157,0.97),rgba(255,154,86,0.97));border:1px solid rgba(255,255,255,0.2)',
+    glass:   'background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)',
+  },
+  size:{
+    compact:'padding:7px 14px;font-size:11px',
+    normal: 'padding:10px 18px;font-size:13px',
+    large:  'padding:14px 24px;font-size:15px',
+  }
+};
+
+window.diOptSelect = function(param, val, btn){
+  if(typeof diSet==='function') diSet(param, val);
+  var grid = btn.closest('.di-opt-grid');
+  if(grid) grid.querySelectorAll('.di-opt-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  _updateDIPreview();
+  if(typeof buildDI==='function') buildDI();
+};
+
+window.diColorSelect = function(val, el){
+  if(typeof diSet==='function') diSet('color', val);
+  document.querySelectorAll('.di-color-opt').forEach(function(x){ x.classList.remove('active'); });
+  el.classList.add('active');
+  _updateDIPreview();
+  if(typeof buildDI==='function') buildDI();
+};
+
+function _updateDIPreview(){
+  var p = document.getElementById('di-preview-island');
+  if(!p) return;
+  var shape = (typeof diGet==='function') ? diGet('shape') : 'pill';
+  var color = (typeof diGet==='function') ? diGet('color') : 'dark';
+  var size  = (typeof diGet==='function') ? diGet('size')  : 'normal';
+  var glow  = (typeof diGet==='function') ? diGet('glow')  : '1';
+  var styleArr = [
+    'position:relative;display:flex;align-items:center;gap:10px;color:#fff;transition:all .3s',
+    DI_STYLES_EXT.shape[shape]||DI_STYLES_EXT.shape.pill,
+    DI_STYLES_EXT.color[color]||DI_STYLES_EXT.color.dark,
+    DI_STYLES_EXT.size[size]||DI_STYLES_EXT.size.normal,
+    glow==='1' ? 'box-shadow:0 0 24px rgba(79,142,247,.4),0 8px 32px rgba(0,0,0,.5)' : '',
+  ];
+  p.style.cssText = styleArr.join(';');
+}
+
+/* ─── Прочие toggles ─── */
+window.cdToggle = function(key, val){
+  localStorage.setItem('cd_'+key, val?'1':'0');
+  if(key==='animations'){
+    var s=document.getElementById('anim-style');
+    if(!s){s=document.createElement('style');s.id='anim-style';document.head.appendChild(s);}
+    s.textContent = val ? '' : '*{animation:none !important;transition:none !important}';
+  }
+  if(key==='glass'){
+    var s=document.getElementById('glass-style');
+    if(!s){s=document.createElement('style');s.id='glass-style';document.head.appendChild(s);}
+    s.textContent = val ? '.sidebar,.sett-panel,.chat-hd,.iwrap{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(var(--sidebar-rgb,19,21,28),0.85) !important}' : '';
+  }
+};
+window.cdChatPref = function(key, val){
+  localStorage.setItem('cdchat_'+key, val?'1':'0');
+};
+
+/* ─── Инициализация панели ─── */
+function _initCD(){
+  _initThemeGrid();
+  _initAccentGrid();
+  _initBubbleGrid();
+  // Restore saved states
+  var sz=parseInt(localStorage.getItem('fontSize')||'14');
+  _fsCur=sz; _applyFontSize(sz);
+  var acc=localStorage.getItem('accentColor');
+  if(acc) _applyAccent(acc);
+  var bs=localStorage.getItem('bubbleStyle');
+  if(bs){var bso=BUBBLE_STYLES.find(function(x){return x.id===bs;});if(bso)_applyBubbleStyle(bso);}
+  var et=localStorage.getItem('theme');
+  if(et){var tdata=THEMES_CD.find(function(x){return x.id===et;});if(tdata)_applyExtraTheme(et, tdata.acc);}
+  // DI toggles
+  var gt=document.getElementById('di-glow-toggle'); if(gt) gt.checked=(typeof diGet==='function'?diGet('glow'):'1')==='1';
+  var tt=document.getElementById('di-timer-toggle'); if(tt) tt.checked=(typeof diGet==='function'?diGet('showTimer'):'1')==='1';
+  // DI опции — подсветить текущие
+  _syncDIButtons('di-shape-grid','shape');
+  _syncDIButtons('di-size-grid','size');
+  _syncDIColorButtons();
+  _updateDIPreview();
+}
+
+function _syncDIButtons(gridId, param){
+  var g=document.getElementById(gridId); if(!g) return;
+  var cur=(typeof diGet==='function')?diGet(param):null; if(!cur) return;
+  g.querySelectorAll('.di-opt-btn').forEach(function(b){
+    var onclick=b.getAttribute('onclick')||'';
+    b.classList.toggle('active', onclick.indexOf("'"+cur+"'")+onclick.indexOf('"'+cur+'"')>-2);
+  });
+}
+function _syncDIColorButtons(){
+  var g=document.getElementById('di-color-grid'); if(!g) return;
+  var cur=(typeof diGet==='function')?diGet('color'):'dark';
+  g.querySelectorAll('.di-color-opt').forEach(function(el){
+    var oc=el.getAttribute('onclick')||'';
+    el.classList.toggle('active', oc.indexOf("'"+cur+"'")!==-1);
+  });
+}
+
+// Apply saved settings on load
+(function(){
+  var acc=localStorage.getItem('accentColor'); if(acc) _applyAccent(acc);
+  var sz=parseInt(localStorage.getItem('fontSize')||'14'); _fsCur=sz; _applyFontSize(sz);
+  var bs=localStorage.getItem('bubbleStyle'); if(bs){var bso=BUBBLE_STYLES.find(function(x){return x.id===bs;});if(bso)_applyBubbleStyle(bso);}
+  var et=localStorage.getItem('theme'); if(et){var tdata=THEMES_CD.find(function(x){return x.id===et;});if(tdata)_applyExtraTheme(et,tdata.acc);}
+})();
+
+/* ─── Патчим кнопку в настройках ─── */
+setTimeout(function(){
+  // Добавляем кнопку "Кастомизация" в панель настроек
+  var sp=document.getElementById('sp');
+  if(!sp) return;
+  var body=sp.querySelector('.sett-body');
+  if(!body) return;
+  // Вставляем кнопку в начало
+  var btn=document.createElement('button');
+  btn.className='open-custom-btn';
+  btn.innerHTML='<span style="font-size:24px">🎨</span><div style="text-align:left"><div>Кастомизация</div><div style="font-size:11px;opacity:.75;font-weight:500">Темы, цвета, обои, Island...</div></div><span style="margin-left:auto;opacity:.8">→</span>';
+  btn.onclick=function(){ closeSett(); openCustomDrawer(); };
+  body.insertBefore(btn, body.firstChild);
+  
+  // Также добавляем в нижнюю панель настроек если есть
+  var sp2=document.querySelectorAll('.sett-panel')[1];
+  if(sp2){
+    var b2=sp2.querySelector('.sett-body');
+    if(b2){
+      var btn2=btn.cloneNode(true);
+      btn2.onclick=function(){ if(typeof closeSett==='function')closeSett(); openCustomDrawer(); };
+      b2.insertBefore(btn2, b2.firstChild);
+    }
+  }
+}, 500);
+
+/* ─── Патчим openWallModal ─── */
+window.openWallModal = function(){
+  openCustomDrawer('chat');
+};
+
+})();
+</script>
 </body>
 </html>
