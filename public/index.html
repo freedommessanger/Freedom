@@ -148,10 +148,10 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .ch-acts { display:flex; gap:2px; }
 
 /* Messages */
-.msgs { flex:1; overflow-y:auto; padding:16px 16px 8px; display:flex; flex-direction:column; gap:2px; }
+.msgs { flex:1; overflow-y:auto; padding:16px 16px 8px; display:flex; flex-direction:column; gap:2px; contain:layout style; will-change:scroll-position; }
 .date-div { display:flex; align-items:center; gap:10px; margin:12px 0; color:var(--text3); font-size:11px; }
 .date-div::before,.date-div::after { content:''; flex:1; height:1px; background:var(--border); }
-.mrow { display:flex; align-items:flex-end; gap:8px; animation:msgIn .18s ease; }
+.mrow { display:flex; align-items:flex-end; gap:8px; animation:msgIn .18s ease; will-change:transform,opacity; }
 .mrow.out { flex-direction:row-reverse; align-self:flex-end; max-width:75%; }
 .mrow.in { align-self:flex-start; max-width:75%; }
 @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
@@ -182,7 +182,7 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 @keyframes tdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
 
 /* ─── INPUT BAR ─── */
-.ibar { padding:10px 14px 12px; background:var(--sidebar); border-top:1px solid var(--border); flex-shrink:0; }
+.ibar { padding:10px 14px 12px; background:var(--sidebar); border-top:1px solid var(--border); flex-shrink:0; contain:layout style paint; }
 .reply-strip { display:none; align-items:center; gap:10px; background:var(--surface); border-left:3px solid var(--accent); border-radius:0 10px 10px 0; padding:6px 10px; margin-bottom:8px; }
 .reply-strip.on { display:flex; }
 .rs-info { flex:1; min-width:0; }
@@ -190,8 +190,8 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .rs-tx { font-size:12px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .rs-x { border:none; background:none; color:var(--text2); cursor:pointer; padding:2px; border-radius:4px; display:flex; }
 .rs-x:hover { color:var(--text); }
-.img-strip { display:none; position:relative; margin-bottom:8px; width:fit-content; }
-.img-strip.on { display:block; }
+.img-strip { position:relative; margin-bottom:8px; width:fit-content; max-height:0; opacity:0; overflow:hidden; transition:max-height .2s ease,opacity .2s ease; }
+.img-strip.on { max-height:100px; opacity:1; }
 .img-strip img { height:80px; border-radius:10px; display:block; }
 .img-strip-rm { position:absolute; top:-6px; right:-6px; width:20px; height:20px; background:var(--red); border:none; border-radius:50%; cursor:pointer; color:#fff; display:flex; align-items:center; justify-content:center; }
 .irow { display:flex; align-items:flex-end; gap:8px; }
@@ -2283,10 +2283,10 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 .ch-acts { display:flex; gap:2px; }
 
 /* Messages */
-.msgs { flex:1; overflow-y:auto; padding:16px 16px 8px; display:flex; flex-direction:column; gap:2px; }
+.msgs { flex:1; overflow-y:auto; padding:16px 16px 8px; display:flex; flex-direction:column; gap:2px; contain:layout style; will-change:scroll-position; }
 .date-div { display:flex; align-items:center; gap:10px; margin:12px 0; color:var(--text3); font-size:11px; }
 .date-div::before,.date-div::after { content:''; flex:1; height:1px; background:var(--border); }
-.mrow { display:flex; align-items:flex-end; gap:8px; animation:msgIn .18s ease; }
+.mrow { display:flex; align-items:flex-end; gap:8px; animation:msgIn .18s ease; will-change:transform,opacity; }
 .mrow.out { flex-direction:row-reverse; align-self:flex-end; max-width:75%; }
 .mrow.in { align-self:flex-start; max-width:75%; }
 @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
@@ -2315,7 +2315,7 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 @keyframes tdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
 
 /* ─── INPUT BAR ─── */
-.ibar { padding:10px 14px 12px; background:var(--sidebar); border-top:1px solid var(--border); flex-shrink:0; }
+.ibar { padding:10px 14px 12px; background:var(--sidebar); border-top:1px solid var(--border); flex-shrink:0; contain:layout style paint; }
 .reply-strip { display:none; align-items:center; gap:10px; background:var(--surface); border-left:3px solid var(--accent); border-radius:0 10px 10px 0; padding:6px 10px; margin-bottom:8px; }
 .reply-strip.on { display:flex; }
 .rs-info { flex:1; min-width:0; }
@@ -2323,8 +2323,8 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 .rs-tx { font-size:12px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .rs-x { border:none; background:none; color:var(--text2); cursor:pointer; padding:2px; border-radius:4px; display:flex; }
 .rs-x:hover { color:var(--text); }
-.img-strip { display:none; position:relative; margin-bottom:8px; width:fit-content; }
-.img-strip.on { display:block; }
+.img-strip { position:relative; margin-bottom:8px; width:fit-content; max-height:0; opacity:0; overflow:hidden; transition:max-height .2s ease,opacity .2s ease; }
+.img-strip.on { max-height:100px; opacity:1; }
 .img-strip img { height:80px; border-radius:10px; display:block; }
 .img-strip-rm { position:absolute; top:-6px; right:-6px; width:20px; height:20px; background:var(--red); border:none; border-radius:50%; cursor:pointer; color:#fff; display:flex; align-items:center; justify-content:center; }
 .irow { display:flex; align-items:flex-end; gap:8px; }
@@ -3147,7 +3147,7 @@ function onMsg(msg){
   renderList();
 }
 function mkey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
-function handleImg(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{attachImg=ev.target.result;G('ithumb').src=attachImg;G('is').classList.add('on');};r.readAsDataURL(f);e.target.value='';}
+function handleImg(e){const f=e.target.files[0];if(!f)return;const is=G('is'),thumb=G('ithumb');is.classList.add('on');thumb.style.opacity='0.5';const r=new FileReader();r.onload=ev=>{attachImg=ev.target.result;thumb.src=attachImg;thumb.style.opacity='1';};r.onerror=()=>{is.classList.remove('on');attachImg=null;};r.readAsDataURL(f);e.target.value='';}
 function rmImg(){attachImg=null;G('is').classList.remove('on');}
 function resize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
 
@@ -10202,77 +10202,58 @@ var DI_STYLES = {
   }
 };
 
-// Инициализируем DI HTML
+window._diStylesCache = {};
 function buildDI(){
-  var old = document.getElementById('dynamic-island');
-  if(old) old.remove();
+  var di = document.getElementById('dynamic-island');
+  var isNew = !di;
 
-  var di = document.createElement('div');
-  di.id = 'dynamic-island';
-  var shape = diGet('shape'), color = diGet('color'), size = diGet('size'), glow = diGet('glow');
-
-  di.style.cssText = [
-    'position:fixed',
-    'top:16px',
-    'left:50%',
-    'transform:translateX(-50%)',
-    'z-index:9999',
-    'display:none',
-    'align-items:center',
-    'gap:10px',
-    'cursor:pointer',
-    'user-select:none',
-    'transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1)',
-    'color:#fff',
-    DI_STYLES.shape[shape]||DI_STYLES.shape.pill,
-    DI_STYLES.color[color]||DI_STYLES.color.dark,
-    DI_STYLES.size[size]||DI_STYLES.size.normal,
-    glow==='1' ? DI_STYLES.glow['1'] : ''
-  ].join(';');
-
-  // Восстанавливаем позицию если была плавающей
-  var savedX = localStorage.getItem('di_x'), savedY = localStorage.getItem('di_y');
-  if(savedX && savedY){
-    di.style.left   = savedX;
-    di.style.top    = savedY;
-    di.style.transform = 'none';
+  if(!di){
+    di = document.createElement('div');
+    di.id = 'dynamic-island';
+    di.innerHTML = [
+      '<div id="di-pulse" style="width:8px;height:8px;border-radius:50%;background:#34d058;animation:diPulse 1.4s ease infinite;flex-shrink:0"></div>',
+      '<div id="di-av" style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;overflow:hidden"></div>',
+      '<div style="display:flex;flex-direction:column;min-width:0">',
+        '<div id="di-name" style="font-weight:700;white-space:nowrap;line-height:1.2">В звонке</div>',
+        '<div id="di-timer" style="color:rgba(255,255,255,0.65);font-size:11px;font-weight:500;line-height:1.2">0:00</div>',
+      '</div>',
+      '<div style="display:flex;align-items:center;gap:6px;margin-left:4px">',
+        '<button id="di-mute-btn" onclick="event.stopPropagation();diToggleMute()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0" title="Микрофон">',
+          _micSVG(),
+        '</button>',
+        '<button id="di-end-btn" onclick="event.stopPropagation();endCall()" style="width:28px;height:28px;border-radius:50%;border:none;background:#ef4444;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .2s;flex-shrink:0" title="Завершить">',
+          _endSVG(),
+        '</button>',
+      '</div>'
+    ].join('');
+    document.body.appendChild(di);
+    di.addEventListener('click', function(e){ if(e.target.closest('button')) return; if(typeof window.restoreCallOverlay === 'function') window.restoreCallOverlay(); });
+    _makeDraggable(di);
+    var style = document.getElementById('di-keyframes');
+    if(!style){
+      style = document.createElement('style');
+      style.id = 'di-keyframes';
+      style.textContent = '@keyframes diPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(0.85)}} @keyframes diIn{from{opacity:0;transform:translateX(-50%) scale(0.7)}to{opacity:1;transform:translateX(-50%) scale(1)}}';
+      document.head.appendChild(style);
+    }
   }
 
-  di.innerHTML = [
-    '<div id="di-pulse" style="width:8px;height:8px;border-radius:50%;background:#34d058;animation:diPulse 1.4s ease infinite;flex-shrink:0"></div>',
-    '<div id="di-av" style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;overflow:hidden"></div>',
-    '<div style="display:flex;flex-direction:column;min-width:0">',
-      '<div id="di-name" style="font-weight:700;white-space:nowrap;line-height:1.2">В звонке</div>',
-      '<div id="di-timer" style="color:rgba(255,255,255,0.65);font-size:11px;font-weight:500;line-height:1.2">0:00</div>',
-    '</div>',
-    '<div style="display:flex;align-items:center;gap:6px;margin-left:4px">',
-      '<button id="di-mute-btn" onclick="event.stopPropagation();diToggleMute()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0" title="Микрофон">',
-        _micSVG(),
-      '</button>',
-      '<button id="di-end-btn" onclick="event.stopPropagation();endCall()" style="width:28px;height:28px;border-radius:50%;border:none;background:#ef4444;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .2s;flex-shrink:0" title="Завершить">',
-        _endSVG(),
-      '</button>',
-    '</div>'
-  ].join('');
+  var shape = diGet('shape'), color = diGet('color'), size = diGet('size'), glow = diGet('glow');
+  var cacheKey = shape+color+size+glow;
 
-  document.body.appendChild(di);
+  if(window._diStylesCache[cacheKey] !== undefined && !isNew) return di;
+  window._diStylesCache[cacheKey] = true;
 
-  // Клик = развернуть звонок
-  di.addEventListener('click', function(e){
-    if(e.target.closest('button')) return;
-    if(typeof window.restoreCallOverlay === 'function') window.restoreCallOverlay();
-  });
+  var baseStyles = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:none;align-items:center;gap:10px;cursor:pointer;user-select:none;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);color:#fff;';
+  var dynStyles = (DI_STYLES.shape[shape]||DI_STYLES.shape.pill)+';'+(DI_STYLES.color[color]||DI_STYLES.color.dark)+';'+(DI_STYLES.size[size]||DI_STYLES.size.normal)+(glow==='1'?';'+DI_STYLES.glow['1']:'');
 
-  // Drag
-  _makeDraggable(di);
+  di.style.cssText = baseStyles + dynStyles;
 
-  // Анимация
-  var style = document.getElementById('di-keyframes');
-  if(!style){
-    style = document.createElement('style');
-    style.id = 'di-keyframes';
-    style.textContent = '@keyframes diPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(0.85)}} @keyframes diIn{from{opacity:0;transform:translateX(-50%) scale(0.7)}to{opacity:1;transform:translateX(-50%) scale(1)}}';
-    document.head.appendChild(style);
+  var savedX = localStorage.getItem('di_x'), savedY = localStorage.getItem('di_y');
+  if(savedX && savedY){
+    di.style.left = savedX;
+    di.style.top = savedY;
+    di.style.transform = 'none';
   }
 
   return di;
@@ -10348,15 +10329,12 @@ window.diToggleMute = function(){
   if(mb) mb.classList.toggle('muted', window._diMuted);
 };
 
-// Настройки Dynamic Island
 window.openDISettings = function(){
   var d = document.getElementById('custom-drawer');
   var o = document.getElementById('custom-drawer-overlay');
   if(!d) return;
-  // Открываем drawer напрямую — без _initCD который может крашиться
   d.classList.add('open');
   if(o) o.classList.add('open');
-  // Переключаем на вкладку island
   d.querySelectorAll('.cd-section').forEach(function(s){ s.classList.remove('active'); });
   d.querySelectorAll('.cd-tab').forEach(function(b){ b.classList.remove('active'); });
   var sec = d.getElementById ? d.getElementById('cds-island') : document.getElementById('cds-island');
@@ -10367,15 +10345,12 @@ window.openDISettings = function(){
   });
   if(typeof _updateDIPreview === 'function') setTimeout(_updateDIPreview, 50);
 };
-// (old DI settings modal removed)
 window.diApply = function(param, val){
   diSet(param, val);
   buildDI();
-  // Показываем если был показан
   if(window._callMinimized2){
     var di=document.getElementById('dynamic-island'); if(di) di.style.display='flex';
   }
-  // Обновляем превью в drawer если открыт
   if(typeof _updateDIPreview==='function') _updateDIPreview();
 };
 
