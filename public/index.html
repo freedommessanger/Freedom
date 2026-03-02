@@ -2,7 +2,7 @@
 <html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Freedom</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -200,8 +200,8 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .iwrap { flex:1; position:relative; }
 .msg-inp { width:100%; padding:9px 40px 9px 16px; background:var(--surface); border:1px solid var(--border); border-radius:14px; color:var(--text); font-family:inherit; font-size:14px; outline:none; resize:none; max-height:120px; transition:border-color .2s; line-height:1.5; }
 .msg-inp:focus { border-color:var(--border2); background:var(--surface2); }
-.msg-inp::placeholder { color:var(--text2); }
-.emoji-trigger { position:absolute; right:10px; top:50%; transform:translateY(-50%); border:none; background:none; color:var(--text2); cursor:pointer; padding:2px; border-radius:6px; display:flex; transition:color .18s; }
+.msg-inp::placeholder { color:var(--text3); }
+.emoji-trigger { position:absolute; right:10px; bottom:8px; border:none; background:none; color:var(--text3); cursor:pointer; padding:2px; border-radius:6px; display:flex; transition:color .18s; }
 .emoji-trigger:hover { color:var(--text2); }
 .emoji-picker { display:none; position:absolute; bottom:50px; right:0; background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:10px; z-index:200; width:288px; box-shadow:var(--shadow); }
 .emoji-picker.on { display:block; }
@@ -357,7 +357,7 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 @media(max-width:640px){
   .sidebar{width:100%!important;max-width:100%!important;}
   .chat-area{display:none;}
-  .chat-area.mob{display:flex!important;position:fixed;inset:0;z-index:50;width:100%;height:var(--app-h,100%);max-height:var(--app-h,100%);}
+  .chat-area.mob{display:flex!important;position:fixed;inset:0;z-index:50;width:100%;height:100%;}
   .back-btn{display:flex!important;}
   .sett-panel{width:100%;right:-100%;}
   .sett-body{padding-bottom:160px !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important;}
@@ -483,25 +483,8 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .wall-item img{width:100%;height:100%;object-fit:cover;}
 .msgs.has-wall{background-size:cover;background-position:center;background-attachment:local;}
 .msgs.has-wall .bubble{box-shadow:0 1px 4px rgba(0,0,0,0.2);}
-/* ─── AUTOFILL OVERRIDE ─── */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset !important;
-  box-shadow: 0 0 0 1000px var(--surface) inset !important;
-  -webkit-text-fill-color: var(--text) !important;
-  caret-color: var(--text) !important;
-  border-color: var(--border) !important;
-  transition: background-color 99999s ease-in-out 0s !important;
-}
-input:-moz-autofill,
-input:-moz-autofill-preview {
-  filter: none !important;
-  background: var(--surface) !important;
-  color: var(--text) !important;
-}
 </style>
+</head>
 <body>
 
 <!-- AUTH -->
@@ -518,18 +501,15 @@ input:-moz-autofill-preview {
       <button class="auth-seg-btn" onclick="authTab('reg')">Регистрация</button>
     </div>
     <div id="lf">
-      <!-- honeypot для браузерного автозаполнения -->
-      <input type="text" style="display:none" name="username_fake" tabindex="-1" autocomplete="username">
-      <input type="password" style="display:none" name="password_fake" tabindex="-1" autocomplete="current-password">
       <div class="field">
         <div class="field-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Имя пользователя</div>
         <div class="field-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-        <input type="text" id="lu" placeholder="username" autocomplete="off">
+        <input type="text" id="lu" placeholder="username" autocomplete="username">
       </div>
       <div class="field">
         <div class="field-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Пароль</div>
         <div class="field-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-        <input type="password" id="lp" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')doLogin()">
+        <input type="password" id="lp" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <button class="auth-btn" onclick="doLogin()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
@@ -716,7 +696,7 @@ input:-moz-autofill-preview {
       <!-- Баннер профиля -->
       <div style="margin-bottom:12px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Баннер профиля</div>
-        <div id="sett-banner-preview" style="height:70px;border-radius:12px;background-image:linear-gradient(135deg,var(--accent),#7c4dff);background-color:transparent;background-size:cover;background-position:center;background-repeat:no-repeat;margin-bottom:8px;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('sett-banner-input').click()">
+        <div id="sett-banner-preview" style="height:70px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7c4dff);margin-bottom:8px;background-size:cover;background-position:center;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('sett-banner-input').click()">
           <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.25);border-radius:12px;gap:6px;color:#fff;font-size:12px;font-weight:600">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             Сменить баннер
@@ -790,62 +770,6 @@ input:-moz-autofill-preview {
           <input type="checkbox" id="notif-chk" onchange="toggleNotif(this.checked)">
           <span class="sett-toggle-slider"></span>
         </label>
-      </div>
-    </div>
-
-    <!-- Dynamic Island Settings -->
-    <div class="sett-grp" id="di-sett-grp">
-      <div class="sett-grp-title">Dynamic Island</div>
-      <div style="padding:16px 16px 0">
-        <!-- Превью -->
-        <div style="display:flex;justify-content:center;margin-bottom:16px">
-          <div id="di-preview-sett" style="display:inline-flex;align-items:center;gap:10px;padding:10px 18px;border-radius:50px;background:rgba(10,10,16,0.95);border:1px solid rgba(255,255,255,0.1);box-shadow:0 0 24px rgba(79,142,247,0.35),0 8px 32px rgba(0,0,0,0.5);color:#fff;font-size:13px;transition:all .3s">
-            <div style="width:8px;height:8px;border-radius:50%;background:#22c55e;animation:diPulse2 1.5s infinite"></div>
-            <span style="font-weight:600">John • 0:00</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-          </div>
-        </div>
-        <style>@keyframes diPulse2{0%,100%{opacity:1}50%{opacity:.4}}</style>
-        <!-- Форма -->
-        <div style="display:flex;flex-direction:column;gap:14px;padding-bottom:16px">
-          <!-- Цвет -->
-          <div>
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Цвет</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap" id="di-sett-colors">
-              <button onclick="diSettSet('color','dark')" data-v="dark" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:rgba(10,10,16,0.95);color:#fff;transition:all .2s">Чёрный</button>
-              <button onclick="diSettSet('color','accent')" data-v="accent" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#4f8ef7,#7c4dff);color:#fff;transition:all .2s">Акцент</button>
-              <button onclick="diSettSet('color','green')" data-v="green" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#14b450,#008c3c);color:#fff;transition:all .2s">Зелёный</button>
-              <button onclick="diSettSet('color','gradient')" data-v="gradient" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#0f0f1e,rgba(79,142,247,0.6));color:#fff;transition:all .2s">Градиент</button>
-              <button onclick="diSettSet('color','glass')" data-v="glass" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);font-size:12px;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.1);color:#fff;backdrop-filter:blur(10px);transition:all .2s">Стекло</button>
-            </div>
-          </div>
-          <!-- Форма -->
-          <div>
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Форма</div>
-            <div style="display:flex;gap:8px" id="di-sett-shapes">
-              <button onclick="diSettSet('shape','pill')" data-v="pill" style="padding:6px 14px;border-radius:50px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s">Таблетка</button>
-              <button onclick="diSettSet('shape','rounded')" data-v="rounded" style="padding:6px 14px;border-radius:12px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s">Скруглён</button>
-              <button onclick="diSettSet('shape','sharp')" data-v="sharp" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s">Острый</button>
-            </div>
-          </div>
-          <!-- Размер -->
-          <div>
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Размер</div>
-            <div style="display:flex;gap:8px" id="di-sett-sizes">
-              <button onclick="diSettSet('size','compact')" data-v="compact" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s">Компакт</button>
-              <button onclick="diSettSet('size','normal')" data-v="normal" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s">Обычный</button>
-              <button onclick="diSettSet('size','large')" data-v="large" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s">Большой</button>
-            </div>
-          </div>
-          <!-- Свечение -->
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <div style="font-size:14px;font-weight:600;color:var(--text)">Свечение</div>
-            <label class="sett-toggle" onclick="event.stopPropagation()">
-              <input type="checkbox" id="di-sett-glow" onchange="diSettSet('glow',this.checked?'1':'0')">
-              <span class="sett-toggle-slider"></span>
-            </label>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -2333,8 +2257,8 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 .iwrap { flex:1; position:relative; }
 .msg-inp { width:100%; padding:9px 40px 9px 16px; background:var(--surface); border:1px solid var(--border); border-radius:14px; color:var(--text); font-family:inherit; font-size:14px; outline:none; resize:none; max-height:120px; transition:border-color .2s; line-height:1.5; }
 .msg-inp:focus { border-color:var(--border2); background:var(--surface2); }
-.msg-inp::placeholder { color:var(--text2); }
-.emoji-trigger { position:absolute; right:10px; top:50%; transform:translateY(-50%); border:none; background:none; color:var(--text2); cursor:pointer; padding:2px; border-radius:6px; display:flex; transition:color .18s; }
+.msg-inp::placeholder { color:var(--text3); }
+.emoji-trigger { position:absolute; right:10px; bottom:8px; border:none; background:none; color:var(--text3); cursor:pointer; padding:2px; border-radius:6px; display:flex; transition:color .18s; }
 .emoji-trigger:hover { color:var(--text2); }
 .emoji-picker { display:none; position:absolute; bottom:50px; right:0; background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:10px; z-index:200; width:288px; box-shadow:var(--shadow); }
 .emoji-picker.on { display:block; }
@@ -2461,24 +2385,11 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 @media(max-width:640px){
   .sidebar{width:100%;}
   .chat-area{display:none;}
-  .chat-area.mob{display:flex;position:fixed;inset:0;z-index:50;height:var(--app-h,100%);max-height:var(--app-h,100%);}
+  .chat-area.mob{display:flex;position:fixed;inset:0;z-index:50;}
   .back-btn{display:flex!important;}
   .sett-panel{width:100%;right:-100%;}
 }
 .back-btn{display:none;}
-
-/* ─── AUTOFILL OVERRIDE ─── */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset !important;
-  box-shadow: 0 0 0 1000px var(--surface) inset !important;
-  -webkit-text-fill-color: var(--text) !important;
-  caret-color: var(--text) !important;
-  border-color: var(--border) !important;
-  transition: background-color 99999s ease-in-out 0s !important;
-}
 
 </style>
 <div style="display:none" data-dup="2">
@@ -2500,12 +2411,12 @@ input:-webkit-autofill:active {
       <div class="field">
         <div class="field-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Имя пользователя</div>
         <div class="field-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-        <input type="text" id="lu" placeholder="username" autocomplete="off">
+        <input type="text" id="lu" placeholder="username" autocomplete="username">
       </div>
       <div class="field">
         <div class="field-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Пароль</div>
         <div class="field-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-        <input type="password" id="lp" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')doLogin()">
+        <input type="password" id="lp" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <button class="auth-btn" onclick="doLogin()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
@@ -2677,7 +2588,7 @@ input:-webkit-autofill:active {
       <textarea class="sett-ta" id="eb" placeholder="Расскажите о себе..."></textarea>
       <div style="margin-bottom:12px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Баннер профиля</div>
-        <div id="sett-banner-preview" style="height:70px;border-radius:12px;background-image:linear-gradient(135deg,var(--accent),#7c4dff);background-color:transparent;background-size:cover;background-position:center;background-repeat:no-repeat;margin-bottom:8px;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('sett-banner-input').click()">
+        <div id="sett-banner-preview" style="height:70px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7c4dff);margin-bottom:8px;background-size:cover;background-position:center;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('sett-banner-input').click()">
           <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.25);border-radius:12px;gap:6px;color:#fff;font-size:12px;font-weight:600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Сменить баннер</div>
         </div>
         <input type="file" id="sett-banner-input" accept="image/*" style="display:none" onchange="settUploadBanner(event)">
@@ -2842,14 +2753,6 @@ function init(){
   const savedTheme=localStorage.getItem('theme')||'dark';
   document.documentElement.setAttribute('data-theme',savedTheme);
   _updateThemeUI(savedTheme);
-  // FIX: visualViewport listener
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize',_fixMobHeight);
-    window.visualViewport.addEventListener('scroll',_fixMobHeight);
-  }
-  window.addEventListener('resize',_fixMobHeight);
-  // FIX: применяем обои при загрузке
-  setTimeout(_applyWallDirect,200);
 }
 
 // ─── ХЕЛПЕРЫ (обязательно в самом верху!) ──────────────────────────────────
@@ -2991,30 +2894,11 @@ function openChat(username){
   G('no-chat').style.display='none';
   G('chat-view').style.display='flex';
   G('chat-area').classList.add('mob');
-  // FIX: точная высота через visualViewport
-  _fixMobHeight();
-  // FIX: применяем обои
-  _applyWallDirect();
-  socket.emit('get_messages',{with:username},msgs=>{hist[username]=msgs||[];renderMsgs();scrollBot();_applyWallDirect();});
+  socket.emit('get_messages',{with:username},msgs=>{hist[username]=msgs||[];renderMsgs();scrollBot();});
   socket.emit('mark_read',{chatWith:username});
   renderList();
 }
 function closeMob(){G('chat-area').classList.remove('mob');}
-function _fixMobHeight(){
-  var h=(window.visualViewport?window.visualViewport.height:window.innerHeight);
-  document.documentElement.style.setProperty('--app-h',h+'px');
-  var ca=G('chat-area');
-  if(ca){ca.style.height=h+'px';ca.style.maxHeight=h+'px';}
-}
-function _applyWallDirect(){
-  var id=localStorage.getItem('chatWallpaper');
-  var css=localStorage.getItem('chatWallpaperCSS');
-  var s=document.getElementById('_wls');
-  if(!s){s=document.createElement('style');s.id='_wls';document.head.appendChild(s);}
-  if(css&&id&&id!=='none'){
-    s.textContent='#msgs,.msgs{background-image:'+css+' !important;background-size:cover !important;background-position:center !important;}';
-  } else { s.textContent=''; }
-}
 
 // Render Messages
 function renderMsgs(){
@@ -3172,7 +3056,8 @@ function toggleEdit(){
         prev.style.backgroundPosition='center';
         prev.style.backgroundRepeat='no-repeat';
       } else {
-        prev.style.backgroundImage='linear-gradient(135deg,var(--accent),#7c4dff)';
+        prev.style.backgroundImage='';
+        prev.style.background='linear-gradient(135deg,var(--accent),#7c4dff)';
       }
     }
     f.classList.add('on');
@@ -3228,21 +3113,18 @@ function settUploadBanner(e){
   const f=e.target.files[0]; if(!f)return;
   const r=new FileReader();
   r.onload=ev=>{
-    // Показываем превью сразу, не дожидаясь сервера
-    var prev=G('sett-banner-preview');
-    if(prev){
-      prev.style.backgroundImage='url("'+ev.target.result+'")';
-      prev.style.backgroundSize='cover';
-      prev.style.backgroundPosition='center';
-      prev.style.backgroundRepeat='no-repeat';
-    }
     socket.emit('update_profile',{banner:ev.target.result},res=>{
       if(res?.ok){
         me=res.user;
+        var prev=G('sett-banner-preview');
+        if(prev&&me.banner){
+          prev.style.backgroundImage='url("'+me.banner+'")';
+          prev.style.backgroundSize='cover';
+          prev.style.backgroundPosition='center';
+        }
         var bannerImg=G('pm-banner-img')||G('pm-banner-img2');
         var bannerGrad=G('pm-banner-grad')||G('pm-banner-grad2');
         if(bannerImg&&me.banner){
-          bannerImg.style.background='';
           bannerImg.style.backgroundImage='url("'+me.banner+'")';
           bannerImg.style.backgroundSize='cover';
           bannerImg.style.backgroundPosition='center';
@@ -3484,7 +3366,7 @@ function toggleNotif(checked){
 }
 if(typeof init==="function") init(); else if(typeof connectSocket==="function") connectSocket();
 </script>
-<style>
+<!-- STYLE-DISABLED 
 .auth-box {
   width:380px; background:var(--sidebar); border:1px solid var(--border);
   border-radius:20px; padding:36px 32px; box-shadow:0 24px 60px rgba(0,0,0,0.5);
@@ -7579,10 +7461,159 @@ $('messages-area')?.addEventListener('contextmenu', e => e.preventDefault());
         })();
     </script>
 
+<!-- ═══════════════════════════════════════════════════════════
+     ФИНАЛЬНЫЕ ПЕРЕОПРЕДЕЛЕНИЯ — исправляют конфликты ID/классов
+     между несколькими версиями кода в файле
+════════════════════════════════════════════════════════════ -->
+<!-- STYLE-DISABLED 
+/* ── ФИНАЛЬНЫЙ ОВЕРРАЙД МОБИЛЬНОЙ РАСКЛАДКИ ── */
+@media (max-width: 768px) {
+  /* #app — вертикальная колонка, на весь экран */
+  #app.on {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    position: fixed !important;
+    inset: 0 !important;
+  }
+  /* Сайдбар — на весь экран по умолчанию */
+  #app.on .sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-shrink: 0 !important;
+    height: 100% !important;
+    flex: 1 !important;
+  }
+  /* Чат-область — скрыта пока не открыт чат */
+  #app.on .chat-area {
+    display: none !important;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 100 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    flex-direction: column !important;
+  }
+  /* Чат открыт — показываем поверх сайдбара */
+  #app.on .chat-area.mob {
+    display: flex !important;
+  }
+  /* Кнопка "назад" — видна только в открытом чате */
+  .back-btn { display: flex !important; }
+  /* Панель настроек */
+  .sett-panel { width: 100% !important; right: -100% !important; }
+}
+@media (min-width: 769px) {
+  .back-btn { display: none !important; }
+}
+ END-STYLE-DISABLED -->
+<script>
+(function() {
+  // Правильный #app использует класс 'on', а не 'visible'
+  // loadUsers должен обновлять переменную users и clist
+  // switchTab с двумя аргументами — для боковой панели
+
+  // ── Открытие чата — правильная мобильная логика ──
+  window.openChat = function(username) {
+    cur = username;
+    if (typeof unread !== 'undefined') unread[username] = 0;
+    if (typeof unreadCounts !== 'undefined') unreadCounts[username] = 0;
+
+    var u = (typeof users !== 'undefined' ? users : []).find(function(x){ return x.username === username; })
+            || { username: username, displayName: username };
+
+    // Обновляем шапку чата
+    var hav = document.getElementById('ch-av');
+    if (hav) { hav.style.background = col(username); setAv(hav, u, '12px'); }
+    var chName = document.getElementById('ch-name');
+    if (chName) chName.textContent = u.displayName || username;
+    var chStatus = document.getElementById('ch-status');
+    if (chStatus) {
+      chStatus.textContent = u.online ? 'В сети' : 'Не в сети';
+      chStatus.className = 'ch-status' + (u.online ? ' on' : '');
+    }
+
+    // Показываем чат
+    var noChat   = document.getElementById('no-chat');
+    var chatView = document.getElementById('chat-view');
+    var chatArea = document.getElementById('chat-area');
+    if (noChat)   noChat.style.display   = 'none';
+    if (chatView) chatView.style.display = 'flex';
+    if (chatArea) chatArea.classList.add('mob');
+
+    // Загружаем сообщения
+    socket.emit('get_messages', { with: username }, function(msgs) {
+      if (typeof hist !== 'undefined') hist[username] = msgs || [];
+      if (typeof chatHistory !== 'undefined') chatHistory[username] = msgs || [];
+      if (typeof renderMsgs === 'function') renderMsgs();
+      if (typeof renderMessages === 'function') renderMessages();
+      if (typeof scrollBot === 'function') scrollBot();
+      socket.emit('mark_read', { chatWith: username });
+    });
+
+    if (typeof renderList === 'function') renderList();
+  };
+
+  window.closeMob = function() {
+    var chatArea = document.getElementById('chat-area');
+    if (chatArea) chatArea.classList.remove('mob');
+  };
+
+  window.onAuth = function(user) {
+    me = user;
+    // сохраняем сессию (на случай если вход через restore не сохранил)
+    // (doLogin/doReg уже сохраняют, но на всякий случай)
+    var saved = localStorage.getItem('userSession');
+    if (!saved) {
+      // не можем сохранить без пароля здесь — просто пропускаем
+    }
+    // скрываем экран входа, показываем приложение
+    var authEl = document.getElementById('auth-screen');
+    var appEl  = document.getElementById('app');
+    if (authEl) authEl.style.display = 'none';
+    if (appEl)  { appEl.classList.add('on'); appEl.classList.remove('visible'); }
+    updMe();
+    loadUsers();
+  };
+
+  window.loadUsers = function() {
+    fetch('/api/users').then(function(r){ return r.json(); }).then(function(u) {
+      // обновляем ОБЕ переменные — и users (для renderList) и allUsers
+      users    = u.filter(function(x){ return x.username !== me.username; });
+      allUsers = users;
+      renderList();
+    });
+  };
+
+  // switchTab вызывается из HTML с двумя аргументами (tab, btnElement)
+  window.switchTab = function(tab, btn) {
+    document.querySelectorAll('.sb-tab').forEach(function(t){ t.classList.remove('active'); });
+    if (btn && btn.classList) btn.classList.add('active');
+    renderList(tab);
+  };
+
+  // doLogout — используем правильный класс 'on'
+  window.doLogout = function() {
+    socket.emit('logout');
+    me = null; cur = null; users = []; allUsers = []; hist = {}; unread = {}; prev = {};
+    localStorage.removeItem('userSession');
+    var appEl  = document.getElementById('app');
+    var authEl = document.getElementById('auth-screen');
+    var cv     = document.getElementById('chat-view');
+    var nc     = document.getElementById('no-chat');
+    if (appEl)  appEl.classList.remove('on');
+    if (authEl) authEl.style.display = 'flex';
+    if (cv)     cv.style.display = 'none';
+    if (nc)     nc.style.display = 'flex';
+    closeSett();
+  };
+})();
+</script>
 
 <!-- ═══════════════ MASTER PATCH ═══════════════ -->
-</style>
-<style>
+<!-- STYLE-DISABLED 
 /* ── 1. Недостающие CSS переменные ── */
 [data-theme="dark"]  { --bg2:#13151c;--bg3:#1a1d27;--bg4:#20232f;--accent2:#7c4dff;--trans:all .2s ease;--msg-out:#1c3a6e;--msg-in:#1a1d27; }
 [data-theme="light"] { --bg2:#fff;--bg3:#f4f6fb;--bg4:#e8ecf5;--accent2:#6c3fe8;--trans:all .2s ease;--msg-out:#dbeafe;--msg-in:#fff; }
@@ -7592,9 +7623,9 @@ input::placeholder, textarea::placeholder,
 .sett-inp::placeholder, .field input::placeholder,
 .msg-inp::placeholder, .msg-input::placeholder,
 #mi::placeholder, #msg-input::placeholder {
-  color: rgba(130,138,160,0.80) !important;
+  color: rgba(180,185,200,0.75) !important;
   opacity: 1 !important;
-  -webkit-text-fill-color: rgba(130,138,160,0.80) !important;
+  -webkit-text-fill-color: rgba(180,185,200,0.75) !important;
 }
 [data-theme="light"] input::placeholder,
 [data-theme="light"] textarea::placeholder,
@@ -7620,10 +7651,10 @@ input, textarea, .sett-inp, .sett-ta,
 }
 #chat-view .ibar {
   flex-shrink: 0 !important;
+  display: block !important;
   background: var(--sidebar) !important;
   border-top: 1px solid var(--border) !important;
-  padding: 10px 14px 16px !important;
-  padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+  padding: 10px 14px max(12px,env(safe-area-inset-bottom)) !important;
 }
 #chat-view .msgs {
   flex: 1 1 0 !important;
@@ -7650,10 +7681,9 @@ input, textarea, .sett-inp, .sett-ta,
 /* ── 8. Мобайл ── */
 @media (max-width:768px) {
   .sett-panel { width:100% !important; }
-  #app.on .chat-area.mob { display:flex !important; flex-direction:column !important; height:var(--app-h,100%) !important; overflow:hidden !important; }
+  #app.on .chat-area.mob { display:flex !important; flex-direction:column !important; height:100vh !important; overflow:hidden !important; }
 }
-
-</style>
+ END-STYLE-DISABLED -->
 
 <div id="sett-overlay" onclick="closeSett&&closeSett()"></div>
 
@@ -7826,7 +7856,6 @@ function _applyBannerToEl(el, url) {
   el.style.backgroundSize = 'cover';
   el.style.backgroundPosition = 'center';
   el.style.backgroundRepeat = 'no-repeat';
-  el.style.display = 'block';
 }
 
 window.masterToggleMute = function(btn) {
@@ -7864,9 +7893,6 @@ window.openChat=function(username){
   if(nc)nc.style.display='none';
   if(cv){cv.style.display='flex';cv.style.flexDirection='column';}
   if(ca)ca.classList.add('mob');
-  if(typeof _fixMobHeight==='function')_fixMobHeight();
-  setTimeout(function(){if(typeof _fixMobHeight==='function')_fixMobHeight();},150);
-  if(typeof _applyWallDirect==='function')_applyWallDirect();
   try{unread[username]=0;}catch(e){}try{unreadCounts[username]=0;}catch(e){}
   socket.emit('get_messages',{with:username},function(msgs){
     try{hist[username]=msgs||[];}catch(e){}try{chatHistory[username]=msgs||[];}catch(e){}
@@ -7874,7 +7900,6 @@ window.openChat=function(username){
     if(typeof renderMessages==='function')renderMessages();
     if(typeof scrollBot==='function')scrollBot();
     if(typeof scrollBottom==='function')scrollBottom();
-    if(typeof _applyWallDirect==='function')_applyWallDirect();
     socket.emit('mark_read',{chatWith:username});
   });
   if(typeof renderList==='function')renderList();
@@ -8096,21 +8121,6 @@ window.showLightbox=function(src){
   var lb=document.getElementById('lb'),lbi=document.getElementById('lbi');
   if(lb&&lbi){lbi.src=src;lb.classList.add('on');}
 };
-
-// Очищаем поля логина чтобы браузер не подставлял сохранённые данные
-window.addEventListener('load', function(){
-  var lu = document.getElementById('lu');
-  var lp = document.getElementById('lp');
-  if(lu) lu.value = '';
-  if(lp) lp.value = '';
-  // Задержка на случай если браузер заполняет позже
-  setTimeout(function(){
-    var lu2 = document.getElementById('lu');
-    var lp2 = document.getElementById('lp');
-    if(lu2 && lu2.value) lu2.value = '';
-    if(lp2 && lp2.value) lp2.value = '';
-  }, 300);
-});
 
 document.addEventListener('DOMContentLoaded',function(){
   var eb=document.getElementById('eb');if(eb){eb.removeAttribute('maxlength');eb.maxLength=9999;}
@@ -8679,18 +8689,19 @@ window._initWallGrid = function(){
   });
 };
 window.setWallpaper = function(id, css){
+  // ФИКС: применяем фон к области чата глобально, не требуем открытый чат
+  var area = document.getElementById('msgs') || document.getElementById('chat-view') || document.querySelector('.chat-area');
   if(!id){
+    if(area){ area.style.backgroundImage=''; area.style.background=''; area.classList.remove('has-wall'); }
     localStorage.removeItem('chatWallpaper'); localStorage.removeItem('chatWallpaperCSS');
     var sub=document.getElementById('wall-sub'); if(sub) sub.textContent='Без фона';
   } else {
+    if(area){ area.style.backgroundImage=css; area.style.backgroundSize='cover'; area.classList.add('has-wall'); }
     localStorage.setItem('chatWallpaper',id); localStorage.setItem('chatWallpaperCSS',css);
     var w=WALLS.find(function(x){return x.id===id;}); var sub=document.getElementById('wall-sub');
     if(sub) sub.textContent=w?w.label:'Своя';
   }
-  // Применяем через <style> тег — работает всегда
-  if(typeof _applyWallDirect==='function') _applyWallDirect();
-  if(typeof window._initWallGridCD==='function') window._initWallGridCD();
-  if(typeof window.closeWallModal==='function') window.closeWallModal();
+  window.closeWallModal();
 };
 window.handleWallFile = function(e){
   var f=e.target.files[0]; if(!f) return;
@@ -9682,7 +9693,7 @@ s.textContent = `
   background: var(--surface2) !important;
   box-shadow: 0 0 0 3px rgba(79,142,247,0.1) !important;
 }
-.msg-inp::placeholder { color: var(--text2) !important; font-weight: 400 !important; }
+.msg-inp::placeholder { color: var(--text3) !important; font-weight: 400 !important; }
 .send-btn {
   width: 42px !important;
   height: 42px !important;
@@ -9970,1459 +9981,6 @@ setTimeout(upgradeDateDivs, 300);
 })();
 /* ══ END PREMIUM MESSENGER REDESIGN ══ */
 
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════════
-  MEGA FIX: 1) Mic/Cam в видеозвонке  2) Качество видео + ICE
-            3) Обои  4) Dynamic Island с drag и кастомизацией
-════════════════════════════════════════════════════════════════ -->
-<script>
-(function(){
-'use strict';
-
-/* ─────────────────────────────────────────────────────────────
-   FIX 1 & 2: Видеозвонок — качество HD, микрофон всегда работает
-   Перебиваем startCall, tMute, tCam глобально
-───────────────────────────────────────────────────────────── */
-window._callStream = null; // всегда актуальный стрим
-
-var HD_VIDEO = { width:{ideal:1280,max:1920}, height:{ideal:720,max:1080}, frameRate:{ideal:30,max:60}, facingMode:'user' };
-var HD_AUDIO = { echoCancellation:true, noiseSuppression:true, autoGainControl:true };
-var ICE_CFG  = { iceServers:[
-  {urls:'stun:stun.l.google.com:19302'},
-  {urls:'stun:stun1.l.google.com:19302'},
-  {urls:'stun:stun2.l.google.com:19302'},
-  {urls:'stun:openrelay.metered.ca:80'},
-  {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
-  {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'}
-]};
-
-// Патчим getUserMedia для HD через MutationObserver-независимый способ
-var _origGUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-navigator.mediaDevices.getUserMedia = function(constraints){
-  if(constraints && constraints.video === true){
-    constraints.video = HD_VIDEO;
-  }
-  if(constraints && constraints.audio === true){
-    constraints.audio = HD_AUDIO;
-  }
-  return _origGUM(constraints).then(function(s){
-    window._callStream = s;
-    return s;
-  });
-};
-
-// Фикс tMute — всегда берёт актуальный трек
-window.tMute = function(btn){
-  var s = window._callStream || window.stream;
-  if(!s){ console.warn('tMute: no stream'); return; }
-  var tracks = s.getAudioTracks();
-  if(!tracks.length){ console.warn('tMute: no audio tracks'); return; }
-  var t = tracks[0];
-  t.enabled = !t.enabled;
-  if(btn) btn.classList.toggle('muted', !t.enabled);
-};
-
-// Фикс tCam — аналогично
-window.tCam = function(btn){
-  var s = window._callStream || window.stream;
-  if(!s){ return; }
-  var tracks = s.getVideoTracks();
-  if(!tracks.length){ return; }
-  var t = tracks[0];
-  t.enabled = !t.enabled;
-  if(btn) btn.classList.toggle('muted', !t.enabled);
-};
-
-// Патчим showCallUI чтобы кнопки всегда вешали свежий обработчик
-var _origShowCallUI = window.showCallUI;
-window.showCallUI = function(u, type, mode, offer){
-  if(typeof _origShowCallUI === 'function') _origShowCallUI(u, type, mode, offer);
-  // Перепривязываем кнопки после рендера
-  setTimeout(function(){
-    var mb = document.getElementById('cbmute');
-    if(mb){ mb.onclick = function(){ window.tMute(this); }; }
-    var cb = document.getElementById('cbcam');
-    if(cb){ cb.onclick = function(){ window.tCam(this); }; }
-  }, 50);
-};
-
-/* ─────────────────────────────────────────────────────────────
-   FIX 3: Обои — применяем после каждого renderMsgs/openChat
-   Используем MutationObserver на #msgs
-───────────────────────────────────────────────────────────── */
-function _applyWallNow(){
-  var saved = localStorage.getItem('chatWallpaper');
-  var css   = localStorage.getItem('chatWallpaperCSS');
-  if(!saved || saved==='none' || !css) return;
-  var targets = ['msgs','chat-view','chat-body','messages'];
-  targets.forEach(function(id){
-    var el = document.getElementById(id);
-    if(el){
-      el.style.setProperty('background-image', css, 'important');
-      el.style.setProperty('background-size',  'cover', 'important');
-      el.style.setProperty('background-position','center','important');
-      el.classList.add('has-wall');
-    }
-  });
-  // также querySelector для запасного варианта
-  var ms = document.querySelector('.msgs');
-  if(ms){
-    ms.style.setProperty('background-image', css, 'important');
-    ms.style.setProperty('background-size',  'cover', 'important');
-    ms.style.setProperty('background-position','center','important');
-    ms.classList.add('has-wall');
-  }
-}
-
-// Переопределяем setWallpaper чтобы тоже применял везде
-window.setWallpaper = function(id, css){
-  if(!id){
-    ['msgs','chat-view','chat-body','messages'].forEach(function(i){
-      var el=document.getElementById(i); if(el){el.style.backgroundImage='';el.classList.remove('has-wall');}
-    });
-    var ms=document.querySelector('.msgs'); if(ms){ms.style.backgroundImage='';ms.classList.remove('has-wall');}
-    localStorage.removeItem('chatWallpaper'); localStorage.removeItem('chatWallpaperCSS');
-    var sub=document.getElementById('wall-sub'); if(sub) sub.textContent='Без фона';
-  } else {
-    localStorage.setItem('chatWallpaper', id);
-    localStorage.setItem('chatWallpaperCSS', css);
-    _applyWallNow();
-    var walls=window.WALLS||[];
-    var w=walls.find(function(x){return x.id===id;});
-    var sub=document.getElementById('wall-sub'); if(sub) sub.textContent=w?w.label:'Своя';
-  }
-  if(typeof window.closeWallModal==='function') window.closeWallModal();
-};
-
-// Патчим openChat чтобы обои применялись после загрузки сообщений
-var _wcOrigOC = window.openChat;
-window.openChat = function(username){
-  if(typeof _wcOrigOC === 'function') _wcOrigOC(username);
-  if(typeof _fixMobHeight==='function'){ _fixMobHeight(); setTimeout(_fixMobHeight,150); }
-  setTimeout(_applyWallNow, 120);
-  setTimeout(_applyWallNow, 400);
-};
-
-// MutationObserver: применяем обои при добавлении #msgs в DOM
-var _wallObs = new MutationObserver(function(){
-  var saved = localStorage.getItem('chatWallpaper');
-  if(saved && saved !== 'none') _applyWallNow();
-});
-_wallObs.observe(document.body, {childList:true, subtree:true});
-
-// Применяем сразу и через задержки
-_applyWallNow();
-setTimeout(_applyWallNow, 500);
-setTimeout(_applyWallNow, 1500);
-
-/* ─────────────────────────────────────────────────────────────
-   FIX 4: Dynamic Island — перетаскиваемый, кастомизируемый
-───────────────────────────────────────────────────────────── */
-
-// Настройки острова из localStorage
-var DI_DEFAULTS = {
-  shape:   'pill',   // pill | rounded | circle | sharp
-  color:   'dark',   // dark | accent | green | gradient | glass
-  size:    'normal', // compact | normal | large
-  glow:    '1',      // 0 | 1
-  showTimer: '1',
-  position: 'top-center' // top-center | top-right | top-left | floating
-};
-function diGet(k){ return localStorage.getItem('di_'+k) || DI_DEFAULTS[k]; }
-function diSet(k,v){ localStorage.setItem('di_'+k, v); }
-window.diGet = diGet;
-window.diSet = diSet;
-
-// Стили острова
-var DI_STYLES = {
-  shape:{
-    pill:     'border-radius:50px',
-    rounded:  'border-radius:20px',
-    circle:   'border-radius:50%',
-    sharp:    'border-radius:8px'
-  },
-  color:{
-    dark:     'background:rgba(10,10,16,0.95);border:1px solid rgba(255,255,255,0.1)',
-    accent:   'background:linear-gradient(135deg,rgba(79,142,247,0.95),rgba(124,77,255,0.95));border:1px solid rgba(255,255,255,0.2)',
-    green:    'background:linear-gradient(135deg,rgba(20,180,80,0.95),rgba(0,140,60,0.95));border:1px solid rgba(255,255,255,0.15)',
-    gradient: 'background:linear-gradient(135deg,rgba(15,15,30,0.97),rgba(79,142,247,0.3));border:1px solid rgba(79,142,247,0.4)',
-    glass:    'background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)'
-  },
-  size:{
-    compact: 'padding:6px 14px;font-size:11px',
-    normal:  'padding:10px 18px;font-size:13px',
-    large:   'padding:14px 22px;font-size:15px'
-  },
-  glow:{
-    '0': '',
-    '1': 'box-shadow:0 0 24px rgba(79,142,247,0.35),0 8px 32px rgba(0,0,0,0.5)'
-  }
-};
-
-// Инициализируем DI HTML
-function buildDI(){
-  var old = document.getElementById('dynamic-island');
-  if(old) old.remove();
-
-  var di = document.createElement('div');
-  di.id = 'dynamic-island';
-  var shape = diGet('shape'), color = diGet('color'), size = diGet('size'), glow = diGet('glow');
-
-  di.style.cssText = [
-    'position:fixed',
-    'top:16px',
-    'left:50%',
-    'transform:translateX(-50%)',
-    'z-index:9999',
-    'display:none',
-    'align-items:center',
-    'gap:10px',
-    'cursor:pointer',
-    'user-select:none',
-    'transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1)',
-    'color:#fff',
-    DI_STYLES.shape[shape]||DI_STYLES.shape.pill,
-    DI_STYLES.color[color]||DI_STYLES.color.dark,
-    DI_STYLES.size[size]||DI_STYLES.size.normal,
-    glow==='1' ? DI_STYLES.glow['1'] : ''
-  ].join(';');
-
-  // Восстанавливаем позицию если была плавающей
-  var savedX = localStorage.getItem('di_x'), savedY = localStorage.getItem('di_y');
-  if(savedX && savedY){
-    di.style.left   = savedX;
-    di.style.top    = savedY;
-    di.style.transform = 'none';
-  }
-
-  di.innerHTML = [
-    '<div id="di-pulse" style="width:8px;height:8px;border-radius:50%;background:#34d058;animation:diPulse 1.4s ease infinite;flex-shrink:0"></div>',
-    '<div id="di-av" style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;overflow:hidden"></div>',
-    '<div style="display:flex;flex-direction:column;min-width:0">',
-      '<div id="di-name" style="font-weight:700;white-space:nowrap;line-height:1.2">В звонке</div>',
-      '<div id="di-timer" style="color:rgba(255,255,255,0.65);font-size:11px;font-weight:500;line-height:1.2">0:00</div>',
-    '</div>',
-    '<div style="display:flex;align-items:center;gap:6px;margin-left:4px">',
-      '<button id="di-mute-btn" onclick="event.stopPropagation();diToggleMute()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0" title="Микрофон">',
-        _micSVG(),
-      '</button>',
-      '<button id="di-end-btn" onclick="event.stopPropagation();endCall()" style="width:28px;height:28px;border-radius:50%;border:none;background:#ef4444;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .2s;flex-shrink:0" title="Завершить">',
-        _endSVG(),
-      '</button>',
-    '</div>'
-  ].join('');
-
-  document.body.appendChild(di);
-
-  // Клик = развернуть звонок
-  di.addEventListener('click', function(e){
-    if(e.target.closest('button')) return;
-    if(typeof window.restoreCallOverlay === 'function') window.restoreCallOverlay();
-  });
-
-  // Drag
-  _makeDraggable(di);
-
-  // Анимация
-  var style = document.getElementById('di-keyframes');
-  if(!style){
-    style = document.createElement('style');
-    style.id = 'di-keyframes';
-    style.textContent = '@keyframes diPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(0.85)}} @keyframes diIn{from{opacity:0;transform:translateX(-50%) scale(0.7)}to{opacity:1;transform:translateX(-50%) scale(1)}}';
-    document.head.appendChild(style);
-  }
-
-  return di;
-}
-
-function _micSVG(muted){
-  if(muted) return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
-  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
-}
-function _endSVG(){
-  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" transform="rotate(135,12,12)"/></svg>';
-}
-function _gearSVG(){
-  return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
-}
-
-// Drag реализация
-function _makeDraggable(el){
-  var isDragging=false, startX=0, startY=0, elX=0, elY=0;
-  var handle = el;
-  handle.addEventListener('mousedown', function(e){
-    if(e.target.closest('button')) return;
-    isDragging=true;
-    var rect=el.getBoundingClientRect();
-    elX=rect.left; elY=rect.top;
-    startX=e.clientX-elX; startY=e.clientY-elY;
-    el.style.transition='none';
-    e.preventDefault();
-  });
-  handle.addEventListener('touchstart', function(e){
-    if(e.target.closest('button')) return;
-    isDragging=true;
-    var rect=el.getBoundingClientRect();
-    elX=rect.left; elY=rect.top;
-    startX=e.touches[0].clientX-elX; startY=e.touches[0].clientY-elY;
-    el.style.transition='none';
-  },{passive:true});
-  document.addEventListener('mousemove', function(e){
-    if(!isDragging) return;
-    var nx=e.clientX-startX, ny=e.clientY-startY;
-    nx=Math.max(0,Math.min(nx,window.innerWidth-el.offsetWidth));
-    ny=Math.max(0,Math.min(ny,window.innerHeight-el.offsetHeight));
-    el.style.left=nx+'px'; el.style.top=ny+'px'; el.style.transform='none';
-    localStorage.setItem('di_x', nx+'px'); localStorage.setItem('di_y', ny+'px');
-  });
-  document.addEventListener('touchmove', function(e){
-    if(!isDragging) return;
-    var nx=e.touches[0].clientX-startX, ny=e.touches[0].clientY-startY;
-    nx=Math.max(0,Math.min(nx,window.innerWidth-el.offsetWidth));
-    ny=Math.max(0,Math.min(ny,window.innerHeight-el.offsetHeight));
-    el.style.left=nx+'px'; el.style.top=ny+'px'; el.style.transform='none';
-    localStorage.setItem('di_x', nx+'px'); localStorage.setItem('di_y', ny+'px');
-  },{passive:true});
-  document.addEventListener('mouseup', function(){ isDragging=false; el.style.transition=''; });
-  document.addEventListener('touchend', function(){ isDragging=false; el.style.transition=''; });
-}
-
-// Кнопка мут в острове
-window._diMuted = false;
-window.diToggleMute = function(){
-  var s = window._callStream || window.stream;
-  if(s){
-    var t = s.getAudioTracks()[0];
-    if(t){ t.enabled=!t.enabled; window._diMuted=!t.enabled; }
-  }
-  var btn = document.getElementById('di-mute-btn');
-  if(btn){
-    btn.innerHTML = _micSVG(window._diMuted);
-    btn.style.background = window._diMuted ? 'rgba(239,68,68,0.7)' : 'rgba(255,255,255,0.15)';
-  }
-  // Синхронизируем с основной кнопкой
-  var mb = document.getElementById('cbmute');
-  if(mb) mb.classList.toggle('muted', window._diMuted);
-};
-
-// Настройки Dynamic Island
-window.openDISettings = function(){
-  var d = document.getElementById('custom-drawer');
-  var o = document.getElementById('custom-drawer-overlay');
-  if(!d) return;
-  // Открываем drawer напрямую — без _initCD который может крашиться
-  d.classList.add('open');
-  if(o) o.classList.add('open');
-  // Переключаем на вкладку island
-  d.querySelectorAll('.cd-section').forEach(function(s){ s.classList.remove('active'); });
-  d.querySelectorAll('.cd-tab').forEach(function(b){ b.classList.remove('active'); });
-  var sec = d.getElementById ? d.getElementById('cds-island') : document.getElementById('cds-island');
-  if(!sec) sec = document.getElementById('cds-island');
-  if(sec) sec.classList.add('active');
-  d.querySelectorAll('.cd-tab').forEach(function(b){
-    if((b.getAttribute('onclick')||'').indexOf("'island'") !== -1) b.classList.add('active');
-  });
-  if(typeof _updateDIPreview === 'function') setTimeout(_updateDIPreview, 50);
-};
-// (old DI settings modal removed)
-window.diApply = function(param, val){
-  diSet(param, val);
-  buildDI();
-  // Показываем если был показан
-  if(window._callMinimized2){
-    var di=document.getElementById('dynamic-island'); if(di) di.style.display='flex';
-  }
-  // Обновляем превью в drawer если открыт
-  if(typeof _updateDIPreview==='function') _updateDIPreview();
-};
-
-window.diResetPos = function(){
-  localStorage.removeItem('di_x'); localStorage.removeItem('di_y');
-  var di=document.getElementById('dynamic-island');
-  if(di){ di.style.left='50%'; di.style.top='16px'; di.style.transform='translateX(-50%)'; }
-};
-
-// Строим остров при загрузке
-buildDI();
-
-/* Переопределяем minimizeCallOverlay чтобы использовать Dynamic Island */
-window._callMinimized2 = false;
-window.minimizeCallOverlay = function(){
-  var co = document.getElementById('co');
-  if(co){ co.classList.remove('on'); co.style.display='none'; }
-
-  var di = document.getElementById('dynamic-island');
-  if(!di) di = buildDI();
-
-  // Копируем аватар и имя
-  var cav = document.getElementById('cav');
-  var diAv = document.getElementById('di-av');
-  if(cav && diAv){
-    diAv.style.background = cav.style.background;
-    diAv.innerHTML = cav.innerHTML;
-  }
-  var cnm = document.getElementById('cnm'), diNm = document.getElementById('di-name');
-  if(cnm && diNm) diNm.textContent = cnm.textContent;
-
-  di.style.display = 'flex';
-  window._callMinimized2 = true;
-  window._inCall = true;
-
-  // Таймер синхронизация
-  clearInterval(window._diTimerSync);
-  window._diTimerSync = setInterval(function(){
-    var ct = document.getElementById('ctmr'), dt = document.getElementById('di-timer');
-    if(ct && dt){ dt.textContent = ct.textContent||'0:00'; }
-    if(!window._inCall){ clearInterval(window._diTimerSync); }
-  }, 500);
-
-  // Скрываем старый mini-call-bar и sidebar статус
-  var old = document.getElementById('mini-call-bar'); if(old) old.style.display='none';
-  var sb  = document.getElementById('sb-call-status'); if(sb)  sb.style.display='none';
-};
-
-window.restoreCallOverlay = function(){
-  clearInterval(window._diTimerSync);
-  var di = document.getElementById('dynamic-island'); if(di) di.style.display='none';
-  var co = document.getElementById('co');
-  if(co){ co.style.display=''; co.classList.add('on'); }
-  window._callMinimized2 = false;
-  var old = document.getElementById('mini-call-bar'); if(old) old.style.display='none';
-};
-
-// Прячем Dynamic Island при завершении звонка
-var _origDCC2 = window._doCleanCall;
-window._doCleanCall = function(){
-  if(typeof _origDCC2==='function') _origDCC2();
-  clearInterval(window._diTimerSync);
-  var di=document.getElementById('dynamic-island'); if(di) di.style.display='none';
-  window._callMinimized2=false; window._inCall=false;
-};
-
-// Также перехватываем endCall для чистки
-var _origEndCall = window.endCall;
-window.endCall = function(){
-  clearInterval(window._diTimerSync);
-  var di=document.getElementById('dynamic-island'); if(di) di.style.display='none';
-  window._callMinimized2=false; window._inCall=false;
-  if(typeof _origEndCall==='function') _origEndCall();
-};
-
-// Скрываем старый mini-call-bar стилями
-(function(){
-  var s=document.createElement('style');
-  s.textContent='#mini-call-bar{display:none!important}';
-  document.head.appendChild(s);
-})();
-
-})();
-</script>
-
-<!-- ═══════════════════════════════════════════════════════
-  BEAUTIFUL CUSTOMIZATION v3 — Панель настроек + Обои + Dynamic Island
-════════════════════════════════════════════════════════ -->
-</style>
-<style>
-/* ── Базовые переменные ── */
-:root {
-  --accent2: #7c4dff;
-  --accent3: #ff6b9d;
-  --grad1: linear-gradient(135deg, #4f8ef7, #7c4dff);
-  --grad2: linear-gradient(135deg, #ff6b9d, #ff9a56);
-  --grad3: linear-gradient(135deg, #34d058, #00b4d8);
-}
-
-/* ── CUSTOMIZATION DRAWER ── */
-#custom-drawer {
-  position: fixed; top: 0; right: -480px; width: 440px; max-width: 100vw;
-  height: 100vh; background: var(--bg); z-index: 99999;
-  transition: right .35s cubic-bezier(.4,0,.2,1);
-  display: flex; flex-direction: column;
-  box-shadow: -16px 0 60px rgba(0,0,0,0.5);
-  border-left: 1px solid var(--border);
-}
-#custom-drawer.open { right: 0; }
-#custom-drawer-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-  z-index: 99998; opacity: 0; pointer-events: none;
-  transition: opacity .3s;
-  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-}
-#custom-drawer-overlay.open { opacity: 1; pointer-events: all; }
-
-/* ── Drawer Header ── */
-.cd-header {
-  padding: 20px 24px 0;
-  flex-shrink: 0;
-}
-.cd-header-top {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
-}
-.cd-title { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
-.cd-close {
-  width: 36px; height: 36px; border: none; border-radius: 50%;
-  background: var(--surface); color: var(--text2); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all .2s; font-size: 18px;
-}
-.cd-close:hover { background: var(--surface2); color: var(--text); transform: rotate(90deg); }
-
-/* ── Tabs ── */
-.cd-tabs {
-  display: flex; gap: 4px; background: var(--surface);
-  border-radius: 16px; padding: 4px; margin-bottom: 4px;
-}
-.cd-tab {
-  flex: 1; padding: 9px 4px; border: none; background: none;
-  color: var(--text2); border-radius: 12px; cursor: pointer;
-  font-size: 12px; font-weight: 600; font-family: inherit;
-  transition: all .2s; display: flex; align-items: center;
-  justify-content: center; gap: 5px;
-}
-.cd-tab.active {
-  background: var(--sidebar); color: var(--text);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-}
-.cd-tab-ico { font-size: 15px; }
-
-/* ── Body ── */
-.cd-body { flex: 1; overflow-y: auto; padding: 20px 24px; scrollbar-width: thin; }
-.cd-section { display: none; }
-.cd-section.active { display: block; }
-
-/* ── Section Title ── */
-.cd-sec-title {
-  font-size: 10px; font-weight: 800; text-transform: uppercase;
-  letter-spacing: 1.8px; color: var(--text3); margin: 20px 0 10px;
-}
-.cd-sec-title:first-child { margin-top: 0; }
-
-/* ── Cards ── */
-.cd-card {
-  background: var(--sidebar); border: 1px solid var(--border);
-  border-radius: 18px; overflow: hidden; margin-bottom: 12px;
-}
-.cd-row {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 16px; border-bottom: 1px solid var(--border);
-  cursor: pointer; transition: background .15s;
-}
-.cd-row:last-child { border-bottom: none; }
-.cd-row:hover { background: var(--surface); }
-.cd-row-ico {
-  width: 38px; height: 38px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; font-size: 18px;
-}
-.cd-row-body { flex: 1; min-width: 0; }
-.cd-row-label { font-size: 14px; font-weight: 600; }
-.cd-row-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
-.cd-row-right { color: var(--text3); display: flex; align-items: center; gap: 6px; font-size: 12px; }
-
-/* ── Toggle ── */
-.cd-toggle { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
-.cd-toggle input { opacity: 0; width: 0; height: 0; }
-.cd-toggle-slider {
-  position: absolute; inset: 0; background: var(--border2);
-  border-radius: 13px; transition: .25s; cursor: pointer;
-}
-.cd-toggle-slider::before {
-  content: ''; position: absolute; width: 20px; height: 20px;
-  left: 3px; top: 3px; background: #fff; border-radius: 50%;
-  transition: .25s; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-.cd-toggle input:checked + .cd-toggle-slider { background: var(--accent); }
-.cd-toggle input:checked + .cd-toggle-slider::before { transform: translateX(20px); }
-
-/* ── Theme Grid ── */
-.theme-grid-new {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 4px;
-}
-.theme-card {
-  border-radius: 16px; border: 2px solid var(--border); cursor: pointer;
-  overflow: hidden; transition: all .2s; position: relative;
-}
-.theme-card:hover { transform: scale(1.03); border-color: var(--accent); }
-.theme-card.active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-.theme-card-preview {
-  height: 70px; display: flex; gap: 3px; padding: 8px;
-}
-.tc-sidebar { width: 30%; border-radius: 8px; opacity: .9; }
-.tc-main { flex: 1; border-radius: 8px; opacity: .9; }
-.tc-bubble { width: 60%; height: 12px; border-radius: 6px; margin: auto 0; }
-.theme-card-label {
-  padding: 8px 10px; font-size: 12px; font-weight: 700;
-  background: var(--surface); border-top: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.theme-card-check {
-  width: 16px; height: 16px; border-radius: 50%; background: var(--accent);
-  display: none; align-items: center; justify-content: center;
-}
-.theme-card.active .theme-card-check { display: flex; }
-
-/* ── Accent Colors ── */
-.accent-grid {
-  display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 4px;
-}
-.accent-dot {
-  width: 100%; aspect-ratio: 1; border-radius: 50%; cursor: pointer;
-  transition: all .2s; border: 3px solid transparent;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-.accent-dot:hover { transform: scale(1.15); }
-.accent-dot.active { border-color: #fff; transform: scale(1.15); box-shadow: 0 0 0 2px var(--accent), 0 4px 12px rgba(0,0,0,0.3); }
-
-/* ── Font Size ── */
-.font-size-row {
-  display: flex; align-items: center; gap: 12px; padding: 4px 0;
-}
-.fs-btn {
-  width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
-  background: var(--surface); color: var(--text); cursor: pointer;
-  font-size: 16px; display: flex; align-items: center; justify-content: center;
-  transition: all .2s; flex-shrink: 0;
-}
-.fs-btn:hover { background: var(--surface2); border-color: var(--accent); }
-.fs-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; position: relative; }
-.fs-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .2s; }
-.fs-label { font-size: 13px; color: var(--text2); min-width: 30px; text-align: center; }
-
-/* ── Wallpaper Grid NEW ── */
-.wall-grid-new {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-}
-.wall-item-new {
-  aspect-ratio: 9/16; border-radius: 16px; cursor: pointer;
-  border: 2px solid var(--border); overflow: hidden;
-  transition: all .2s; position: relative;
-}
-.wall-item-new:hover { transform: scale(1.04); border-color: var(--accent); }
-.wall-item-new.active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-.wall-item-new.active::after {
-  content: '✓';
-  position: absolute; top: 8px; right: 8px;
-  width: 22px; height: 22px;
-  background: var(--accent); border-radius: 50%;
-  display: block; line-height: 22px; text-align: center;
-  color: #fff; font-size: 13px; font-weight: 800;
-}
-.wall-none-new {
-  background: var(--surface2); display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 6px;
-  color: var(--text3); font-size: 11px; font-weight: 700;
-}
-.wall-label {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  padding: 20px 8px 8px;
-  background: linear-gradient(transparent, rgba(0,0,0,0.6));
-  color: #fff; font-size: 10px; font-weight: 700;
-  text-align: center;
-}
-
-/* ── Bubble Style ── */
-.bubble-style-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-}
-.bubble-style-card {
-  border: 2px solid var(--border); border-radius: 14px; padding: 12px 10px;
-  cursor: pointer; transition: all .2s; text-align: center;
-  background: var(--surface);
-}
-.bubble-style-card:hover { border-color: var(--accent); }
-.bubble-style-card.active { border-color: var(--accent); background: var(--accent-dim); }
-.bs-preview {
-  height: 40px; display: flex; flex-direction: column;
-  align-items: flex-end; gap: 4px; margin-bottom: 8px;
-}
-.bs-bubble {
-  height: 14px; background: var(--accent); opacity: .7;
-}
-.bs-label { font-size: 11px; font-weight: 700; color: var(--text2); }
-.bubble-style-card.active .bs-label { color: var(--accent); }
-
-/* ── DI Island Preview ── */
-.di-preview-wrap {
-  background: linear-gradient(135deg, #0d0f14, #1a1d27);
-  border-radius: 18px; padding: 20px; margin-bottom: 16px;
-  display: flex; justify-content: center; align-items: flex-start;
-  min-height: 100px; position: relative; overflow: hidden;
-  border: 1px solid var(--border);
-}
-.di-preview-wrap::before {
-  content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(79,142,247,0.15), transparent);
-}
-#di-preview-island {
-  position: relative; display: flex; align-items: center;
-  gap: 10px; padding: 10px 18px; color: #fff; cursor: default;
-}
-.di-opt-grid {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
-}
-.di-opt-btn {
-  padding: 10px 8px; border: 2px solid var(--border);
-  border-radius: 12px; background: var(--surface);
-  cursor: pointer; transition: all .2s; text-align: center;
-  font-family: inherit;
-}
-.di-opt-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
-.di-opt-btn.active { border-color: var(--accent); background: var(--accent-dim); }
-.di-opt-ico { font-size: 20px; margin-bottom: 4px; }
-.di-opt-label { font-size: 11px; font-weight: 700; color: var(--text2); display: block; }
-.di-opt-btn.active .di-opt-label { color: var(--accent); }
-
-/* ── Color picker для DI ── */
-.di-color-grid {
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
-}
-.di-color-opt {
-  height: 44px; border-radius: 12px; cursor: pointer; border: 2px solid transparent;
-  transition: all .2s; display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-}
-.di-color-opt:hover { transform: scale(1.06); border-color: rgba(255,255,255,0.3); }
-.di-color-opt.active { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); transform: scale(1.06); }
-
-/* ── Separator ── */
-.cd-sep { height: 1px; background: var(--border); margin: 16px 0; }
-
-/* ── Range input ── */
-.cd-range {
-  width: 100%; height: 4px; border-radius: 2px;
-  appearance: none; -webkit-appearance: none;
-  background: var(--border); outline: none; cursor: pointer;
-}
-.cd-range::-webkit-slider-thumb {
-  appearance: none; width: 18px; height: 18px;
-  border-radius: 50%; background: var(--accent);
-  box-shadow: 0 2px 8px rgba(79,142,247,0.4);
-  transition: transform .2s;
-}
-.cd-range::-webkit-slider-thumb:hover { transform: scale(1.2); }
-
-/* ── Кнопка открытия кастомизации в настройках ── */
-.open-custom-btn {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px; background: var(--grad1);
-  border-radius: 16px; color: #fff; cursor: pointer;
-  margin-bottom: 12px; border: none; width: 100%;
-  font-family: inherit; font-size: 14px; font-weight: 700;
-  transition: all .2s; box-shadow: 0 4px 20px rgba(79,142,247,0.3);
-}
-.open-custom-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(79,142,247,0.4); }
-</style>
-
-<div id="custom-drawer-overlay" onclick="closeCustomDrawer()"></div>
-
-<div id="custom-drawer">
-  <div class="cd-header">
-    <div class="cd-header-top">
-      <div class="cd-title">🎨 Кастомизация</div>
-      <button class="cd-close" onclick="closeCustomDrawer()">×</button>
-    </div>
-    <div class="cd-tabs">
-      <button class="cd-tab active" onclick="switchCDTab('appearance',this)">
-        <span class="cd-tab-ico">🌓</span> Внешний вид
-      </button>
-      <button class="cd-tab" onclick="switchCDTab('chat',this)">
-        <span class="cd-tab-ico">💬</span> Чат
-      </button>
-      <button class="cd-tab" onclick="switchCDTab('island',this)">
-        <span class="cd-tab-ico">🏝</span> Island
-      </button>
-    </div>
-  </div>
-
-  <div class="cd-body">
-
-    <!-- ═══ TAB: ВНЕШНИЙ ВИД ═══ -->
-    <div class="cd-section active" id="cds-appearance">
-
-      <div class="cd-sec-title">Тема</div>
-      <div class="theme-grid-new" id="cd-theme-grid">
-        <!-- filled by JS -->
-      </div>
-
-      <div class="cd-sec-title">Акцентный цвет</div>
-      <div class="accent-grid" id="cd-accent-grid">
-        <!-- filled by JS -->
-      </div>
-
-      <div class="cd-sec-title">Размер шрифта</div>
-      <div class="cd-card">
-        <div style="padding:16px 18px">
-          <div class="font-size-row">
-            <button class="fs-btn" onclick="changeFontSize(-1)">A−</button>
-            <div class="fs-track"><div class="fs-fill" id="fs-fill" style="width:50%"></div></div>
-            <button class="fs-btn" onclick="changeFontSize(1)" style="font-size:20px">A+</button>
-            <span class="fs-label" id="fs-label">14px</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="cd-sec-title">Уголки пузырей</div>
-      <div class="bubble-style-grid" id="cd-bubble-grid">
-        <!-- filled by JS -->
-      </div>
-
-      <div class="cd-sec-title">Дополнительно</div>
-      <div class="cd-card">
-        <div class="cd-row" style="cursor:default">
-          <div class="cd-row-ico" style="background:rgba(79,142,247,0.15);font-size:16px">💫</div>
-          <div class="cd-row-body">
-            <div class="cd-row-label">Анимации</div>
-            <div class="cd-row-sub">Эффекты при отправке</div>
-          </div>
-          <label class="cd-toggle">
-            <input type="checkbox" id="cd-anim-toggle" checked onchange="cdToggle('animations',this.checked)">
-            <span class="cd-toggle-slider"></span>
-          </label>
-        </div>
-        <div class="cd-row" style="cursor:default">
-          <div class="cd-row-ico" style="background:rgba(52,208,88,0.15);font-size:16px">👁</div>
-          <div class="cd-row-body">
-            <div class="cd-row-label">Прозрачность</div>
-            <div class="cd-row-sub">Стеклянный эффект</div>
-          </div>
-          <label class="cd-toggle">
-            <input type="checkbox" id="cd-glass-toggle" onchange="cdToggle('glass',this.checked)">
-            <span class="cd-toggle-slider"></span>
-          </label>
-        </div>
-        <div class="cd-row" style="cursor:default">
-          <div class="cd-row-ico" style="background:rgba(255,107,157,0.15);font-size:16px">🌀</div>
-          <div class="cd-row-body">
-            <div class="cd-row-label">Blur фона</div>
-            <div class="cd-row-sub">Размытие под панелями</div>
-          </div>
-          <label class="cd-toggle">
-            <input type="checkbox" id="cd-blur-toggle" checked onchange="cdToggle('blur',this.checked)">
-            <span class="cd-toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ TAB: ЧАТ ═══ -->
-    <div class="cd-section" id="cds-chat">
-
-      <div class="cd-sec-title">Обои чата</div>
-      <div class="wall-grid-new" id="cd-wall-grid">
-        <!-- filled by JS -->
-      </div>
-      <button onclick="document.getElementById('wall-file-inp').click()" style="width:100%;padding:12px;background:var(--surface);border:1px dashed var(--border2);border-radius:14px;color:var(--text2);cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;margin-top:10px;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
-        📁 Загрузить своё фото
-      </button>
-
-      <div class="cd-sep"></div>
-      <div class="cd-sec-title">Непрозрачность обоев</div>
-      <div class="cd-card">
-        <div style="padding:16px 18px">
-          <input type="range" class="cd-range" id="wall-opacity-range" min="10" max="100" value="100" oninput="setWallOpacity(this.value)">
-          <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text3)">
-            <span>Прозрачнее</span><span id="wall-opacity-val">100%</span><span>Ярче</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="cd-sec-title">Отображение сообщений</div>
-      <div class="cd-card">
-        <div class="cd-row" style="cursor:default">
-          <div class="cd-row-ico" style="background:rgba(79,142,247,0.15);font-size:16px">🕐</div>
-          <div class="cd-row-body"><div class="cd-row-label">Показывать время</div></div>
-          <label class="cd-toggle">
-            <input type="checkbox" checked onchange="cdChatPref('showTime',this.checked)">
-            <span class="cd-toggle-slider"></span>
-          </label>
-        </div>
-        <div class="cd-row" style="cursor:default">
-          <div class="cd-row-ico" style="background:rgba(255,209,102,0.15);font-size:16px">✓</div>
-          <div class="cd-row-body"><div class="cd-row-label">Галочки прочтения</div></div>
-          <label class="cd-toggle">
-            <input type="checkbox" checked onchange="cdChatPref('readTicks',this.checked)">
-            <span class="cd-toggle-slider"></span>
-          </label>
-        </div>
-        <div class="cd-row" style="cursor:default">
-          <div class="cd-row-ico" style="background:rgba(52,208,88,0.15);font-size:16px">👤</div>
-          <div class="cd-row-body"><div class="cd-row-label">Аватарки в чате</div></div>
-          <label class="cd-toggle">
-            <input type="checkbox" checked onchange="cdChatPref('avatarsInChat',this.checked)">
-            <span class="cd-toggle-slider"></span>
-          </label>
-        </div>
-        <div class="cd-row" style="cursor:default">
-          <div class="cd-row-ico" style="background:rgba(255,107,157,0.15);font-size:16px">📐</div>
-          <div class="cd-row-body"><div class="cd-row-label">Компактный режим</div><div class="cd-row-sub">Меньше отступов</div></div>
-          <label class="cd-toggle">
-            <input type="checkbox" id="cd-compact" onchange="cdChatPref('compact',this.checked)">
-            <span class="cd-toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ TAB: DYNAMIC ISLAND ═══ -->
-    <div class="cd-section" id="cds-island">
-
-      <div class="cd-sec-title">Превью</div>
-      <div class="di-preview-wrap">
-        <div id="di-preview-island">
-          <div style="width:8px;height:8px;border-radius:50%;background:#34d058;animation:diPulse 1.4s infinite"></div>
-          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">А</div>
-          <div>
-            <div style="font-weight:700;font-size:13px">Алиса</div>
-            <div style="font-size:11px;opacity:.6">1:24</div>
-          </div>
-          <div style="display:flex;gap:6px;margin-left:4px">
-            <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center">🎙</div>
-            <div style="width:28px;height:28px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center">📵</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="cd-sec-title">Форма</div>
-      <div class="di-opt-grid" id="di-shape-grid">
-        <button class="di-opt-btn active" onclick="diOptSelect('shape','pill',this)">
-          <div class="di-opt-ico">💊</div><span class="di-opt-label">Пилюля</span>
-        </button>
-        <button class="di-opt-btn" onclick="diOptSelect('shape','rounded',this)">
-          <div class="di-opt-ico">⬛</div><span class="di-opt-label">Скруглённый</span>
-        </button>
-        <button class="di-opt-btn" onclick="diOptSelect('shape','circle',this)">
-          <div class="di-opt-ico">⭕</div><span class="di-opt-label">Круглый</span>
-        </button>
-        <button class="di-opt-btn" onclick="diOptSelect('shape','sharp',this)">
-          <div class="di-opt-ico">📐</div><span class="di-opt-label">Острый</span>
-        </button>
-      </div>
-
-      <div class="cd-sec-title">Стиль фона</div>
-      <div class="di-color-grid" id="di-color-grid">
-        <div class="di-color-opt active" style="background:rgba(10,10,16,0.95);border:1px solid rgba(255,255,255,0.15)" onclick="diColorSelect('dark',this)" title="Тёмный">🖤</div>
-        <div class="di-color-opt" style="background:linear-gradient(135deg,#4f8ef7,#7c4dff)" onclick="diColorSelect('accent',this)" title="Акцент">💙</div>
-        <div class="di-color-opt" style="background:linear-gradient(135deg,#22c55e,#16a34a)" onclick="diColorSelect('green',this)" title="Зелёный">💚</div>
-        <div class="di-color-opt" style="background:linear-gradient(135deg,#ff6b9d,#ff9a56)" onclick="diColorSelect('sunset',this)" title="Закат">🌅</div>
-        <div class="di-color-opt" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(20px)" onclick="diColorSelect('glass',this)" title="Стекло">🔮</div>
-      </div>
-
-      <div class="cd-sec-title">Размер</div>
-      <div class="di-opt-grid" id="di-size-grid">
-        <button class="di-opt-btn" onclick="diOptSelect('size','compact',this)">
-          <div class="di-opt-ico" style="font-size:14px">▪</div><span class="di-opt-label">Компакт</span>
-        </button>
-        <button class="di-opt-btn active" onclick="diOptSelect('size','normal',this)">
-          <div class="di-opt-ico">◾</div><span class="di-opt-label">Нормал</span>
-        </button>
-        <button class="di-opt-btn" onclick="diOptSelect('size','large',this)">
-          <div class="di-opt-ico" style="font-size:22px">◼</div><span class="di-opt-label">Большой</span>
-        </button>
-      </div>
-
-      <div class="cd-sep"></div>
-      <div class="cd-card">
-        <div class="cd-row" style="cursor:default">
-          <div class="cd-row-ico" style="background:rgba(79,142,247,0.15);font-size:16px">✨</div>
-          <div class="cd-row-body"><div class="cd-row-label">Свечение</div><div class="cd-row-sub">Glow-эффект острова</div></div>
-          <label class="cd-toggle">
-            <input type="checkbox" id="di-glow-toggle" checked onchange="diSet('glow',this.checked?'1':'0');buildDI()">
-            <span class="cd-toggle-slider"></span>
-          </label>
-        </div>
-        <div class="cd-row" style="cursor:default">
-          <div class="cd-row-ico" style="background:rgba(52,208,88,0.15);font-size:16px">⏱</div>
-          <div class="cd-row-body"><div class="cd-row-label">Таймер звонка</div></div>
-          <label class="cd-toggle">
-            <input type="checkbox" id="di-timer-toggle" checked onchange="diSet('showTimer',this.checked?'1':'0');buildDI()">
-            <span class="cd-toggle-slider"></span>
-          </label>
-        </div>
-        <div class="cd-row" onclick="diResetPos()">
-          <div class="cd-row-ico" style="background:rgba(255,107,157,0.15);font-size:16px">📍</div>
-          <div class="cd-row-body"><div class="cd-row-label">Сбросить позицию</div><div class="cd-row-sub">Переместить в центр</div></div>
-          <div class="cd-row-right">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /cd-body -->
-</div><!-- /custom-drawer -->
-
-<script>
-(function(){
-/* ─── Открытие/закрытие ─── */
-window.openCustomDrawer = function(tab){
-  var d=document.getElementById('custom-drawer');
-  var o=document.getElementById('custom-drawer-overlay');
-  d.classList.add('open'); o.classList.add('open');
-  _initCD();
-  // Switch to requested tab
-  var targetTab = tab || 'appearance';
-  var tabBtns = d.querySelectorAll('.cd-tab');
-  tabBtns.forEach(function(b){
-    if((b.getAttribute('onclick')||'').indexOf("'"+targetTab+"'") !== -1) b.click();
-  });
-  // Always init wall grid
-  setTimeout(_initWallGridCD, 100);
-}
-window.closeCustomDrawer = function(){
-  document.getElementById('custom-drawer').classList.remove('open');
-  document.getElementById('custom-drawer-overlay').classList.remove('open');
-};
-
-window.switchCDTab = function(name, btn){
-  document.querySelectorAll('.cd-section').forEach(function(s){ s.classList.remove('active'); });
-  document.querySelectorAll('.cd-tab').forEach(function(b){ b.classList.remove('active'); });
-  var sec = document.getElementById('cds-'+name);
-  if(sec) sec.classList.add('active');
-  if(btn) btn.classList.add('active');
-  if(name==='chat') _initWallGridCD();
-  setTimeout(_initWallGridCD, 0); // lazy init in case drawer not yet rendered
-};
-
-/* ─── Темы ─── */
-var THEMES_CD = [
-  {id:'dark',    label:'Тёмная',   sb:'#13151c', bg:'#0d0f14', acc:'#4f8ef7', bubble:'#1c3a6e'},
-  {id:'light',   label:'Светлая',  sb:'#ffffff', bg:'#f0f2f8', acc:'#4f8ef7', bubble:'#dbeafe'},
-  {id:'midnight',label:'Полночь',  sb:'#0e1020', bg:'#090b12', acc:'#7c4dff', bubble:'#2d1b6e'},
-  {id:'forest',  label:'Лес',      sb:'#121a14', bg:'#0c120e', acc:'#34d058', bubble:'#1a3d20'},
-  {id:'rose',    label:'Розовая',  sb:'#1f1218', bg:'#150d10', acc:'#ff6b9d', bubble:'#4a1528'},
-  {id:'ocean',   label:'Океан',    sb:'#0d1929', bg:'#080f1a', acc:'#00b4d8', bubble:'#0a2a40'},
-];
-
-function _initThemeGrid(){
-  var g=document.getElementById('cd-theme-grid'); if(!g) return;
-  var cur=localStorage.getItem('theme')||'dark';
-  g.innerHTML='';
-  THEMES_CD.forEach(function(t){
-    var d=document.createElement('div');
-    d.className='theme-card'+(t.id===cur?' active':'');
-    d.innerHTML='<div class="theme-card-preview" style="background:'+t.bg+'"><div class="tc-sidebar" style="background:'+t.sb+'"></div><div class="tc-main" style="background:'+t.bg+'"><div class="tc-bubble" style="background:'+t.acc+'"></div></div></div><div class="theme-card-label"><span>'+t.label+'</span><span class="theme-card-check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span></div>';
-    d.onclick=function(){
-      if(typeof applyTheme==='function') applyTheme(t.id);
-      document.querySelectorAll('.theme-card').forEach(function(c){c.classList.remove('active');});
-      d.classList.add('active');
-      // Применяем кастомные темы
-      _applyExtraTheme(t.id, t.acc);
-    };
-    g.appendChild(d);
-  });
-}
-
-function _applyExtraTheme(id, acc){
-  var s=document.getElementById('extra-theme-style');
-  if(!s){s=document.createElement('style');s.id='extra-theme-style';document.head.appendChild(s);}
-  var map={
-    rose: '--bg:#150d10;--sidebar:#1f1218;--surface:#26151d;--surface2:#2e1a24;--border:#3a2030;--border2:#4a2840;--accent:#ff6b9d;--accent-dim:rgba(255,107,157,0.15);--accent-hover:#ff85b3;--bubble-out:#4a1528;--text:#f0d8e8;',
-    ocean: '--bg:#080f1a;--sidebar:#0d1929;--surface:#111e33;--surface2:#162440;--border:#1e2f4a;--border2:#263d60;--accent:#00b4d8;--accent-dim:rgba(0,180,216,0.15);--accent-hover:#22d3ee;--bubble-out:#0a2a40;--text:#d8eef8;',
-  };
-  if(map[id]){
-    s.textContent='html{'+map[id]+'}';
-    localStorage.setItem('theme', id);
-  } else {
-    s.textContent='';
-  }
-}
-
-/* ─── Акцентные цвета ─── */
-var ACCENTS = [
-  {hex:'#4f8ef7',name:'Синий'},    {hex:'#7c4dff',name:'Фиолетовый'},
-  {hex:'#ff6b9d',name:'Розовый'},  {hex:'#34d058',name:'Зелёный'},
-  {hex:'#ff9a56',name:'Оранжевый'},{hex:'#00b4d8',name:'Голубой'},
-  {hex:'#ffd166',name:'Жёлтый'},   {hex:'#ef4444',name:'Красный'},
-  {hex:'#a78bfa',name:'Лавандовый'},{hex:'#06d6a0',name:'Мятный'},
-  {hex:'#f72585',name:'Маджента'}, {hex:'#ffffff',name:'Белый'},
-];
-
-function _initAccentGrid(){
-  var g=document.getElementById('cd-accent-grid'); if(!g) return;
-  var cur=localStorage.getItem('accentColor')||'#4f8ef7';
-  g.innerHTML='';
-  ACCENTS.forEach(function(a){
-    var d=document.createElement('div');
-    d.className='accent-dot'+(a.hex===cur?' active':'');
-    d.style.background=a.hex;
-    d.title=a.name;
-    d.onclick=function(){
-      document.querySelectorAll('.accent-dot').forEach(function(x){x.classList.remove('active');});
-      d.classList.add('active');
-      _applyAccent(a.hex);
-    };
-    g.appendChild(d);
-  });
-}
-
-function _applyAccent(hex){
-  localStorage.setItem('accentColor', hex);
-  var s=document.getElementById('accent-style');
-  if(!s){s=document.createElement('style');s.id='accent-style';document.head.appendChild(s);}
-  // Convert hex to rgba components
-  var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
-  s.textContent='html{--accent:'+hex+';--accent-hover:'+hex+';--accent-dim:rgba('+r+','+g+','+b+',0.15);}';
-  if(typeof buildDI==='function') buildDI();
-}
-
-/* ─── Размер шрифта ─── */
-var _fsMin=11, _fsMax=18, _fsCur=14;
-window.changeFontSize = function(delta){
-  _fsCur = Math.max(_fsMin, Math.min(_fsMax, _fsCur+delta));
-  localStorage.setItem('fontSize', _fsCur);
-  _applyFontSize(_fsCur);
-};
-function _applyFontSize(sz){
-  var s=document.getElementById('font-style');
-  if(!s){s=document.createElement('style');s.id='font-style';document.head.appendChild(s);}
-  s.textContent='html,body,.bubble,.msg-inp,.ci-name,.ci-prev,.bbl-text{font-size:'+sz+'px !important}';
-  var fill=document.getElementById('fs-fill'), label=document.getElementById('fs-label');
-  var pct=((sz-_fsMin)/(_fsMax-_fsMin))*100;
-  if(fill) fill.style.width=pct+'%';
-  if(label) label.textContent=sz+'px';
-}
-
-/* ─── Bubble styles ─── */
-var BUBBLE_STYLES=[
-  {id:'default', label:'Стандарт', r:'18px 18px 4px 18px', r2:'18px 18px 18px 4px'},
-  {id:'round',   label:'Круглый',  r:'50px', r2:'50px'},
-  {id:'square',  label:'Острый',   r:'8px',  r2:'8px'},
-];
-function _initBubbleGrid(){
-  var g=document.getElementById('cd-bubble-grid'); if(!g) return;
-  var cur=localStorage.getItem('bubbleStyle')||'default';
-  g.innerHTML='';
-  BUBBLE_STYLES.forEach(function(bs){
-    var d=document.createElement('div');
-    d.className='bubble-style-card'+(bs.id===cur?' active':'');
-    d.innerHTML='<div class="bs-preview"><div class="bs-bubble" style="width:80%;border-radius:'+bs.r+'"></div><div class="bs-bubble" style="width:55%;border-radius:'+bs.r+'"></div></div><div class="bs-label">'+bs.label+'</div>';
-    d.onclick=function(){
-      document.querySelectorAll('.bubble-style-card').forEach(function(x){x.classList.remove('active');});
-      d.classList.add('active');
-      _applyBubbleStyle(bs);
-    };
-    g.appendChild(d);
-  });
-}
-
-function _applyBubbleStyle(bs){
-  localStorage.setItem('bubbleStyle', bs.id);
-  var s=document.getElementById('bubble-style');
-  if(!s){s=document.createElement('style');s.id='bubble-style';document.head.appendChild(s);}
-  s.textContent='.mrow.out .bubble{border-radius:'+bs.r+' !important}.mrow.in .bubble{border-radius:'+bs.r2+' !important}';
-}
-
-/* ─── Обои в новом дизайне ─── */
-var WALLS_NEW = [
-  {id:'w1', label:'Сумерки', css:'linear-gradient(160deg,#0a0015,#1a0533,#2d1b69)'},
-  {id:'w2', label:'Закат',   css:'linear-gradient(160deg,#1a0a00,#4a1500,#ff6b35,#ff9a56)'},
-  {id:'w3', label:'Океан',   css:'linear-gradient(160deg,#000d1a,#001f3f,#0070a8,#00b4d8)'},
-  {id:'w4', label:'Лес',     css:'linear-gradient(160deg,#010d03,#0a2311,#1a5c2a,#34d058)'},
-  {id:'w5', label:'Розовый', css:'linear-gradient(160deg,#1a0010,#4a0025,#cc1f5e,#ff6b9d)'},
-  {id:'w6', label:'Космос',  css:'radial-gradient(ellipse at 20% 30%,#4f8ef7 0%,transparent 50%),radial-gradient(ellipse at 80% 70%,#7c4dff 0%,transparent 50%),#050510'},
-  {id:'w7', label:'Аврора',  css:'linear-gradient(135deg,#001a12,#003322,#00aa66,#4ff0a0,#7c4dff)'},
-  {id:'w8', label:'Сахара',  css:'linear-gradient(160deg,#1a0d00,#3d1f00,#8b4513,#d4a050)'},
-  {id:'w9', label:'Радуга',  css:'linear-gradient(135deg,#ff0080,#ff8c00,#40e0d0)'},
-];
-
-function _initWallGridCD(){
-  var g=document.getElementById('cd-wall-grid'); if(!g) return;
-  var saved=localStorage.getItem('chatWallpaper')||'none';
-  g.innerHTML='';
-  // None
-  var none=document.createElement('div');
-  none.className='wall-item-new wall-none-new'+(saved==='none'?' active':'');
-  none.innerHTML='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Нет</span>';
-  none.onclick=function(){ window.setWallpaper(null); _initWallGridCD(); };
-  g.appendChild(none);
-  WALLS_NEW.forEach(function(w){
-    var d=document.createElement('div');
-    d.className='wall-item-new'+(w.id===saved?' active':'');
-    d.style.background=w.css;
-    d.innerHTML='<div class="wall-label">'+w.label+'</div>';
-    d.onclick=function(){ window.setWallpaper(w.id, w.css); _initWallGridCD(); };
-    g.appendChild(d);
-  });
-}
-
-window.setWallOpacity = function(val){
-  var el=document.getElementById('wall-opacity-val'); if(el) el.textContent=val+'%';
-  localStorage.setItem('wallOpacity', val);
-  var overlay = (1-(val/100)).toFixed(2);
-  var s=document.getElementById('wall-opacity-style');
-  if(!s){s=document.createElement('style');s.id='wall-opacity-style';document.head.appendChild(s);}
-  s.textContent='.msgs.has-wall{position:relative !important}.msgs.has-wall::before{content:"";position:absolute;inset:0;background:rgba(13,15,20,'+overlay+');pointer-events:none;z-index:0}.msgs.has-wall > *{position:relative;z-index:1}';
-};
-
-/* ─── Dynamic Island опции ─── */
-var _diColorMap = {
-  dark:    'dark',
-  accent:  'accent',
-  green:   'green',
-  sunset:  'sunset',
-  glass:   'glass',
-};
-
-var DI_STYLES_EXT = {
-  shape:{
-    pill:'border-radius:50px',
-    rounded:'border-radius:20px',
-    circle:'border-radius:50%',
-    sharp:'border-radius:8px'
-  },
-  color:{
-    dark:    'background:rgba(10,10,16,0.97);border:1px solid rgba(255,255,255,0.1)',
-    accent:  'background:linear-gradient(135deg,rgba(79,142,247,0.97),rgba(124,77,255,0.97));border:1px solid rgba(255,255,255,0.2)',
-    green:   'background:linear-gradient(135deg,rgba(34,197,94,0.97),rgba(22,163,74,0.97));border:1px solid rgba(255,255,255,0.2)',
-    sunset:  'background:linear-gradient(135deg,rgba(255,107,157,0.97),rgba(255,154,86,0.97));border:1px solid rgba(255,255,255,0.2)',
-    glass:   'background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)',
-  },
-  size:{
-    compact:'padding:7px 14px;font-size:11px',
-    normal: 'padding:10px 18px;font-size:13px',
-    large:  'padding:14px 24px;font-size:15px',
-  }
-};
-
-window.diOptSelect = function(param, val, btn){
-  if(typeof diSet==='function') diSet(param, val);
-  var grid = btn.closest('.di-opt-grid');
-  if(grid) grid.querySelectorAll('.di-opt-btn').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  _updateDIPreview();
-  if(typeof buildDI==='function') buildDI();
-};
-
-window.diColorSelect = function(val, el){
-  if(typeof diSet==='function') diSet('color', val);
-  document.querySelectorAll('.di-color-opt').forEach(function(x){ x.classList.remove('active'); });
-  el.classList.add('active');
-  _updateDIPreview();
-  if(typeof buildDI==='function') buildDI();
-};
-
-function _updateDIPreview(){
-  var p = document.getElementById('di-preview-island');
-  if(!p) return;
-  var shape = (typeof diGet==='function') ? diGet('shape') : 'pill';
-  var color = (typeof diGet==='function') ? diGet('color') : 'dark';
-  var size  = (typeof diGet==='function') ? diGet('size')  : 'normal';
-  var glow  = (typeof diGet==='function') ? diGet('glow')  : '1';
-  var styleArr = [
-    'position:relative;display:flex;align-items:center;gap:10px;color:#fff;transition:all .3s',
-    DI_STYLES_EXT.shape[shape]||DI_STYLES_EXT.shape.pill,
-    DI_STYLES_EXT.color[color]||DI_STYLES_EXT.color.dark,
-    DI_STYLES_EXT.size[size]||DI_STYLES_EXT.size.normal,
-    glow==='1' ? 'box-shadow:0 0 24px rgba(79,142,247,.4),0 8px 32px rgba(0,0,0,.5)' : '',
-  ];
-  p.style.cssText = styleArr.join(';');
-}
-
-/* ─── Прочие toggles ─── */
-window.cdToggle = function(key, val){
-  localStorage.setItem('cd_'+key, val?'1':'0');
-  if(key==='animations'){
-    var s=document.getElementById('anim-style');
-    if(!s){s=document.createElement('style');s.id='anim-style';document.head.appendChild(s);}
-    s.textContent = val ? '' : '*{animation:none !important;transition:none !important}';
-  }
-  if(key==='glass'){
-    var s=document.getElementById('glass-style');
-    if(!s){s=document.createElement('style');s.id='glass-style';document.head.appendChild(s);}
-    s.textContent = val ? '.sidebar,.sett-panel,.chat-hd,.iwrap{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(var(--sidebar-rgb,19,21,28),0.85) !important}' : '';
-  }
-};
-window.cdChatPref = function(key, val){
-  localStorage.setItem('cdchat_'+key, val?'1':'0');
-};
-
-/* ─── Инициализация панели ─── */
-function _initCD(){
-  _initThemeGrid();
-  _initAccentGrid();
-  _initBubbleGrid();
-  // Restore saved states
-  var sz=parseInt(localStorage.getItem('fontSize')||'14');
-  _fsCur=sz; _applyFontSize(sz);
-  var acc=localStorage.getItem('accentColor');
-  if(acc) _applyAccent(acc);
-  var bs=localStorage.getItem('bubbleStyle');
-  if(bs){var bso=BUBBLE_STYLES.find(function(x){return x.id===bs;});if(bso)_applyBubbleStyle(bso);}
-  var et=localStorage.getItem('theme');
-  if(et){var tdata=THEMES_CD.find(function(x){return x.id===et;});if(tdata)_applyExtraTheme(et, tdata.acc);}
-  // DI toggles
-  var gt=document.getElementById('di-glow-toggle'); if(gt) gt.checked=(typeof diGet==='function'?diGet('glow'):'1')==='1';
-  var tt=document.getElementById('di-timer-toggle'); if(tt) tt.checked=(typeof diGet==='function'?diGet('showTimer'):'1')==='1';
-  // DI опции — подсветить текущие
-  _syncDIButtons('di-shape-grid','shape');
-  _syncDIButtons('di-size-grid','size');
-  _syncDIColorButtons();
-  _updateDIPreview();
-}
-
-function _syncDIButtons(gridId, param){
-  var g=document.getElementById(gridId); if(!g) return;
-  var cur=(typeof diGet==='function')?diGet(param):null; if(!cur) return;
-  g.querySelectorAll('.di-opt-btn').forEach(function(b){
-    var onclick=b.getAttribute('onclick')||'';
-    b.classList.toggle('active', onclick.indexOf("'"+cur+"'")+onclick.indexOf('"'+cur+'"')>-2);
-  });
-}
-function _syncDIColorButtons(){
-  var g=document.getElementById('di-color-grid'); if(!g) return;
-  var cur=(typeof diGet==='function')?diGet('color'):'dark';
-  g.querySelectorAll('.di-color-opt').forEach(function(el){
-    var oc=el.getAttribute('onclick')||'';
-    el.classList.toggle('active', oc.indexOf("'"+cur+"'")!==-1);
-  });
-}
-
-// Apply saved settings on load
-(function(){
-  var acc=localStorage.getItem('accentColor'); if(acc) _applyAccent(acc);
-  var sz=parseInt(localStorage.getItem('fontSize')||'14'); _fsCur=sz; _applyFontSize(sz);
-  var bs=localStorage.getItem('bubbleStyle'); if(bs){var bso=BUBBLE_STYLES.find(function(x){return x.id===bs;});if(bso)_applyBubbleStyle(bso);}
-  var et=localStorage.getItem('theme'); if(et){var tdata=THEMES_CD.find(function(x){return x.id===et;});if(tdata)_applyExtraTheme(et,tdata.acc);}
-})();
-
-/* ─── Патчим кнопку в настройках ─── */
-setTimeout(function(){
-  var sp=document.getElementById('sp');
-  if(!sp) return;
-  var body=sp.querySelector('.sett-body');
-  if(!body) return;
-  var btn=document.createElement('button');
-  btn.className='open-custom-btn';
-  btn.innerHTML='<span style="font-size:24px">🎨</span><div style="text-align:left"><div>Кастомизация</div><div style="font-size:11px;opacity:.75;font-weight:500">Темы, цвета, обои, Island...</div></div><span style="margin-left:auto;opacity:.8">→</span>';
-  btn.onclick=function(){ closeSett(); openCustomDrawer(); };
-  body.insertBefore(btn, body.firstChild);
-  var sp2=document.querySelectorAll('.sett-panel')[1];
-  if(sp2){
-    var b2=sp2.querySelector('.sett-body');
-    if(b2){
-      var btn2=btn.cloneNode(true);
-      btn2.onclick=function(){ if(typeof closeSett==='function')closeSett(); openCustomDrawer(); };
-      b2.insertBefore(btn2, b2.firstChild);
-    }
-  }
-}, 500);
-
-/* ─── Патчим openWallModal ─── */
-window.openWallModal = function(){
-  if(typeof window._initWallGrid === 'function') window._initWallGrid();
-  var m = document.getElementById('wall-modal');
-  if(m) m.style.display = 'flex';
-};
-
-})();
-</script>
-
-<script>
-/* ── DI Settings in Settings Panel ── */
-function diSettSet(param, val) {
-  diSet(param, val);
-  if(typeof buildDI === 'function') buildDI();
-  _updateDISettPreview();
-  _syncDISettButtons();
-}
-
-function _updateDISettPreview() {
-  var p = document.getElementById('di-preview-sett');
-  if(!p) return;
-  var shape = diGet('shape'), color = diGet('color'), size = diGet('size'), glow = diGet('glow');
-  // Apply shape
-  var shapes = {pill:'50px', rounded:'20px', sharp:'8px', circle:'50%'};
-  p.style.borderRadius = shapes[shape] || '50px';
-  // Apply color
-  var colors = {
-    dark:     'background:rgba(10,10,16,0.95);border-color:rgba(255,255,255,0.1)',
-    accent:   'background:linear-gradient(135deg,rgba(79,142,247,0.95),rgba(124,77,255,0.95));border-color:rgba(255,255,255,0.2)',
-    green:    'background:linear-gradient(135deg,rgba(20,180,80,0.95),rgba(0,140,60,0.95));border-color:rgba(255,255,255,0.15)',
-    gradient: 'background:linear-gradient(135deg,rgba(15,15,30,0.97),rgba(79,142,247,0.3));border-color:rgba(79,142,247,0.4)',
-    glass:    'background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15)'
-  };
-  var colorStr = colors[color] || colors.dark;
-  colorStr.split(';').forEach(function(rule) {
-    var parts = rule.split(':');
-    if(parts.length >= 2) {
-      var prop = parts[0].trim();
-      var v = parts.slice(1).join(':').trim();
-      if(prop === 'background') p.style.background = v;
-      if(prop === 'border-color') p.style.borderColor = v;
-    }
-  });
-  // Apply size
-  var sizes = {compact:'6px 14px', normal:'10px 18px', large:'14px 22px'};
-  var fontSizes = {compact:'11px', normal:'13px', large:'15px'};
-  p.style.padding = sizes[size] || sizes.normal;
-  p.style.fontSize = fontSizes[size] || '13px';
-  // Apply glow
-  p.style.boxShadow = glow === '1'
-    ? '0 0 24px rgba(79,142,247,0.35),0 8px 32px rgba(0,0,0,0.5)'
-    : '0 4px 16px rgba(0,0,0,0.3)';
-}
-
-function _syncDISettButtons() {
-  // Colors
-  var colorBtns = document.querySelectorAll('#di-sett-colors button');
-  var curColor = diGet('color');
-  colorBtns.forEach(function(b) {
-    var isActive = b.getAttribute('data-v') === curColor;
-    b.style.outline = isActive ? '2px solid var(--accent)' : 'none';
-    b.style.outlineOffset = '2px';
-    b.style.boxShadow = isActive ? '0 0 0 3px rgba(79,142,247,0.25)' : 'none';
-  });
-  // Shapes
-  var shapeBtns = document.querySelectorAll('#di-sett-shapes button');
-  var curShape = diGet('shape');
-  shapeBtns.forEach(function(b) {
-    var isActive = b.getAttribute('data-v') === curShape;
-    b.style.outline = isActive ? '2px solid var(--accent)' : 'none';
-    b.style.outlineOffset = '2px';
-    b.style.background = isActive ? 'var(--accent-dim)' : 'var(--surface)';
-    b.style.color = isActive ? 'var(--accent)' : 'var(--text)';
-  });
-  // Sizes
-  var sizeBtns = document.querySelectorAll('#di-sett-sizes button');
-  var curSize = diGet('size');
-  sizeBtns.forEach(function(b) {
-    var isActive = b.getAttribute('data-v') === curSize;
-    b.style.outline = isActive ? '2px solid var(--accent)' : 'none';
-    b.style.outlineOffset = '2px';
-    b.style.background = isActive ? 'var(--accent-dim)' : 'var(--surface)';
-    b.style.color = isActive ? 'var(--accent)' : 'var(--text)';
-  });
-  // Glow
-  var glowChk = document.getElementById('di-sett-glow');
-  if(glowChk) glowChk.checked = diGet('glow') === '1';
-}
-
-// Инициализируем при открытии настроек
-var _origOpenSett = window.openSett;
-window.openSett = function() {
-  if(typeof _origOpenSett === 'function') _origOpenSett();
-  setTimeout(function() {
-    if(typeof _updateDISettPreview === 'function') _updateDISettPreview();
-    if(typeof _syncDISettButtons === 'function') _syncDISettButtons();
-  }, 50);
-};
-
-// Также скрываем ненужную кнопку DI в настройках если она есть
-window.openDISettings = function() {
-  if(typeof window.openSett === 'function') window.openSett();
-  // Скроллим до секции DI
-  setTimeout(function() {
-    var g = document.getElementById('di-sett-grp');
-    if(g) g.scrollIntoView({behavior:'smooth', block:'start'});
-  }, 100);
-};
-
-// Инициализируем активное состояние кнопок при загрузке
-setTimeout(function(){
-  if(typeof _syncDISettButtons === 'function') _syncDISettButtons();
-  if(typeof _updateDISettPreview === 'function') _updateDISettPreview();
-}, 300);
 </script>
 </body>
 </html>
