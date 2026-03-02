@@ -2756,7 +2756,7 @@ function init(){
   // FIX: visualViewport listener
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',_fixMobHeight);
-    // scroll НЕ вешаем — он срабатывает при drag DI и мешает перетаскиванию
+    window.visualViewport.addEventListener('scroll',_fixMobHeight);
   }
   window.addEventListener('resize',_fixMobHeight);
   // FIX: применяем обои при загрузке
@@ -10094,7 +10094,7 @@ function buildDI(){
       '<button id="di-end-btn" onclick="event.stopPropagation();endCall()" style="width:28px;height:28px;border-radius:50%;border:none;background:#ef4444;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .2s;flex-shrink:0" title="Завершить">',
         _endSVG(),
       '</button>',
-      '<button id="di-settings-btn" onclick="event.stopPropagation();event.preventDefault();openDISettings()" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent;position:relative;z-index:10" title="Настройки острова">',
+      '<button id="di-settings-btn" onclick="event.stopPropagation();event.preventDefault();openDISettings()" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.85);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent;z-index:10;position:relative" title="Настройки острова">',
         _gearSVG(),
       '</button>',
     '</div>'
@@ -10148,7 +10148,7 @@ function _makeDraggable(el){
     e.preventDefault();
   });
   handle.addEventListener('touchstart', function(e){
-    if(e.target.closest('button,a,[role=button]')) return;
+    if(e.target.closest('button')) return;
     isDragging=true;
     var rect=el.getBoundingClientRect();
     elX=rect.left; elY=rect.top;
@@ -10195,13 +10195,22 @@ window.diToggleMute = function(){
 
 // Настройки Dynamic Island
 window.openDISettings = function(){
-  // Открываем красивый drawer на вкладку Island
-  if(typeof openCustomDrawer==='function'){
-    openCustomDrawer('island');
-    return;
-  }
-  // fallback: старое окно не нужно
-  return;
+  var d = document.getElementById('custom-drawer');
+  var o = document.getElementById('custom-drawer-overlay');
+  if(!d) return;
+  // Открываем drawer напрямую — без _initCD который может крашиться
+  d.classList.add('open');
+  if(o) o.classList.add('open');
+  // Переключаем на вкладку island
+  d.querySelectorAll('.cd-section').forEach(function(s){ s.classList.remove('active'); });
+  d.querySelectorAll('.cd-tab').forEach(function(b){ b.classList.remove('active'); });
+  var sec = d.getElementById ? d.getElementById('cds-island') : document.getElementById('cds-island');
+  if(!sec) sec = document.getElementById('cds-island');
+  if(sec) sec.classList.add('active');
+  d.querySelectorAll('.cd-tab').forEach(function(b){
+    if((b.getAttribute('onclick')||'').indexOf("'island'") !== -1) b.classList.add('active');
+  });
+  if(typeof _updateDIPreview === 'function') setTimeout(_updateDIPreview, 50);
 };
 // (old DI settings modal removed)
 window.diApply = function(param, val){
@@ -11189,11 +11198,9 @@ setTimeout(function(){
   }
 }, 500);
 
-/* ─── openWallModal — оригинальный modal (надёжнее) ─── */
+/* ─── Патчим openWallModal ─── */
 window.openWallModal = function(){
-  if(typeof window._initWallGrid === 'function') window._initWallGrid();
-  var m = document.getElementById('wall-modal');
-  if(m){ m.style.display='flex'; }
+  openCustomDrawer('chat');
 };
 
 })();
