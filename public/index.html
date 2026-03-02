@@ -7770,6 +7770,10 @@ window.openChat=function(username){
   if(nc)nc.style.display='none';
   if(cv){cv.style.display='flex';cv.style.flexDirection='column';}
   if(ca)ca.classList.add('mob');
+  // FIX: высота и обои
+  if(typeof _fixMobHeight==='function')_fixMobHeight();
+  setTimeout(function(){if(typeof _fixMobHeight==='function')_fixMobHeight();},100);
+  if(typeof _applyWallDirect==='function')_applyWallDirect();
   try{unread[username]=0;}catch(e){}try{unreadCounts[username]=0;}catch(e){}
   socket.emit('get_messages',{with:username},function(msgs){
     try{hist[username]=msgs||[];}catch(e){}try{chatHistory[username]=msgs||[];}catch(e){}
@@ -7777,6 +7781,7 @@ window.openChat=function(username){
     if(typeof renderMessages==='function')renderMessages();
     if(typeof scrollBot==='function')scrollBot();
     if(typeof scrollBottom==='function')scrollBottom();
+    if(typeof _applyWallDirect==='function')_applyWallDirect();
     socket.emit('mark_read',{chatWith:username});
   });
   if(typeof renderList==='function')renderList();
@@ -10195,13 +10200,22 @@ window.diToggleMute = function(){
 
 // Настройки Dynamic Island
 window.openDISettings = function(){
-  // Открываем красивый drawer на вкладку Island
-  if(typeof openCustomDrawer==='function'){
-    openCustomDrawer('island');
-    return;
-  }
-  // fallback: старое окно не нужно
-  return;
+  var d=document.getElementById('custom-drawer');
+  var o=document.getElementById('custom-drawer-overlay');
+  if(!d){ return; }
+  // Деактивируем все секции
+  d.querySelectorAll('.cd-section').forEach(function(s){s.classList.remove('active');});
+  d.querySelectorAll('.cd-tab').forEach(function(b){b.classList.remove('active');});
+  // Активируем island
+  var sec=d.querySelector('#cds-island');
+  if(sec)sec.classList.add('active');
+  d.querySelectorAll('.cd-tab').forEach(function(b){
+    if((b.getAttribute('onclick')||'').indexOf("'island'")!==-1)b.classList.add('active');
+  });
+  // Открываем
+  d.classList.add('open');
+  if(o)o.classList.add('open');
+  if(typeof _updateDIPreview==='function')setTimeout(_updateDIPreview,60);
 };
 // (old DI settings modal removed)
 window.diApply = function(param, val){
