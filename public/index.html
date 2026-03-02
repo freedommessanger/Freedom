@@ -773,6 +773,62 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
       </div>
     </div>
 
+    <!-- Dynamic Island Settings -->
+    <div class="sett-grp" id="di-sett-grp">
+      <div class="sett-grp-title">Dynamic Island</div>
+      <div style="padding:16px 16px 0">
+        <!-- Превью -->
+        <div style="display:flex;justify-content:center;margin-bottom:16px">
+          <div id="di-preview-sett" style="display:inline-flex;align-items:center;gap:10px;padding:10px 18px;border-radius:50px;background:rgba(10,10,16,0.95);border:1px solid rgba(255,255,255,0.1);box-shadow:0 0 24px rgba(79,142,247,0.35),0 8px 32px rgba(0,0,0,0.5);color:#fff;font-size:13px;transition:all .3s">
+            <div style="width:8px;height:8px;border-radius:50%;background:#22c55e;animation:diPulse2 1.5s infinite"></div>
+            <span style="font-weight:600">John • 0:00</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+          </div>
+        </div>
+        <style>@keyframes diPulse2{0%,100%{opacity:1}50%{opacity:.4}}</style>
+        <!-- Форма -->
+        <div style="display:flex;flex-direction:column;gap:14px;padding-bottom:16px">
+          <!-- Цвет -->
+          <div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Цвет</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap" id="di-sett-colors">
+              <button onclick="diSettSet('color','dark')" data-v="dark" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:rgba(10,10,16,0.95);color:#fff;transition:all .2s">Чёрный</button>
+              <button onclick="diSettSet('color','accent')" data-v="accent" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#4f8ef7,#7c4dff);color:#fff;transition:all .2s">Акцент</button>
+              <button onclick="diSettSet('color','green')" data-v="green" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#14b450,#008c3c);color:#fff;transition:all .2s">Зелёный</button>
+              <button onclick="diSettSet('color','gradient')" data-v="gradient" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#0f0f1e,rgba(79,142,247,0.6));color:#fff;transition:all .2s">Градиент</button>
+              <button onclick="diSettSet('color','glass')" data-v="glass" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);font-size:12px;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.1);color:#fff;backdrop-filter:blur(10px);transition:all .2s">Стекло</button>
+            </div>
+          </div>
+          <!-- Форма -->
+          <div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Форма</div>
+            <div style="display:flex;gap:8px" id="di-sett-shapes">
+              <button onclick="diSettSet('shape','pill')" data-v="pill" style="padding:6px 14px;border-radius:50px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s">Таблетка</button>
+              <button onclick="diSettSet('shape','rounded')" data-v="rounded" style="padding:6px 14px;border-radius:12px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s">Скруглён</button>
+              <button onclick="diSettSet('shape','sharp')" data-v="sharp" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s">Острый</button>
+            </div>
+          </div>
+          <!-- Размер -->
+          <div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Размер</div>
+            <div style="display:flex;gap:8px" id="di-sett-sizes">
+              <button onclick="diSettSet('size','compact')" data-v="compact" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s">Компакт</button>
+              <button onclick="diSettSet('size','normal')" data-v="normal" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s">Обычный</button>
+              <button onclick="diSettSet('size','large')" data-v="large" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);transition:all .2s">Большой</button>
+            </div>
+          </div>
+          <!-- Свечение -->
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:14px;font-weight:600;color:var(--text)">Свечение</div>
+            <label class="sett-toggle" onclick="event.stopPropagation()">
+              <input type="checkbox" id="di-sett-glow" onchange="diSettSet('glow',this.checked?'1':'0')">
+              <span class="sett-toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="sett-grp">
       <button class="btn-danger" onclick="doLogout()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -3393,7 +3449,7 @@ function toggleNotif(checked){
 }
 if(typeof init==="function") init(); else if(typeof connectSocket==="function") connectSocket();
 </script>
-<!-- STYLE-DISABLED 
+<style>
 .auth-box {
   width:380px; background:var(--sidebar); border:1px solid var(--border);
   border-radius:20px; padding:36px 32px; box-shadow:0 24px 60px rgba(0,0,0,0.5);
@@ -7490,7 +7546,8 @@ $('messages-area')?.addEventListener('contextmenu', e => e.preventDefault());
 
 
 <!-- ═══════════════ MASTER PATCH ═══════════════ -->
-<!-- STYLE-DISABLED 
+</style>
+<style>
 /* ── 1. Недостающие CSS переменные ── */
 [data-theme="dark"]  { --bg2:#13151c;--bg3:#1a1d27;--bg4:#20232f;--accent2:#7c4dff;--trans:all .2s ease;--msg-out:#1c3a6e;--msg-in:#1a1d27; }
 [data-theme="light"] { --bg2:#fff;--bg3:#f4f6fb;--bg4:#e8ecf5;--accent2:#6c3fe8;--trans:all .2s ease;--msg-out:#dbeafe;--msg-in:#fff; }
@@ -7560,7 +7617,8 @@ input, textarea, .sett-inp, .sett-ta,
   .sett-panel { width:100% !important; }
   #app.on .chat-area.mob { display:flex !important; flex-direction:column !important; height:var(--app-h,100%) !important; overflow:hidden !important; }
 }
- END-STYLE-DISABLED -->
+
+</style>
 
 <div id="sett-overlay" onclick="closeSett&&closeSett()"></div>
 
@@ -7770,6 +7828,9 @@ window.openChat=function(username){
   if(nc)nc.style.display='none';
   if(cv){cv.style.display='flex';cv.style.flexDirection='column';}
   if(ca)ca.classList.add('mob');
+  if(typeof _fixMobHeight==='function')_fixMobHeight();
+  setTimeout(function(){if(typeof _fixMobHeight==='function')_fixMobHeight();},150);
+  if(typeof _applyWallDirect==='function')_applyWallDirect();
   try{unread[username]=0;}catch(e){}try{unreadCounts[username]=0;}catch(e){}
   socket.emit('get_messages',{with:username},function(msgs){
     try{hist[username]=msgs||[];}catch(e){}try{chatHistory[username]=msgs||[];}catch(e){}
@@ -7777,6 +7838,7 @@ window.openChat=function(username){
     if(typeof renderMessages==='function')renderMessages();
     if(typeof scrollBot==='function')scrollBot();
     if(typeof scrollBottom==='function')scrollBottom();
+    if(typeof _applyWallDirect==='function')_applyWallDirect();
     socket.emit('mark_read',{chatWith:username});
   });
   if(typeof renderList==='function')renderList();
@@ -9986,6 +10048,7 @@ window.setWallpaper = function(id, css){
 var _wcOrigOC = window.openChat;
 window.openChat = function(username){
   if(typeof _wcOrigOC === 'function') _wcOrigOC(username);
+  if(typeof _fixMobHeight==='function'){ _fixMobHeight(); setTimeout(_fixMobHeight,150); }
   setTimeout(_applyWallNow, 120);
   setTimeout(_applyWallNow, 400);
 };
@@ -10309,6 +10372,7 @@ window.endCall = function(){
 <!-- ═══════════════════════════════════════════════════════
   BEAUTIFUL CUSTOMIZATION v3 — Панель настроек + Обои + Dynamic Island
 ════════════════════════════════════════════════════════ -->
+</style>
 <style>
 /* ── Базовые переменные ── */
 :root {
@@ -11206,8 +11270,97 @@ window.openWallModal = function(){
 })();
 </script>
 
+<script>
+/* ── DI Settings in Settings Panel ── */
+function diSettSet(param, val) {
+  diSet(param, val);
+  if(typeof buildDI === 'function') buildDI();
+  _updateDISettPreview();
+  _syncDISettButtons();
+}
 
+function _updateDISettPreview() {
+  var p = document.getElementById('di-preview-sett');
+  if(!p) return;
+  var shape = diGet('shape'), color = diGet('color'), size = diGet('size'), glow = diGet('glow');
+  // Apply shape
+  var shapes = {pill:'50px', rounded:'20px', sharp:'8px', circle:'50%'};
+  p.style.borderRadius = shapes[shape] || '50px';
+  // Apply color
+  var colors = {
+    dark:     'background:rgba(10,10,16,0.95);border-color:rgba(255,255,255,0.1)',
+    accent:   'background:linear-gradient(135deg,rgba(79,142,247,0.95),rgba(124,77,255,0.95));border-color:rgba(255,255,255,0.2)',
+    green:    'background:linear-gradient(135deg,rgba(20,180,80,0.95),rgba(0,140,60,0.95));border-color:rgba(255,255,255,0.15)',
+    gradient: 'background:linear-gradient(135deg,rgba(15,15,30,0.97),rgba(79,142,247,0.3));border-color:rgba(79,142,247,0.4)',
+    glass:    'background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15)'
+  };
+  var colorStr = colors[color] || colors.dark;
+  colorStr.split(';').forEach(function(rule) {
+    var parts = rule.split(':');
+    if(parts.length >= 2) {
+      var prop = parts[0].trim();
+      var v = parts.slice(1).join(':').trim();
+      if(prop === 'background') p.style.background = v;
+      if(prop === 'border-color') p.style.borderColor = v;
+    }
+  });
+  // Apply size
+  var sizes = {compact:'6px 14px', normal:'10px 18px', large:'14px 22px'};
+  var fontSizes = {compact:'11px', normal:'13px', large:'15px'};
+  p.style.padding = sizes[size] || sizes.normal;
+  p.style.fontSize = fontSizes[size] || '13px';
+  // Apply glow
+  p.style.boxShadow = glow === '1'
+    ? '0 0 24px rgba(79,142,247,0.35),0 8px 32px rgba(0,0,0,0.5)'
+    : '0 4px 16px rgba(0,0,0,0.3)';
+}
 
+function _syncDISettButtons() {
+  // Colors
+  var colorBtns = document.querySelectorAll('#di-sett-colors button');
+  var curColor = diGet('color');
+  colorBtns.forEach(function(b) {
+    b.style.outline = b.getAttribute('data-v') === curColor ? '2px solid var(--accent)' : 'none';
+    b.style.outlineOffset = '2px';
+  });
+  // Shapes
+  var shapeBtns = document.querySelectorAll('#di-sett-shapes button');
+  var curShape = diGet('shape');
+  shapeBtns.forEach(function(b) {
+    b.style.outline = b.getAttribute('data-v') === curShape ? '2px solid var(--accent)' : 'none';
+    b.style.outlineOffset = '2px';
+  });
+  // Sizes
+  var sizeBtns = document.querySelectorAll('#di-sett-sizes button');
+  var curSize = diGet('size');
+  sizeBtns.forEach(function(b) {
+    b.style.outline = b.getAttribute('data-v') === curSize ? '2px solid var(--accent)' : 'none';
+    b.style.outlineOffset = '2px';
+  });
+  // Glow
+  var glowChk = document.getElementById('di-sett-glow');
+  if(glowChk) glowChk.checked = diGet('glow') === '1';
+}
 
+// Инициализируем при открытии настроек
+var _origOpenSett = window.openSett;
+window.openSett = function() {
+  if(typeof _origOpenSett === 'function') _origOpenSett();
+  setTimeout(function() {
+    if(typeof _updateDISettPreview === 'function') _updateDISettPreview();
+    if(typeof _syncDISettButtons === 'function') _syncDISettButtons();
+  }, 50);
+};
+
+// Также скрываем ненужную кнопку DI в настройках если она есть
+window.openDISettings = function() {
+  if(typeof window.openSett === 'function') window.openSett();
+  // Скроллим до секции DI
+  setTimeout(function() {
+    var g = document.getElementById('di-sett-grp');
+    if(g) g.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 100);
+};
+</script>
 </body>
 </html>
