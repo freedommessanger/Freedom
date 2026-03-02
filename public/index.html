@@ -200,8 +200,8 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .iwrap { flex:1; position:relative; }
 .msg-inp { width:100%; padding:9px 40px 9px 16px; background:var(--surface); border:1px solid var(--border); border-radius:14px; color:var(--text); font-family:inherit; font-size:14px; outline:none; resize:none; max-height:120px; transition:border-color .2s; line-height:1.5; }
 .msg-inp:focus { border-color:var(--border2); background:var(--surface2); }
-.msg-inp::placeholder { color:var(--text3); }
-.emoji-trigger { position:absolute; right:10px; bottom:8px; border:none; background:none; color:var(--text3); cursor:pointer; padding:2px; border-radius:6px; display:flex; transition:color .18s; }
+.msg-inp::placeholder { color:var(--text2); }
+.emoji-trigger { position:absolute; right:10px; top:50%; transform:translateY(-50%); border:none; background:none; color:var(--text2); cursor:pointer; padding:2px; border-radius:6px; display:flex; transition:color .18s; }
 .emoji-trigger:hover { color:var(--text2); }
 .emoji-picker { display:none; position:absolute; bottom:50px; right:0; background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:10px; z-index:200; width:288px; box-shadow:var(--shadow); }
 .emoji-picker.on { display:block; }
@@ -483,8 +483,25 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .wall-item img{width:100%;height:100%;object-fit:cover;}
 .msgs.has-wall{background-size:cover;background-position:center;background-attachment:local;}
 .msgs.has-wall .bubble{box-shadow:0 1px 4px rgba(0,0,0,0.2);}
+/* ─── AUTOFILL OVERRIDE ─── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset !important;
+  box-shadow: 0 0 0 1000px var(--surface) inset !important;
+  -webkit-text-fill-color: var(--text) !important;
+  caret-color: var(--text) !important;
+  border-color: var(--border) !important;
+  transition: background-color 99999s ease-in-out 0s !important;
+}
+input:-moz-autofill,
+input:-moz-autofill-preview {
+  filter: none !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
 </style>
-</head>
 <body>
 
 <!-- AUTH -->
@@ -501,15 +518,18 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
       <button class="auth-seg-btn" onclick="authTab('reg')">Регистрация</button>
     </div>
     <div id="lf">
+      <!-- honeypot для браузерного автозаполнения -->
+      <input type="text" style="display:none" name="username_fake" tabindex="-1" autocomplete="username">
+      <input type="password" style="display:none" name="password_fake" tabindex="-1" autocomplete="current-password">
       <div class="field">
         <div class="field-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Имя пользователя</div>
         <div class="field-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-        <input type="text" id="lu" placeholder="username" autocomplete="username">
+        <input type="text" id="lu" placeholder="username" autocomplete="off">
       </div>
       <div class="field">
         <div class="field-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Пароль</div>
         <div class="field-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-        <input type="password" id="lp" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        <input type="password" id="lp" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <button class="auth-btn" onclick="doLogin()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
@@ -696,7 +716,7 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
       <!-- Баннер профиля -->
       <div style="margin-bottom:12px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Баннер профиля</div>
-        <div id="sett-banner-preview" style="height:70px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7c4dff);margin-bottom:8px;background-size:cover;background-position:center;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('sett-banner-input').click()">
+        <div id="sett-banner-preview" style="height:70px;border-radius:12px;background-image:linear-gradient(135deg,var(--accent),#7c4dff);background-color:transparent;background-size:cover;background-position:center;background-repeat:no-repeat;margin-bottom:8px;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('sett-banner-input').click()">
           <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.25);border-radius:12px;gap:6px;color:#fff;font-size:12px;font-weight:600">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             Сменить баннер
@@ -2313,8 +2333,8 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 .iwrap { flex:1; position:relative; }
 .msg-inp { width:100%; padding:9px 40px 9px 16px; background:var(--surface); border:1px solid var(--border); border-radius:14px; color:var(--text); font-family:inherit; font-size:14px; outline:none; resize:none; max-height:120px; transition:border-color .2s; line-height:1.5; }
 .msg-inp:focus { border-color:var(--border2); background:var(--surface2); }
-.msg-inp::placeholder { color:var(--text3); }
-.emoji-trigger { position:absolute; right:10px; bottom:8px; border:none; background:none; color:var(--text3); cursor:pointer; padding:2px; border-radius:6px; display:flex; transition:color .18s; }
+.msg-inp::placeholder { color:var(--text2); }
+.emoji-trigger { position:absolute; right:10px; top:50%; transform:translateY(-50%); border:none; background:none; color:var(--text2); cursor:pointer; padding:2px; border-radius:6px; display:flex; transition:color .18s; }
 .emoji-trigger:hover { color:var(--text2); }
 .emoji-picker { display:none; position:absolute; bottom:50px; right:0; background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:10px; z-index:200; width:288px; box-shadow:var(--shadow); }
 .emoji-picker.on { display:block; }
@@ -2447,6 +2467,19 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 }
 .back-btn{display:none;}
 
+/* ─── AUTOFILL OVERRIDE ─── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset !important;
+  box-shadow: 0 0 0 1000px var(--surface) inset !important;
+  -webkit-text-fill-color: var(--text) !important;
+  caret-color: var(--text) !important;
+  border-color: var(--border) !important;
+  transition: background-color 99999s ease-in-out 0s !important;
+}
+
 </style>
 <div style="display:none" data-dup="2">
 
@@ -2467,12 +2500,12 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
       <div class="field">
         <div class="field-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Имя пользователя</div>
         <div class="field-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-        <input type="text" id="lu" placeholder="username" autocomplete="username">
+        <input type="text" id="lu" placeholder="username" autocomplete="off">
       </div>
       <div class="field">
         <div class="field-label"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Пароль</div>
         <div class="field-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-        <input type="password" id="lp" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        <input type="password" id="lp" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <button class="auth-btn" onclick="doLogin()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
@@ -2644,7 +2677,7 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
       <textarea class="sett-ta" id="eb" placeholder="Расскажите о себе..."></textarea>
       <div style="margin-bottom:12px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Баннер профиля</div>
-        <div id="sett-banner-preview" style="height:70px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7c4dff);margin-bottom:8px;background-size:cover;background-position:center;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('sett-banner-input').click()">
+        <div id="sett-banner-preview" style="height:70px;border-radius:12px;background-image:linear-gradient(135deg,var(--accent),#7c4dff);background-color:transparent;background-size:cover;background-position:center;background-repeat:no-repeat;margin-bottom:8px;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('sett-banner-input').click()">
           <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.25);border-radius:12px;gap:6px;color:#fff;font-size:12px;font-weight:600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Сменить баннер</div>
         </div>
         <input type="file" id="sett-banner-input" accept="image/*" style="display:none" onchange="settUploadBanner(event)">
@@ -3139,8 +3172,7 @@ function toggleEdit(){
         prev.style.backgroundPosition='center';
         prev.style.backgroundRepeat='no-repeat';
       } else {
-        prev.style.backgroundImage='';
-        prev.style.background='linear-gradient(135deg,var(--accent),#7c4dff)';
+        prev.style.backgroundImage='linear-gradient(135deg,var(--accent),#7c4dff)';
       }
     }
     f.classList.add('on');
@@ -3196,18 +3228,21 @@ function settUploadBanner(e){
   const f=e.target.files[0]; if(!f)return;
   const r=new FileReader();
   r.onload=ev=>{
+    // Показываем превью сразу, не дожидаясь сервера
+    var prev=G('sett-banner-preview');
+    if(prev){
+      prev.style.backgroundImage='url("'+ev.target.result+'")';
+      prev.style.backgroundSize='cover';
+      prev.style.backgroundPosition='center';
+      prev.style.backgroundRepeat='no-repeat';
+    }
     socket.emit('update_profile',{banner:ev.target.result},res=>{
       if(res?.ok){
         me=res.user;
-        var prev=G('sett-banner-preview');
-        if(prev&&me.banner){
-          prev.style.backgroundImage='url("'+me.banner+'")';
-          prev.style.backgroundSize='cover';
-          prev.style.backgroundPosition='center';
-        }
         var bannerImg=G('pm-banner-img')||G('pm-banner-img2');
         var bannerGrad=G('pm-banner-grad')||G('pm-banner-grad2');
         if(bannerImg&&me.banner){
+          bannerImg.style.background='';
           bannerImg.style.backgroundImage='url("'+me.banner+'")';
           bannerImg.style.backgroundSize='cover';
           bannerImg.style.backgroundPosition='center';
@@ -7557,9 +7592,9 @@ input::placeholder, textarea::placeholder,
 .sett-inp::placeholder, .field input::placeholder,
 .msg-inp::placeholder, .msg-input::placeholder,
 #mi::placeholder, #msg-input::placeholder {
-  color: rgba(180,185,200,0.75) !important;
+  color: rgba(130,138,160,0.80) !important;
   opacity: 1 !important;
-  -webkit-text-fill-color: rgba(180,185,200,0.75) !important;
+  -webkit-text-fill-color: rgba(130,138,160,0.80) !important;
 }
 [data-theme="light"] input::placeholder,
 [data-theme="light"] textarea::placeholder,
@@ -7791,6 +7826,7 @@ function _applyBannerToEl(el, url) {
   el.style.backgroundSize = 'cover';
   el.style.backgroundPosition = 'center';
   el.style.backgroundRepeat = 'no-repeat';
+  el.style.display = 'block';
 }
 
 window.masterToggleMute = function(btn) {
@@ -8060,6 +8096,21 @@ window.showLightbox=function(src){
   var lb=document.getElementById('lb'),lbi=document.getElementById('lbi');
   if(lb&&lbi){lbi.src=src;lb.classList.add('on');}
 };
+
+// Очищаем поля логина чтобы браузер не подставлял сохранённые данные
+window.addEventListener('load', function(){
+  var lu = document.getElementById('lu');
+  var lp = document.getElementById('lp');
+  if(lu) lu.value = '';
+  if(lp) lp.value = '';
+  // Задержка на случай если браузер заполняет позже
+  setTimeout(function(){
+    var lu2 = document.getElementById('lu');
+    var lp2 = document.getElementById('lp');
+    if(lu2 && lu2.value) lu2.value = '';
+    if(lp2 && lp2.value) lp2.value = '';
+  }, 300);
+});
 
 document.addEventListener('DOMContentLoaded',function(){
   var eb=document.getElementById('eb');if(eb){eb.removeAttribute('maxlength');eb.maxLength=9999;}
@@ -9631,7 +9682,7 @@ s.textContent = `
   background: var(--surface2) !important;
   box-shadow: 0 0 0 3px rgba(79,142,247,0.1) !important;
 }
-.msg-inp::placeholder { color: var(--text3) !important; font-weight: 400 !important; }
+.msg-inp::placeholder { color: var(--text2) !important; font-weight: 400 !important; }
 .send-btn {
   width: 42px !important;
   height: 42px !important;
@@ -10080,6 +10131,8 @@ var DI_DEFAULTS = {
 };
 function diGet(k){ return localStorage.getItem('di_'+k) || DI_DEFAULTS[k]; }
 function diSet(k,v){ localStorage.setItem('di_'+k, v); }
+window.diGet = diGet;
+window.diSet = diSet;
 
 // Стили острова
 var DI_STYLES = {
@@ -10156,9 +10209,6 @@ function buildDI(){
       '</button>',
       '<button id="di-end-btn" onclick="event.stopPropagation();endCall()" style="width:28px;height:28px;border-radius:50%;border:none;background:#ef4444;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .2s;flex-shrink:0" title="Завершить">',
         _endSVG(),
-      '</button>',
-      '<button id="di-settings-btn" onclick="event.stopPropagation();event.preventDefault();openDISettings()" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.85);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent;z-index:10;position:relative" title="Настройки острова">',
-        _gearSVG(),
       '</button>',
     '</div>'
   ].join('');
@@ -10323,11 +10373,11 @@ window.minimizeCallOverlay = function(){
   clearInterval(window._diTimerSync);
   window._diTimerSync = setInterval(function(){
     var ct = document.getElementById('ctmr'), dt = document.getElementById('di-timer');
-    if(ct && dt) dt.textContent = ct.textContent||'0:00';
+    if(ct && dt){ dt.textContent = ct.textContent||'0:00'; }
     if(!window._inCall){ clearInterval(window._diTimerSync); }
   }, 500);
 
-  // Скрываем старый mini-call-bar
+  // Скрываем старый mini-call-bar и sidebar статус
   var old = document.getElementById('mini-call-bar'); if(old) old.style.display='none';
   var sb  = document.getElementById('sb-call-status'); if(sb)  sb.style.display='none';
 };
@@ -11238,19 +11288,15 @@ function _syncDIColorButtons(){
 
 /* ─── Патчим кнопку в настройках ─── */
 setTimeout(function(){
-  // Добавляем кнопку "Кастомизация" в панель настроек
   var sp=document.getElementById('sp');
   if(!sp) return;
   var body=sp.querySelector('.sett-body');
   if(!body) return;
-  // Вставляем кнопку в начало
   var btn=document.createElement('button');
   btn.className='open-custom-btn';
   btn.innerHTML='<span style="font-size:24px">🎨</span><div style="text-align:left"><div>Кастомизация</div><div style="font-size:11px;opacity:.75;font-weight:500">Темы, цвета, обои, Island...</div></div><span style="margin-left:auto;opacity:.8">→</span>';
   btn.onclick=function(){ closeSett(); openCustomDrawer(); };
   body.insertBefore(btn, body.firstChild);
-  
-  // Также добавляем в нижнюю панель настроек если есть
   var sp2=document.querySelectorAll('.sett-panel')[1];
   if(sp2){
     var b2=sp2.querySelector('.sett-body');
@@ -11264,7 +11310,9 @@ setTimeout(function(){
 
 /* ─── Патчим openWallModal ─── */
 window.openWallModal = function(){
-  openCustomDrawer('chat');
+  if(typeof window._initWallGrid === 'function') window._initWallGrid();
+  var m = document.getElementById('wall-modal');
+  if(m) m.style.display = 'flex';
 };
 
 })();
@@ -11320,22 +11368,30 @@ function _syncDISettButtons() {
   var colorBtns = document.querySelectorAll('#di-sett-colors button');
   var curColor = diGet('color');
   colorBtns.forEach(function(b) {
-    b.style.outline = b.getAttribute('data-v') === curColor ? '2px solid var(--accent)' : 'none';
+    var isActive = b.getAttribute('data-v') === curColor;
+    b.style.outline = isActive ? '2px solid var(--accent)' : 'none';
     b.style.outlineOffset = '2px';
+    b.style.boxShadow = isActive ? '0 0 0 3px rgba(79,142,247,0.25)' : 'none';
   });
   // Shapes
   var shapeBtns = document.querySelectorAll('#di-sett-shapes button');
   var curShape = diGet('shape');
   shapeBtns.forEach(function(b) {
-    b.style.outline = b.getAttribute('data-v') === curShape ? '2px solid var(--accent)' : 'none';
+    var isActive = b.getAttribute('data-v') === curShape;
+    b.style.outline = isActive ? '2px solid var(--accent)' : 'none';
     b.style.outlineOffset = '2px';
+    b.style.background = isActive ? 'var(--accent-dim)' : 'var(--surface)';
+    b.style.color = isActive ? 'var(--accent)' : 'var(--text)';
   });
   // Sizes
   var sizeBtns = document.querySelectorAll('#di-sett-sizes button');
   var curSize = diGet('size');
   sizeBtns.forEach(function(b) {
-    b.style.outline = b.getAttribute('data-v') === curSize ? '2px solid var(--accent)' : 'none';
+    var isActive = b.getAttribute('data-v') === curSize;
+    b.style.outline = isActive ? '2px solid var(--accent)' : 'none';
     b.style.outlineOffset = '2px';
+    b.style.background = isActive ? 'var(--accent-dim)' : 'var(--surface)';
+    b.style.color = isActive ? 'var(--accent)' : 'var(--text)';
   });
   // Glow
   var glowChk = document.getElementById('di-sett-glow');
@@ -11361,6 +11417,12 @@ window.openDISettings = function() {
     if(g) g.scrollIntoView({behavior:'smooth', block:'start'});
   }, 100);
 };
+
+// Инициализируем активное состояние кнопок при загрузке
+setTimeout(function(){
+  if(typeof _syncDISettButtons === 'function') _syncDISettButtons();
+  if(typeof _updateDISettPreview === 'function') _updateDISettPreview();
+}, 300);
 </script>
 </body>
 </html>
