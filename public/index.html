@@ -1059,10 +1059,17 @@ function connectSocket() {
       const saved = localStorage.getItem('userSession');
       if(saved){
         try{
-          const {username,password}=JSON.parse(saved);
-          if(username&&password){
-            socket.emit('login',{username,password},res=>{
-              if(res&&(res.user||res.ok)) onAuth(res.user||res);
+          const {username,password,token}=JSON.parse(saved);
+          if(username&&(token||password)){
+            const loginData=token?{username,token}:{username,password};
+            socket.emit('login',loginData,res=>{
+              if(res&&(res.user||res.ok)){
+                if(res.token){
+                  localStorage.setItem('fcToken',res.token);
+                  try{const s=JSON.parse(localStorage.getItem('userSession')||'{}');s.token=res.token;localStorage.setItem('userSession',JSON.stringify(s));}catch(e){}
+                }
+                onAuth(res.user||res);
+              }
             });
           }
         }catch(e){}
@@ -7980,7 +7987,13 @@ window.doLogin=function(){
   var u=uEl.value.trim(),p=pEl.value;
   if(!u||!p){var e=gv(['le','login-error']);if(e)e.textContent='Заполните все поля';return;}
   socket.emit('login',{username:u,password:p},function(r){
-    if(r&&(r.ok||r.user)){localStorage.setItem('userSession',JSON.stringify({username:u,password:p}));if(typeof window.onAuth==='function')window.onAuth(r.user||r);}
+    if(r&&(r.ok||r.user)){
+      // ── ФИКС: сохраняем и токен и пароль — токен для быстрого авто-входа, пароль как запас ──
+      var sess={username:u,password:p};
+      if(r.token){sess.token=r.token;localStorage.setItem('fcToken',r.token);}
+      localStorage.setItem('userSession',JSON.stringify(sess));
+      if(typeof window.onAuth==='function')window.onAuth(r.user||r);
+    }
     else{var e=gv(['le','login-error']);if(e)e.textContent=(r&&r.error)||'Ошибка входа';}
   });
 };
@@ -7991,7 +8004,13 @@ window.doReg=function(){
   var n=nEl.value.trim(),u=uEl.value.trim(),p=pEl.value;
   if(!n||!u||!p){var e=gv(['re','reg-error']);if(e)e.textContent='Заполните все поля';return;}
   socket.emit('register',{username:u,password:p,displayName:n},function(r){
-    if(r&&(r.ok||r.user)){localStorage.setItem('userSession',JSON.stringify({username:u,password:p}));if(typeof window.onAuth==='function')window.onAuth(r.user||r);}
+    if(r&&(r.ok||r.user)){
+      // ── ФИКС: сохраняем и токен и пароль ──
+      var sess={username:u,password:p};
+      if(r.token){sess.token=r.token;localStorage.setItem('fcToken',r.token);}
+      localStorage.setItem('userSession',JSON.stringify(sess));
+      if(typeof window.onAuth==='function')window.onAuth(r.user||r);
+    }
     else{var e=gv(['re','reg-error']);if(e)e.textContent=(r&&r.error)||'Ошибка';}
   });
 };
@@ -8201,14 +8220,77 @@ window.onAuth=function(user){
   var ae=document.getElementById('auth-screen'),ap=document.getElementById('app');
   if(ae)ae.style.display='none';
   if(ap){ap.classList.add('on');ap.classList.remove('visible');}
+  // ── ФИКС: восстанавливаем prev и unread из localStorage сразу ──
+  try{
+    var sp=localStorage.getItem('_prev_'+me.username);
+    if(sp){var pp=JSON.parse(sp);if(pp&&typeof pp==='object'){prev=pp;}}
+  }catch(e){}
+  try{
+    var su=localStorage.getItem('_unread_'+me.username);
+    if(su){var uu=JSON.parse(su);if(uu&&typeof uu==='object'){unread=uu;}}
+  }catch(e){}
+  // ── ФИКС: восстанавливаем prev из IndexedDB (асинхронно) ──
+  if(typeof _idbGetPreviews==='function'){
+    _idbGetPreviews().then(function(idbPrev){
+      var changed=false;
+      Object.keys(idbPrev).forEach(function(chat){
+        var msg=idbPrev[chat];
+        if(msg&&(!prev[chat]||msg.timestamp>=prev[chat].timestamp)){prev[chat]=msg;changed=true;}
+      });
+      if(changed&&typeof renderList==='function')renderList();
+    }).catch(function(){});
+  }
   if(typeof updMe==='function')updMe();
+  if(typeof _applyWallDirect==='function')setTimeout(_applyWallDirect,100);
+  // Рендерим список сразу с кешем, потом обновим с сервера
+  if(typeof renderList==='function')renderList();
   if(typeof window.loadUsers==='function')window.loadUsers();
   interceptSocket();
 };
 
 window.loadUsers=function(){
-  fetch('/api/users').then(function(r){return r.json();}).then(function(u){
-    users=allUsers=u.filter(function(x){return x.username!==me.username;});
+  // ── ФИКС: сначала показываем кеш мгновенно ──
+  try{
+    var cached=localStorage.getItem('_users_'+me.username);
+    if(cached){var cu=JSON.parse(cached);if(cu&&cu.length){users=cu;if(typeof renderList==='function')renderList();}}
+  }catch(e){}
+  // ── ФИКС: get_contacts возвращает юзеров + lastMessage + unread (нужны для превью) ──
+  if(!window.socket||!me){
+    // fallback на REST если сокет недоступен
+    fetch('/api/users').then(function(r){return r.json();}).then(function(u){
+      users=u.filter(function(x){return x.username!==me.username;});
+      if(typeof renderList==='function')renderList();
+      if(typeof renderChatList==='function')renderChatList();
+    }).catch(function(){});
+    return;
+  }
+  socket.emit('get_contacts',function(contacts){
+    if(!contacts||!contacts.length){
+      // если пустой ответ — пробуем REST как запасной вариант
+      fetch('/api/users').then(function(r){return r.json();}).then(function(u){
+        users=u.filter(function(x){return x.username!==me.username;});
+        if(typeof renderList==='function')renderList();
+      }).catch(function(){});
+      return;
+    }
+    users=contacts.filter(function(x){return x.username!==me.username;});
+    // Обновляем превью из ответа сервера
+    users.forEach(function(u){
+      if(u.lastMessage){
+        var c=prev[u.username];
+        if(!c||u.lastMessage.timestamp>=c.timestamp)prev[u.username]=u.lastMessage;
+      }
+      if(u.unread&&u.unread>0){
+        if(!unread[u.username]||u.unread>=unread[u.username])unread[u.username]=u.unread;
+      }
+    });
+    // Кешируем список юзеров
+    try{
+      var slim=users.map(function(x){return{username:x.username,displayName:x.displayName,avatar:x.avatar,bio:x.bio,online:x.online};});
+      localStorage.setItem('_users_'+me.username,JSON.stringify(slim));
+    }catch(e){}
+    if(typeof savePrev==='function')savePrev();
+    if(typeof saveUnread==='function')saveUnread();
     if(typeof renderList==='function')renderList();
     if(typeof renderChatList==='function')renderChatList();
   });
