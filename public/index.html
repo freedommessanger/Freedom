@@ -2858,6 +2858,81 @@ if (!document.getElementById('_cloudSpin')) {
   document.head.appendChild(s);
 }
 
+
+// ── IndexedDB: кэш сообщений ─────────────────────────────────────────────────
+var _idb = null;
+function _openIDB(){
+  return new Promise(function(resolve){
+    if(_idb){ resolve(_idb); return; }
+    var req = indexedDB.open('freedom_msgs', 2);
+    req.onupgradeneeded = function(e){
+      var db = e.target.result;
+      if(!db.objectStoreNames.contains('msgs'))
+        db.createObjectStore('msgs', {keyPath:'chat'});
+      if(!db.objectStoreNames.contains('previews'))
+        db.createObjectStore('previews', {keyPath:'chat'});
+    };
+    req.onsuccess = function(e){ _idb=e.target.result; resolve(_idb); };
+    req.onerror = function(){ resolve(null); };
+  });
+}
+
+function _idbSaveMsgs(chatWith, msgs){
+  if(!msgs||!msgs.length) return;
+  _openIDB().then(function(db){
+    if(!db) return;
+    try{
+      var tx=db.transaction('msgs','readwrite');
+      tx.objectStore('msgs').put({chat:chatWith, msgs:msgs, ts:Date.now()});
+    }catch(e){}
+  });
+}
+
+function _idbGetMsgs(chatWith){
+  return _openIDB().then(function(db){
+    if(!db) return null;
+    return new Promise(function(resolve){
+      try{
+        var tx=db.transaction('msgs','readonly');
+        var req=tx.objectStore('msgs').get(chatWith);
+        req.onsuccess=function(){ resolve(req.result ? req.result.msgs : null); };
+        req.onerror=function(){ resolve(null); };
+      }catch(e){ resolve(null); }
+    });
+  });
+}
+
+function _idbSavePreviews(previewsObj){
+  _openIDB().then(function(db){
+    if(!db) return;
+    try{
+      var tx=db.transaction('previews','readwrite');
+      var store=tx.objectStore('previews');
+      Object.keys(previewsObj).forEach(function(chat){
+        store.put({chat:chat, msg:previewsObj[chat], ts:Date.now()});
+      });
+    }catch(e){}
+  });
+}
+
+function _idbGetPreviews(){
+  return _openIDB().then(function(db){
+    if(!db) return {};
+    return new Promise(function(resolve){
+      try{
+        var tx=db.transaction('previews','readonly');
+        var req=tx.objectStore('previews').getAll();
+        req.onsuccess=function(){
+          var out={};
+          (req.result||[]).forEach(function(r){ out[r.chat]=r.msg; });
+          resolve(out);
+        };
+        req.onerror=function(){ resolve({}); };
+      }catch(e){ resolve({}); }
+    });
+  });
+}
+
 function init(){
   socket = io();
   socket.on('new_message',onMsg);
@@ -2882,13 +2957,25 @@ function init(){
           const sess=JSON.parse(saved);
           const {username,token,password}=sess;
           if(username&&(token||password)){
-            // Предпочитаем восстановление по токену (пароль не нужен)
             const loginData = token ? {username,token} : {username,password};
             socket.emit('login',loginData,r=>{
               if(r&&(r.user||r.ok)){
-                if(r.token) localStorage.setItem('fcToken',r.token);
+                // Обновляем токен в сессии
+                if(r.token){
+                  localStorage.setItem('fcToken',r.token);
+                  try{
+                    const s=JSON.parse(localStorage.getItem('userSession')||'{}');
+                    s.token=r.token;
+                    delete s.password; // убираем пароль как только получили токен
+                    localStorage.setItem('userSession',JSON.stringify(s));
+                  }catch(e){}
+                }
                 onAuth(r.user||r);
-              } else localStorage.removeItem('userSession');
+              } else {
+                // Токен протух — очищаем и просим перелогиниться
+                localStorage.removeItem('userSession');
+                localStorage.removeItem('fcToken');
+              }
             });
           }
         }catch(e){ localStorage.removeItem('userSession'); }
@@ -2956,16 +3043,25 @@ function onAuth(user){
   me=user;
   G('auth-screen').style.display='none';
   G('app').classList.add('on');
-  // Восстанавливаем превью и непрочитанные из localStorage
+  // 1. Сначала localStorage (синхронно — самый быстрый)
   try{
     var sp=localStorage.getItem('_prev_'+me.username);
-    if(sp)prev=JSON.parse(sp);
+    if(sp) prev=JSON.parse(sp);
     var su=localStorage.getItem('_unread_'+me.username);
-    if(su)unread=JSON.parse(su);
+    if(su) unread=JSON.parse(su);
   }catch(e){}
-  updMe(); loadUsers();
-  // После загрузки пользователей подгружаем последние сообщения для превью
-  setTimeout(function(){ loadPreviews(); }, 800);
+  // 2. IDB превью (асинхронно, обновляем если новее)
+  _idbGetPreviews().then(function(idbPrev){
+    var changed=false;
+    Object.keys(idbPrev).forEach(function(chat){
+      var msg=idbPrev[chat];
+      if(msg && (!prev[chat] || msg.timestamp >= prev[chat].timestamp)){
+        prev[chat]=msg; changed=true;
+      }
+    });
+    if(changed) renderList();
+  });
+  updMe(); loadUsers(); // get_contacts внутри уже грузит превью — loadPreviews не нужен
 }
 function doLogout(){
   socket.emit('logout');
@@ -2974,8 +3070,12 @@ function doLogout(){
     try{localStorage.setItem('_prev_'+me.username,JSON.stringify(prev));}catch(e){}
     try{localStorage.removeItem('_unread_'+me.username);}catch(e){}
   }
+  var _meUN = me && me.username;
   me=null;cur=null;users=[];hist={};unread={};prev={};
   localStorage.removeItem('userSession');
+  try{ if(_meUN) localStorage.removeItem('_users_'+_meUN); }catch(e){}
+  // Чистим IDB при выходе
+  try{ _openIDB().then(function(db){ if(db){ db.close(); indexedDB.deleteDatabase('freedom_msgs'); _idb=null; } }); }catch(e){}
   G('app').classList.remove('on');
   G('auth-screen').style.display='flex';
   G('chat-view').style.display='none';
@@ -2986,32 +3086,21 @@ function doLogout(){
 function savePrev(){
   if(!me)return;
   try{localStorage.setItem('_prev_'+me.username,JSON.stringify(prev));}catch(e){}
+  // Дублируем в IndexedDB для надёжности
+  try{ _idbSavePreviews(prev); }catch(e){}
 }
 function saveUnread(){
   if(!me)return;
   try{localStorage.setItem('_unread_'+me.username,JSON.stringify(unread));}catch(e){}
 }
-// Подгружаем превью только для пользователей, у которых нет кэша
-// и делаем это батчами чтобы не перегружать сервер
+// loadPreviews — уже не нужен основной (get_contacts всё отдаёт)
+// Оставляем как резерв для ручного обновления
 function loadPreviews(){
-  if(!users.length)return;
-  // Только если совсем нет данных
-  var needed = users.filter(u => !prev[u.username]);
-  if(!needed.length) return;
-  // Берём максимум 10 первых, чтобы не спамить сервер
-  var batch = needed.slice(0, 10);
-  batch.forEach(function(u, i){
-    setTimeout(function(){
-      socket.emit('get_messages',{with:u.username, limit:1},function(msgs){
-        if(msgs&&msgs.length){
-          prev[u.username]=msgs[msgs.length-1];
-          savePrev();
-          if(i===batch.length-1) renderList();
-        }
-      });
-    }, i * 100); // задержка 100мс между запросами
-  });
+  // get_contacts уже вызывается в loadUsers и отдаёт превью
+  // Эта функция теперь просто триггерит обновление списка
+  renderList();
 }
+function _loadPreviewsBatch(){ /* deprecated */ }
 // G already declared above
 function V(id){return G(id).value.trim();}
 // E already declared above
@@ -3040,17 +3129,59 @@ function setAv(el,user,r='50%'){
 }
 function ini(n){return n.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()).join('')||'?';}
 function col(s){const c=['#4f8ef7','#7c4dff','#e91e8c','#00bcd4','#ff6b35','#2eb872','#ff9800','#9c27b0'];let h=0;for(let ch of s)h=(h*31+ch.charCodeAt(0))%c.length;return c[h];}
-function ft(ts){const d=new Date(ts),n=new Date();if(d.toDateString()===n.toDateString())return d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});if(n-d<7*864e5)return d.toLocaleDateString('ru-RU',{weekday:'short'});return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'});}
+function ft(ts){
+  const d=new Date(ts), n=new Date();
+  // Сегодня — время
+  if(d.toDateString()===n.toDateString()) return d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  // Вчера
+  const yest=new Date(n); yest.setDate(n.getDate()-1);
+  if(d.toDateString()===yest.toDateString()) return 'вчера';
+  // Эта неделя (< 7 дней) — день недели
+  if(n-d < 7*864e5) return d.toLocaleDateString('ru-RU',{weekday:'short'});
+  // Этот год — число и месяц
+  if(d.getFullYear()===n.getFullYear()) return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'});
+  // Другой год
+  return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric'});
+}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function fs(s){return`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;}
 
 // Users
 function loadUsers(){
-  fetch('/api/users').then(r=>r.json()).then(u=>{
-    users=u.filter(x=>x.username!==me.username);
+  // Показываем кэш мгновенно пока грузим с сервера
+  try{
+    var cached = localStorage.getItem('_users_'+me.username);
+    if(cached){ var cu=JSON.parse(cached); if(cu.length){users=cu;renderList();} }
+  }catch(e){}
+
+  // get_contacts — один запрос: юзеры + последнее сообщение + непрочитанные
+  socket.emit('get_contacts', function(contacts){
+    if(!contacts||!contacts.length) return;
+    users = contacts.filter(function(x){ return x.username!==me.username; });
+
+    // Сразу обновляем превью и непрочитанные из ответа (не нужен отдельный loadPreviews!)
+    users.forEach(function(u){
+      if(u.lastMessage){
+        var cached=prev[u.username];
+        if(!cached||u.lastMessage.timestamp>=cached.timestamp){
+          prev[u.username]=u.lastMessage;
+        }
+      }
+      if(u.unread && u.unread > 0){
+        // Не перезаписываем если у нас уже больше
+        if(!unread[u.username]||u.unread>=unread[u.username])
+          unread[u.username]=u.unread;
+      }
+    });
+
+    // Кэшируем users для следующей загрузки
+    try{
+      var slim=users.map(function(x){return{username:x.username,displayName:x.displayName,avatar:x.avatar,bio:x.bio,online:x.online};});
+      localStorage.setItem('_users_'+me.username,JSON.stringify(slim));
+    }catch(e){}
+
+    savePrev(); saveUnread();
     renderList();
-    // Подгружаем превью если ещё нет данных
-    if(Object.keys(prev).length===0) loadPreviews();
   });
 }
 function switchTab(tab,btn){
@@ -3105,7 +3236,19 @@ function openChat(username){
   _fixMobHeight();
   // FIX: применяем обои
   _applyWallDirect();
-  socket.emit('get_messages',{with:username},msgs=>{hist[username]=msgs||[];renderMsgs();scrollBot();_applyWallDirect();});
+  // Показываем кэш из IndexedDB мгновенно
+  _idbGetMsgs(username).then(function(cached){
+    if(cached && cached.length && !hist[username]){
+      hist[username] = cached;
+      renderMsgs(); scrollBot();
+    }
+  });
+  // Грузим актуальные с сервера
+  socket.emit('get_messages',{with:username},function(msgs){
+    hist[username]=msgs||[];
+    _idbSaveMsgs(username, hist[username]);
+    renderMsgs(); scrollBot(); _applyWallDirect();
+  });
   socket.emit('mark_read',{chatWith:username});
   renderList();
 }
@@ -3169,7 +3312,13 @@ function sendMsg(){
   if(!text)return;
   const d={to:cur,content:text,type:'text'};
   if(replyMsg)d.replyTo=replyMsg.id;
-  socket.emit('send_message',d,r=>{if(r?.message)pushMsg(r.message);});
+  socket.emit('send_message',d,r=>{
+    if(r?.message){
+      pushMsg(r.message);
+      // Гарантируем сохранение превью после отправки
+      prev[cur]=r.message; savePrev();
+    }
+  });
   inp.value='';resize(inp);cancelReply();clearTyp();
 }
 function sendImg(){
@@ -3191,6 +3340,8 @@ function pushMsg(msg){
   if(!hist[activeCur].find(function(m){return m.id===msg.id;})){hist[activeCur].push(msg);}
   prev[activeCur]=msg;
   savePrev();
+  // Обновляем IDB кэш сообщений
+  if(hist[activeCur]) _idbSaveMsgs(activeCur, hist[activeCur]);
   // Рисуем в DOM
   var area=G('msgs');
   if(!area)return;
@@ -5295,12 +5446,14 @@ function autoResize(el) {
 }
 
 function formatTime(ts) {
-  const d = new Date(ts);
-  const now = new Date();
-  if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
-  const days = Math.floor((now-d)/86400000);
-  if (days < 7) return d.toLocaleDateString('ru-RU',{weekday:'short'});
-  return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'});
+  const d=new Date(ts), now=new Date();
+  if(d.toDateString()===now.toDateString()) return d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  const yest=new Date(now); yest.setDate(now.getDate()-1);
+  if(d.toDateString()===yest.toDateString()) return 'вчера';
+  const days=Math.floor((now-d)/86400000);
+  if(days<7) return d.toLocaleDateString('ru-RU',{weekday:'short'});
+  if(d.getFullYear()===now.getFullYear()) return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'});
+  return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric'});
 }
 
 // ─── Init ──────────────────────────────────────────────────────────────────────
@@ -11481,6 +11634,25 @@ window.openWallModal = function(){
 function diSettSet(param, val) {
   diSet(param, val);
   if(typeof buildDI === 'function') buildDI();
+  // FIX: если звонок свёрнут в DI — восстанавливаем его видимость и контент
+  if(window._callMinimized2){
+    var di = document.getElementById('dynamic-island');
+    if(di){
+      // Копируем аватар и имя обратно
+      var cav = document.getElementById('cav'), diAv = document.getElementById('di-av');
+      if(cav && diAv){ diAv.style.background=cav.style.background; diAv.innerHTML=cav.innerHTML; }
+      var cnm = document.getElementById('cnm'), diNm = document.getElementById('di-name');
+      if(cnm && diNm) diNm.textContent = cnm.textContent;
+      di.style.display = 'flex';
+      // Перезапускаем синхронизацию таймера
+      clearInterval(window._diTimerSync);
+      window._diTimerSync = setInterval(function(){
+        var ct=document.getElementById('ctmr'), dt=document.getElementById('di-timer');
+        if(ct&&dt){ dt.textContent=ct.textContent||'0:00'; }
+        if(!window._inCall){ clearInterval(window._diTimerSync); }
+      }, 500);
+    }
+  }
   _updateDISettPreview();
   _syncDISettButtons();
 }
