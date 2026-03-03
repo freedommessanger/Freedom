@@ -1,492 +1,410 @@
 /**
- * Freedom Chat — Node.js Server + PostgreSQL
+ * Freedom Chat — Node.js + Firebase Firestore
  */
 
-const express    = require('express');
-const http       = require('http');
-const { Server } = require('socket.io');
-const path       = require('path');
-const crypto     = require('crypto');
-const { Pool }   = require('pg');
+const express      = require('express');
+const http         = require('http');
+const { Server }   = require('socket.io');
+const path         = require('path');
+const crypto       = require('crypto');
+const admin        = require('firebase-admin');
 
+// ── Firebase init ──────────────────────────────────────────────────────────
+admin.initializeApp({
+  credential: admin.credential.cert({
+    type: "service_account",
+    project_id: "freedom-chat-737d8",
+    private_key_id: "121487ee15292a6b8ce298f1974e6c4b48c1439b",
+    private_key: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC+0owovPAOlom1\n5XPG2+ykPCgHgoT0RGJwwxBi4FihxaHGbDM4UG3PFsmjO8K0YV8uPHx5vy6w3x2u\nHQ8zAvjAdWBSY6BDxDyEwPlsKh+9qyDS/U743GzwqKcGSduMzqdIVxUSZhc/EZyB\nFEO01btzTlkX+yqnY72Ss0MQP2rpFuvUja49b/KXIAZAldlnfgj8uRaOMhUXyghO\nFQGI/pA+UhzJxXC8BFbkJ5Qpld3lkXCSewoh2pUp/aErmCkDx4IhrUTm7GehnAKg\n4MBfe9tsRYkyJW38+E2D9FLhLz35lfAM7q3CevQjZf+9MEFA+48OHNyjKvgT2CKd\nxUqR6EnLAgMBAAECggEADjt16LPu06e2rbJnaDWO+NDjy2uYrv9KuE5UMou5EJfE\n8R+w0kptZjy03U/fvcRlbPVl806nFNoPRKU2NP/Lvc8DWCHGGkfQm7Yo5EBgDa1t\nzU7HTRhjp69shbOMhHwFTgfwsmaa5UFTAu2X/yzRxk/ZpUg+bi2qPf7Qya1xM+E4\nqYYYubd3p2xuOBIwc7HQ9fR5mOOYv6w0JTJ5PeRf1UuwI/1LtT4QhrusY88HqkIh\nxlCPDPwcr3pXCf0WArTlwSiEaKN4gm0ie2b36PIhoOUaSgG9tqbp9AV7D8YcHuM/\nhrXMZfeQuP6dzmN88sXzflICzpWIDSgzO/HDxmppgQKBgQDyXJKn3iNb7HwQl51e\nLPKa5N3fOayd6qF7wSidQx7wbIKwGkzEpyeFCRdKdtzobwgb8gLDH+TdroUmE+V9\nUStvcsYGn8bv01DS7TlUaLDuYxNakKdpkhbhOf6aRev3mwmvuXfirKukVNkDgo8I\nOMcrJMS0VSTElcDBi3i4hrsMyQKBgQDJj4I9ROSbwKH890yrhdfcTF0gAUpNho/W\nozOzcSdj0TT0CNl5QFgeR1xhMD0tHt/Za/l2e0zHNzohM/kPbVMlOGvFIXGpxnTT\n6ncQoTZ4Zkb289I/eU19UEY23WavRdxcS6S4CJ0aJbv5c/aFYOCvGupTApbSkO63\nlZlCbVBv8wKBgD6wo164nvzQFudT0Gjjx305ZgqvqG7QmiSguhizm/UknElhBCp5\n8kb/Kv8f79RPpBFWcFB4l4Kf+eD3lIztygZx8bcU7ShryKRGqGWlDt8a0Y7DjApK\nt5Bap/jPzVGm0MKbft8rOtqu99NomgbOaPZH9HmQ7InNEqb9pKRWdVvBAoGBAIWM\nZ4/u+MXWIb55oLw5J2hY1I8jK7coRF/DrLrla2Lwt/RFdMqo/nm5cJUYoEAoJ8to\nhlahpaKNjh93zzsQhbmwo39vBF+oFbpfrNpA5tVpdvWjYZga6GPyb0Nk+OeDE1m3\n6QDi/CzZ+a1zz1BaeySqYb30hjgoPXM4VN61jUlPAoGAeiggGcMtSVE9rUwPtWsJ\nKT6Dfy9exr1RYXUpnXl6H3Y1aDj0Qvvtkd/KLAXTa6R2zhMKA+sEEpOiGMQpOi1w\nUqDZ3jDeN5yltGt+5Q1wf23uII/XmXPeMlsw45k7SuxggZaOlnRFd4dslqcx8A9u\nNn8O5qqhQ9+V6KJcTHTowFc=\n-----END PRIVATE KEY-----\n",
+    client_email: "firebase-adminsdk-fbsvc@freedom-chat-737d8.iam.gserviceaccount.com",
+    client_id: "117329059940151937510",
+    auth_uri: "https://accounts.google.com/o/oauth2/auth",
+    token_uri: "https://oauth2.googleapis.com/token",
+    auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+    client_x509_cert_url: "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40freedom-chat-737d8.iam.gserviceaccount.com",
+    universe_domain: "googleapis.com"
+  }),
+});
+
+const db = admin.firestore();
+db.settings({ ignoreUndefinedProperties: true });
+
+const usersCol    = db.collection('users');
+const sessionsCol = db.collection('sessions');
+const msgsCol     = db.collection('messages');
+
+// ── Express + Socket.IO ────────────────────────────────────────────────────
 const app    = express();
 const server = http.createServer(app);
 const io     = new Server(server, {
-  maxHttpBufferSize: 10 * 1024 * 1024,
+  maxHttpBufferSize: 1 * 1024 * 1024,
   cors: { origin: '*' },
 });
 
 const PORT = process.env.PORT || 3000;
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
-});
-
-const db = {
-  query: (text, params) => pool.query(text, params),
-};
-
-async function initDB() {
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      username      TEXT PRIMARY KEY,
-      display_name  TEXT NOT NULL,
-      password_hash TEXT NOT NULL,
-      bio           TEXT    DEFAULT '',
-      avatar        TEXT    DEFAULT NULL,
-      banner        TEXT    DEFAULT NULL,
-      last_seen     BIGINT  DEFAULT NULL,
-      privacy       JSONB   DEFAULT '{"lastSeen":"everyone","avatar":"everyone"}',
-      created_at    BIGINT  DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT
-    );
-
-    -- Добавляем колонку banner если её нет (для существующих БД)
-    DO $$ BEGIN
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='banner') THEN
-        ALTER TABLE users ADD COLUMN banner TEXT DEFAULT NULL;
-      END IF;
-    END $$;
-
-    CREATE TABLE IF NOT EXISTS sessions (
-      token      TEXT PRIMARY KEY,
-      username   TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
-      created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT
-    );
-
-    CREATE TABLE IF NOT EXISTS messages (
-      id         TEXT    PRIMARY KEY,
-      from_user  TEXT    NOT NULL REFERENCES users(username) ON DELETE CASCADE,
-      to_user    TEXT    NOT NULL REFERENCES users(username) ON DELETE CASCADE,
-      content    TEXT    NOT NULL,
-      type       TEXT    DEFAULT 'text',
-      reply_to   TEXT    DEFAULT NULL,
-      duration   TEXT    DEFAULT NULL,
-      read       BOOLEAN DEFAULT FALSE,
-      deleted    BOOLEAN DEFAULT FALSE,
-      timestamp  BIGINT  NOT NULL
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_messages_chat
-      ON messages (LEAST(from_user, to_user), GREATEST(from_user, to_user), timestamp);
-  `);
-  console.log('✅ БД инициализирована');
-}
-
+// ── Helpers ────────────────────────────────────────────────────────────────
 function hashPassword(pw) {
   return crypto.createHash('sha256').update(pw + 'freedom_salt').digest('hex');
 }
+function makeId()    { return crypto.randomBytes(8).toString('hex'); }
+function makeToken() { return crypto.randomBytes(24).toString('hex'); }
+function chatId(a, b) { return [a, b].sort().join('__'); }
 
-function makeSession() {
-  return crypto.randomBytes(24).toString('hex');
-}
-
-function makeId() {
-  return crypto.randomBytes(8).toString('hex');
-}
-
-// Онлайн-пользователи: username → Set<socketId>  (поддержка нескольких вкладок)
+// ── Online users ───────────────────────────────────────────────────────────
 const onlineUsers = new Map();
 
 function addOnline(username, socketId) {
   if (!onlineUsers.has(username)) onlineUsers.set(username, new Set());
   onlineUsers.get(username).add(socketId);
 }
-
 function removeOnline(username, socketId) {
   const set = onlineUsers.get(username);
   if (!set) return;
   set.delete(socketId);
   if (set.size === 0) onlineUsers.delete(username);
 }
-
 function isOnline(username) {
   return onlineUsers.has(username) && onlineUsers.get(username).size > 0;
+}
+function sendTo(username, event, data) {
+  const sockets = onlineUsers.get(username);
+  if (!sockets) return;
+  sockets.forEach(sid => {
+    const sock = io.sockets.sockets.get(sid);
+    if (sock) sock.emit(event, data);
+  });
 }
 
 function userPublic(u) {
   return {
     username:    u.username,
-    displayName: u.display_name,
+    displayName: u.displayName || u.username,
     bio:         u.bio      || '',
     avatar:      u.avatar   || null,
     banner:      u.banner   || null,
     online:      isOnline(u.username),
-    lastSeen:    u.last_seen || null,
+    lastSeen:    u.lastSeen || null,
     privacy:     u.privacy  || { lastSeen: 'everyone', avatar: 'everyone' },
   };
 }
 
-function sendTo(username, event, data) {
-  const sockets = onlineUsers.get(username);
-  if (!sockets) return;
-  sockets.forEach(socketId => {
-    const sock = io.sockets.sockets.get(socketId);
-    if (sock) sock.emit(event, data);
-  });
-}
-
 async function getContacts(username) {
-  const { rows } = await db.query(`
-    SELECT
-      u.*,
-      (
-        SELECT row_to_json(m) FROM (
-          SELECT id, from_user AS "from", to_user AS "to",
-                 content, type, timestamp, read
-          FROM messages
-          WHERE deleted = FALSE
-            AND ((from_user = $1 AND to_user = u.username)
-              OR (from_user = u.username AND to_user = $1))
-          ORDER BY timestamp DESC LIMIT 1
-        ) m
-      ) AS "lastMessage",
-      (
-        SELECT COUNT(*)::INT FROM messages
-        WHERE to_user = $1 AND from_user = u.username
-          AND read = FALSE AND deleted = FALSE
-      ) AS unread
-    FROM users u
-    WHERE u.username != $1
-    ORDER BY (
-      SELECT timestamp FROM messages
-      WHERE deleted = FALSE
-        AND ((from_user = $1 AND to_user = u.username)
-          OR (from_user = u.username AND to_user = $1))
-      ORDER BY timestamp DESC LIMIT 1
-    ) DESC NULLS LAST
-  `, [username]);
+  const snap = await usersCol.orderBy('createdAt', 'asc').get();
+  const users = snap.docs.map(d => d.data()).filter(u => u.username !== username);
 
-  return rows.map(r => ({
-    ...userPublic(r),
-    lastMessage: r.lastMessage
-      ? { ...r.lastMessage, timestamp: Number(r.lastMessage.timestamp) }
-      : null,
-    unread: r.unread || 0,
+  const results = await Promise.all(users.map(async u => {
+    const cid = chatId(username, u.username);
+
+    const [lastSnap, unreadSnap] = await Promise.all([
+      msgsCol.where('chatId','==',cid).where('deleted','==',false)
+             .orderBy('timestamp','desc').limit(1).get(),
+      msgsCol.where('chatId','==',cid).where('to','==',username)
+             .where('from','==',u.username).where('read','==',false)
+             .where('deleted','==',false).get()
+    ]);
+
+    const lastMsg = lastSnap.empty ? null : lastSnap.docs[0].data();
+    return {
+      ...userPublic(u),
+      lastMessage: lastMsg ? { ...lastMsg, timestamp: Number(lastMsg.timestamp) } : null,
+      unread: unreadSnap.size,
+    };
   }));
+
+  results.sort((a, b) => {
+    const ta = a.lastMessage ? a.lastMessage.timestamp : 0;
+    const tb = b.lastMessage ? b.lastMessage.timestamp : 0;
+    return tb - ta;
+  });
+
+  return results;
 }
 
+// ── REST ───────────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/api/users', async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT * FROM users ORDER BY created_at ASC');
-    res.json(rows.map(r => userPublic(r)));
-  } catch (e) {
-    res.json([]);
-  }
+    const snap = await usersCol.orderBy('createdAt', 'asc').get();
+    res.json(snap.docs.map(d => userPublic(d.data())));
+  } catch (e) { res.json([]); }
 });
 
 // ── Socket.IO ──────────────────────────────────────────────────────────────
 io.on('connection', (socket) => {
   let me = null;
 
-  // ── Восстановление сессии ──────────────────────────────────────────────
+  // ── Восстановление сессии ────────────────────────────────────────────
   socket.on('restore_session', async (tokenOrCreds, cb) => {
     try {
-      let user = null;
+      let userData = null;
 
-      // ФИКС: поддержка как токена (строка), так и старого формата {username,password}
       if (typeof tokenOrCreds === 'string' && tokenOrCreds.length > 8) {
-        // Правильный путь — поиск по токену
-        const { rows } = await db.query(
-          `SELECT u.* FROM sessions s
-           JOIN users u ON u.username = s.username
-           WHERE s.token = $1`,
-          [tokenOrCreds]
-        );
-        user = rows[0] || null;
-      } else if (tokenOrCreds && typeof tokenOrCreds === 'object' && tokenOrCreds.username) {
-        // Устаревший формат — авторизуемся по логину/паролю
-        const { rows } = await db.query('SELECT * FROM users WHERE username = $1', [tokenOrCreds.username]);
-        if (rows[0] && tokenOrCreds.password && rows[0].password_hash === hashPassword(tokenOrCreds.password)) {
-          user = rows[0];
-          // Создаём нормальный токен для этого сокета
-          const newToken = makeSession();
-          await db.query('INSERT INTO sessions (token, username) VALUES ($1, $2) ON CONFLICT DO NOTHING', [newToken, user.username]);
-          // Шлём клиенту новый токен чтобы он его сохранил
-          socket.emit('upgrade_token', newToken);
+        const sesSnap = await sessionsCol.doc(tokenOrCreds).get();
+        if (sesSnap.exists) {
+          const uSnap = await usersCol.doc(sesSnap.data().username).get();
+          if (uSnap.exists) userData = uSnap.data();
+        }
+      } else if (tokenOrCreds?.username) {
+        const uSnap = await usersCol.doc(tokenOrCreds.username).get();
+        if (uSnap.exists) {
+          const u = uSnap.data();
+          if (tokenOrCreds.password && u.passwordHash === hashPassword(tokenOrCreds.password)) {
+            userData = u;
+            const newToken = makeToken();
+            await sessionsCol.doc(newToken).set({ username: u.username, createdAt: Date.now() });
+            socket.emit('upgrade_token', newToken);
+          }
         }
       }
 
-      if (!user) return cb({ ok: false });
-
-      me = user;
+      if (!userData) return cb({ ok: false });
+      me = userData;
       addOnline(me.username, socket.id);
       io.emit('user_online', { username: me.username });
-
-      cb({
-        ok:       true,
-        user:     userPublic(me),
-        contacts: await getContacts(me.username),
-      });
+      cb({ ok: true, user: userPublic(me), contacts: await getContacts(me.username) });
     } catch (e) {
       console.error('restore_session:', e.message);
       cb({ ok: false });
     }
   });
 
-  // ── Регистрация ────────────────────────────────────────────────────────
+  // ── Регистрация ──────────────────────────────────────────────────────
   socket.on('register', async ({ username, password, displayName }, cb) => {
     try {
       if (!username || !password) return cb({ ok: false, error: 'Заполните поля' });
       if (username.length < 3)    return cb({ ok: false, error: 'Минимум 3 символа' });
 
-      const exists = await db.query('SELECT 1 FROM users WHERE username = $1', [username]);
-      if (exists.rows.length)     return cb({ ok: false, error: 'Имя занято' });
+      const exists = await usersCol.doc(username).get();
+      if (exists.exists) return cb({ ok: false, error: 'Имя занято' });
 
-      await db.query(
-        'INSERT INTO users (username, display_name, password_hash) VALUES ($1, $2, $3)',
-        [username, displayName || username, hashPassword(password)]
-      );
+      const user = {
+        username, displayName: displayName || username,
+        passwordHash: hashPassword(password),
+        bio: '', avatar: null, banner: null, lastSeen: null,
+        privacy: { lastSeen: 'everyone', avatar: 'everyone' },
+        createdAt: Date.now(),
+      };
+      await usersCol.doc(username).set(user);
+      const token = makeToken();
+      await sessionsCol.doc(token).set({ username, createdAt: Date.now() });
 
-      const token = makeSession();
-      await db.query('INSERT INTO sessions (token, username) VALUES ($1, $2)', [token, username]);
-
-      const { rows } = await db.query('SELECT * FROM users WHERE username = $1', [username]);
-      me = rows[0];
+      me = user;
       addOnline(me.username, socket.id);
-      io.emit('new_user', userPublic(me));
-
-      cb({ ok: true, user: userPublic(me), token, contacts: await getContacts(me.username) });
+      io.emit('user_online', { username: me.username });
+      cb({ ok: true, user: userPublic(me), token, contacts: [] });
     } catch (e) {
       console.error('register:', e.message);
       cb({ ok: false, error: 'Ошибка сервера' });
     }
   });
 
-  // ── Вход ──────────────────────────────────────────────────────────────
-  socket.on('login', async ({ username, password }, cb) => {
+  // ── Логин ────────────────────────────────────────────────────────────
+  socket.on('login', async ({ username, password, token: loginToken }, cb) => {
     try {
-      const { rows } = await db.query('SELECT * FROM users WHERE username = $1', [username]);
-      const user = rows[0];
-      if (!user || user.password_hash !== hashPassword(password)) {
-        return cb({ ok: false, error: 'Неверное имя или пароль' });
+      let userData = null;
+
+      if (loginToken) {
+        const sesSnap = await sessionsCol.doc(loginToken).get();
+        if (sesSnap.exists) {
+          const uSnap = await usersCol.doc(sesSnap.data().username).get();
+          if (uSnap.exists) userData = uSnap.data();
+        }
       }
+      if (!userData && username && password) {
+        const uSnap = await usersCol.doc(username).get();
+        if (!uSnap.exists) return cb({ ok: false, error: 'Пользователь не найден' });
+        const u = uSnap.data();
+        if (u.passwordHash !== hashPassword(password)) return cb({ ok: false, error: 'Неверный пароль' });
+        userData = u;
+      }
+      if (!userData) return cb({ ok: false, error: 'Неверные данные' });
 
-      const token = makeSession();
-      await db.query('INSERT INTO sessions (token, username) VALUES ($1, $2)', [token, username]);
+      const token = makeToken();
+      await sessionsCol.doc(token).set({ username: userData.username, createdAt: Date.now() });
 
-      me = user;
+      me = userData;
       addOnline(me.username, socket.id);
       io.emit('user_online', { username: me.username });
-
-      cb({
-        ok:       true,
-        user:     userPublic(me),
-        token,
-        contacts: await getContacts(me.username),
-      });
+      cb({ ok: true, user: userPublic(me), token, contacts: await getContacts(me.username) });
     } catch (e) {
       console.error('login:', e.message);
       cb({ ok: false, error: 'Ошибка сервера' });
     }
   });
 
-  // ── Выход ──────────────────────────────────────────────────────────────
+  // ── Выход ────────────────────────────────────────────────────────────
   socket.on('logout', async () => {
     if (!me) return;
     try {
-      await db.query('DELETE FROM sessions WHERE username = $1', [me.username]);
+      const snap = await sessionsCol.where('username', '==', me.username).get();
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
       const ts = Date.now();
-      await db.query('UPDATE users SET last_seen = $1 WHERE username = $2', [ts, me.username]);
+      await usersCol.doc(me.username).update({ lastSeen: ts });
       removeOnline(me.username, socket.id);
-      if (!isOnline(me.username)) {
-        io.emit('user_offline', { username: me.username, lastSeen: ts });
-      }
+      if (!isOnline(me.username)) io.emit('user_offline', { username: me.username, lastSeen: ts });
     } catch (e) {}
     me = null;
   });
 
-  // ── Контакты ───────────────────────────────────────────────────────────
+  // ── Контакты ─────────────────────────────────────────────────────────
   socket.on('get_contacts', async (cb) => {
     if (!me) return cb?.([]);
+    try { cb?.(await getContacts(me.username)); } catch (e) { cb?.([]); }
+  });
+
+  // ── Превью чатов ─────────────────────────────────────────────────────
+  socket.on('get_previews', async (_, cb) => {
+    if (!me) return cb?.({});
     try {
-      cb?.(await getContacts(me.username));
+      const snap = await msgsCol
+        .where('participants', 'array-contains', me.username)
+        .where('deleted', '==', false)
+        .orderBy('timestamp', 'desc')
+        .get();
+
+      const seen = new Set(), result = {};
+      snap.docs.forEach(d => {
+        const msg = d.data();
+        const partner = msg.from === me.username ? msg.to : msg.from;
+        if (!seen.has(partner)) {
+          seen.add(partner);
+          result[partner] = { ...msg, timestamp: Number(msg.timestamp) };
+        }
+      });
+      cb?.(result);
     } catch (e) {
-      cb?.([]);
+      console.error('get_previews:', e.message);
+      cb?.({});
     }
   });
 
-  // ── Сообщения ──────────────────────────────────────────────────────────
+  // ── Сообщения ─────────────────────────────────────────────────────────
   socket.on('get_messages', async ({ with: partner }, cb) => {
     if (!me) return cb([]);
     try {
-      const { rows } = await db.query(`
-        SELECT id, from_user AS "from", to_user AS "to",
-               content, type, reply_to AS "replyTo",
-               duration, read, timestamp
-        FROM messages
-        WHERE deleted = FALSE
-          AND ((from_user = $1 AND to_user = $2)
-            OR (from_user = $2 AND to_user = $1))
-        ORDER BY timestamp ASC
-      `, [me.username, partner]);
-      cb(rows.map(r => ({ ...r, timestamp: Number(r.timestamp) })));
+      const cid = chatId(me.username, partner);
+      const snap = await msgsCol
+        .where('chatId', '==', cid)
+        .where('deleted', '==', false)
+        .orderBy('timestamp', 'asc')
+        .get();
+      cb(snap.docs.map(d => ({ ...d.data(), timestamp: Number(d.data().timestamp) })));
     } catch (e) {
       console.error('get_messages:', e.message);
       cb([]);
     }
   });
 
-  // ── Отправить сообщение ────────────────────────────────────────────────
+  // ── Отправить сообщение ───────────────────────────────────────────────
   socket.on('send_message', async ({ to, content, text, image, type, replyTo, duration }, cb) => {
-    // ФИКС: клиент может слать 'text'/'image' вместо 'content'/'type'
     const msgContent = content || text || image || null;
-    const msgType = type || (image ? 'image' : 'text');
+    const msgType    = type || (image ? 'image' : 'text');
     if (!me || !to || !msgContent) return cb?.({ ok: false });
     try {
       const msg = {
-        id:        makeId(),
-        from:      me.username,
-        to,
-        content:   msgContent,
-        type:      msgType,
-        replyTo:   replyTo  || null,
-        duration:  duration || null,
-        timestamp: Date.now(),
-        read:      false,
+        id: makeId(), from: me.username, to,
+        chatId: chatId(me.username, to),
+        participants: [me.username, to],
+        content: msgContent, type: msgType,
+        replyTo: replyTo || null, duration: duration || null,
+        timestamp: Date.now(), read: false, deleted: false,
       };
-
-      await db.query(`
-        INSERT INTO messages
-          (id, from_user, to_user, content, type, reply_to, duration, timestamp)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      `, [msg.id, msg.from, msg.to, msg.content, msg.type, msg.replyTo, msg.duration, msg.timestamp]);
-
-      // ФИКС: отправляем получателю через socket
-      sendTo(to, 'new_message', msg);
-      cb?.({ ok: true, message: msg });
+      await msgsCol.doc(msg.id).set(msg);
+      const out = { ...msg, timestamp: Number(msg.timestamp) };
+      sendTo(to, 'new_message', out);
+      cb?.({ ok: true, message: out });
     } catch (e) {
       console.error('send_message:', e.message);
       cb?.({ ok: false });
     }
   });
 
-  // ── Прочитать ──────────────────────────────────────────────────────────
+  // ── Прочитать ─────────────────────────────────────────────────────────
   socket.on('mark_read', async ({ chatWith }) => {
     if (!me) return;
     try {
-      await db.query(`
-        UPDATE messages SET read = TRUE
-        WHERE to_user = $1 AND from_user = $2 AND read = FALSE AND deleted = FALSE
-      `, [me.username, chatWith]);
+      const cid = chatId(me.username, chatWith);
+      const snap = await msgsCol
+        .where('chatId','==',cid).where('to','==',me.username)
+        .where('read','==',false).where('deleted','==',false).get();
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.update(d.ref, { read: true }));
+      await batch.commit();
       sendTo(chatWith, 'messages_read', { by: me.username });
     } catch (e) {}
   });
 
-  // ── Печатает ───────────────────────────────────────────────────────────
+  // ── Печатает ──────────────────────────────────────────────────────────
   socket.on('typing', ({ to, isTyping }) => {
-    if (!me) return;
-    sendTo(to, 'user_typing', { from: me.username, isTyping });
+    if (me) sendTo(to, 'user_typing', { from: me.username, isTyping });
   });
 
-  // ── Удалить сообщение ──────────────────────────────────────────────────
+  // ── Удалить сообщение ─────────────────────────────────────────────────
   socket.on('delete_message', async ({ msgId, chatWith }, cb) => {
     if (!me) return cb?.({ ok: false });
     try {
-      const { rowCount } = await db.query(
-        'UPDATE messages SET deleted = TRUE WHERE id = $1 AND from_user = $2',
-        [msgId, me.username]
-      );
-      if (!rowCount) return cb?.({ ok: false });
+      const doc = await msgsCol.doc(msgId).get();
+      if (!doc.exists || doc.data().from !== me.username) return cb?.({ ok: false });
+      await msgsCol.doc(msgId).update({ deleted: true });
       sendTo(chatWith, 'message_deleted', { msgId });
       cb?.({ ok: true });
-    } catch (e) {
-      cb?.({ ok: false });
-    }
+    } catch (e) { cb?.({ ok: false }); }
   });
 
-  // ── Обновить профиль ───────────────────────────────────────────────────
+  // ── Обновить профиль ──────────────────────────────────────────────────
   socket.on('update_profile', async ({ displayName, bio, avatar, banner, privacy }, cb) => {
     if (!me) return cb?.({ ok: false });
     try {
-      if (displayName !== undefined) {
-        await db.query('UPDATE users SET display_name = $1 WHERE username = $2', [displayName, me.username]);
-        me.display_name = displayName;
+      const upd = {};
+      if (displayName !== undefined) { upd.displayName = displayName; me.displayName = displayName; }
+      if (bio         !== undefined) { upd.bio         = bio;         me.bio         = bio; }
+      if (avatar      !== undefined) { upd.avatar      = avatar;      me.avatar      = avatar; }
+      if (banner      !== undefined) { upd.banner      = banner;      me.banner      = banner; }
+      if (privacy     !== undefined) {
+        upd.privacy = { ...(me.privacy || {}), ...privacy };
+        me.privacy  = upd.privacy;
       }
-      if (bio !== undefined) {
-        await db.query('UPDATE users SET bio = $1 WHERE username = $2', [bio, me.username]);
-        me.bio = bio;
-      }
-      if (avatar !== undefined) {
-        await db.query('UPDATE users SET avatar = $1 WHERE username = $2', [avatar, me.username]);
-        me.avatar = avatar;
-      }
-      if (banner !== undefined) {
-        await db.query('UPDATE users SET banner = $1 WHERE username = $2', [banner, me.username]);
-        me.banner = banner;
-      }
-      if (privacy !== undefined) {
-        const merged = { ...(me.privacy || {}), ...privacy };
-        await db.query('UPDATE users SET privacy = $1 WHERE username = $2', [JSON.stringify(merged), me.username]);
-        me.privacy = merged;
-      }
+      await usersCol.doc(me.username).update(upd);
       io.emit('user_updated', userPublic(me));
       cb?.({ ok: true, user: userPublic(me) });
-    } catch (e) {
-      cb?.({ ok: false });
-    }
+    } catch (e) { cb?.({ ok: false }); }
   });
 
-  // ── Сменить пароль ─────────────────────────────────────────────────────
+  // ── Сменить пароль ────────────────────────────────────────────────────
   socket.on('change_password', async ({ oldPassword, newPassword }, cb) => {
     if (!me) return cb?.({ ok: false });
     try {
-      const { rows } = await db.query('SELECT password_hash FROM users WHERE username = $1', [me.username]);
-      if (rows[0].password_hash !== hashPassword(oldPassword)) {
+      const snap = await usersCol.doc(me.username).get();
+      if (snap.data().passwordHash !== hashPassword(oldPassword))
         return cb?.({ ok: false, error: 'Неверный текущий пароль' });
-      }
-      await db.query('UPDATE users SET password_hash = $1 WHERE username = $2', [hashPassword(newPassword), me.username]);
+      await usersCol.doc(me.username).update({ passwordHash: hashPassword(newPassword) });
       cb?.({ ok: true });
-    } catch (e) {
-      cb?.({ ok: false });
-    }
+    } catch (e) { cb?.({ ok: false }); }
   });
 
-  // ── WebRTC ─────────────────────────────────────────────────────────────
-  socket.on('call_user', ({ to, offer, callType }) => {
+  // ── WebRTC ────────────────────────────────────────────────────────────
+  socket.on('call_user',     ({ to, offer, callType }) => {
     if (!me) return;
-    if (!isOnline(to)) {
-      // Пользователь оффлайн — сразу говорим звонящему
-      socket.emit('call_busy');
-      return;
-    }
+    if (!isOnline(to)) { socket.emit('call_busy'); return; }
     sendTo(to, 'incoming_call', { from: me.username, offer, callType });
   });
+  socket.on('call_answer',   ({ to, answer })    => { if (me) sendTo(to, 'call_answered',  { from: me.username, answer }); });
+  socket.on('ice_candidate', ({ to, candidate }) => { if (me) sendTo(to, 'ice_candidate',  { from: me.username, candidate }); });
+  socket.on('call_end',      ({ to })            => { if (me) sendTo(to, 'call_ended',     { from: me.username }); });
+  socket.on('call_reject',   ({ to })            => { if (me) sendTo(to, 'call_rejected',  { from: me.username }); });
 
-  socket.on('call_answer', ({ to, answer }) => {
-    if (!me) return;
-    sendTo(to, 'call_answered', { from: me.username, answer });
-  });
-
-  socket.on('ice_candidate', ({ to, candidate }) => {
-    if (!me) return;
-    sendTo(to, 'ice_candidate', { from: me.username, candidate });
-  });
-
-  socket.on('call_end', ({ to }) => {
-    if (!me) return;
-    sendTo(to, 'call_ended', { from: me.username });
-  });
-
-  socket.on('call_reject', ({ to }) => {
-    if (!me) return;
-    sendTo(to, 'call_rejected', { from: me.username });
-  });
-
-  // ── Отключение ─────────────────────────────────────────────────────────
+  // ── Отключение ────────────────────────────────────────────────────────
   socket.on('disconnect', async () => {
     if (!me) return;
     try {
       removeOnline(me.username, socket.id);
       if (!isOnline(me.username)) {
         const ts = Date.now();
-        await db.query('UPDATE users SET last_seen = $1 WHERE username = $2', [ts, me.username]);
+        await usersCol.doc(me.username).update({ lastSeen: ts });
         io.emit('user_offline', { username: me.username, lastSeen: ts });
       }
     } catch (e) {}
@@ -496,19 +414,18 @@ io.on('connection', (socket) => {
 // ── Запуск ─────────────────────────────────────────────────────────────────
 async function start() {
   try {
-    await pool.connect();
-    console.log('✅ Подключение к PostgreSQL успешно');
-    await initDB();
+    await db.collection('_health').doc('ping').set({ ts: Date.now() });
+    console.log('✅ Firebase Firestore подключён');
     server.listen(PORT, () => {
       console.log(`
   ╔══════════════════════════════════════╗
-  ║        Freedom Chat — запущен        ║
+  ║     Freedom Chat — Firebase mode     ║
   ║  http://localhost:${PORT}               ║
   ╚══════════════════════════════════════╝
       `);
     });
   } catch (e) {
-    console.error('❌ Ошибка подключения к БД:', e.message);
+    console.error('❌ Ошибка Firebase:', e.message);
     process.exit(1);
   }
 }
