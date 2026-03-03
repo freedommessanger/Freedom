@@ -2806,6 +2806,58 @@ var pc=null, stream=null;
 let callInt=null, callSecs=0, callUser=null, callKind='audio';
 let attachImg=null, toastTimer=null, toastUser=null, pmUser=null;
 
+// ── Cloudinary Config ──────────────────────────────────────────────────────────
+// TODO: замени на свои значения из Cloudinary Dashboard
+const CLOUDINARY_CLOUD_NAME = 'djsu84aam';
+const CLOUDINARY_UPLOAD_PRESET = 'freedom-messenger';
+
+async function uploadToCloudinary(file, onProgress) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder', 'freedom-messenger');
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`);
+
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+    }
+
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (data.secure_url) resolve(data.secure_url);
+        else reject(new Error(data.error?.message || 'Upload failed'));
+      } catch (e) { reject(e); }
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.send(formData);
+  });
+}
+
+// Показывает индикатор загрузки на кнопке/элементе
+function _showUploadSpinner(el, show) {
+  if (!el) return;
+  el._origHTML = el._origHTML || el.innerHTML;
+  if (show) {
+    el.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin .8s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
+    el.disabled = true;
+  } else {
+    el.innerHTML = el._origHTML;
+    el.disabled = false;
+  }
+}
+if (!document.getElementById('_cloudSpin')) {
+  const s = document.createElement('style');
+  s.id = '_cloudSpin';
+  s.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+  document.head.appendChild(s);
+}
+
 function init(){
   socket = io();
   socket.on('new_message',onMsg);
@@ -2827,11 +2879,16 @@ function init(){
       const saved = localStorage.getItem('userSession');
       if(saved){
         try{
-          const {username,password}=JSON.parse(saved);
-          if(username&&password){
-            socket.emit('login',{username,password},r=>{
-              if(r&&(r.user||r.ok)) onAuth(r.user||r);
-              else localStorage.removeItem('userSession');
+          const sess=JSON.parse(saved);
+          const {username,token,password}=sess;
+          if(username&&(token||password)){
+            // Предпочитаем восстановление по токену (пароль не нужен)
+            const loginData = token ? {username,token} : {username,password};
+            socket.emit('login',loginData,r=>{
+              if(r&&(r.user||r.ok)){
+                if(r.token) localStorage.setItem('fcToken',r.token);
+                onAuth(r.user||r);
+              } else localStorage.removeItem('userSession');
             });
           }
         }catch(e){ localStorage.removeItem('userSession'); }
@@ -2875,7 +2932,9 @@ function doLogin(){
   socket.emit('login',{username:u.value.trim(),password:p.value},r=>{
     if(r.error)return E('le',r.error);
     if(r.token) localStorage.setItem('fcToken', r.token);
-    localStorage.setItem('userSession',JSON.stringify({username:u.value.trim(),password:p.value}));
+    // Безопасно: храним только username + token, не пароль
+    if(r.token) localStorage.setItem('userSession',JSON.stringify({username:u.value.trim(),token:r.token}));
+    else localStorage.setItem('userSession',JSON.stringify({username:u.value.trim(),password:p.value}));
     onAuth(r.user);
   });
 }
@@ -2887,7 +2946,9 @@ function doReg(){
   socket.emit('register',{username:u.value.trim(),password:p.value,displayName:n.value.trim()},r=>{
     if(r.error)return E('re',r.error);
     if(r.token) localStorage.setItem('fcToken', r.token);
-    localStorage.setItem('userSession',JSON.stringify({username:u.value.trim(),password:p.value}));
+    // Безопасно: храним только username + token, не пароль
+    if(r.token) localStorage.setItem('userSession',JSON.stringify({username:u.value.trim(),token:r.token}));
+    else localStorage.setItem('userSession',JSON.stringify({username:u.value.trim(),password:p.value}));
     onAuth(r.user);
   });
 }
@@ -2930,17 +2991,25 @@ function saveUnread(){
   if(!me)return;
   try{localStorage.setItem('_unread_'+me.username,JSON.stringify(unread));}catch(e){}
 }
-// Подгружаем последнее сообщение для каждого юзера
+// Подгружаем превью только для пользователей, у которых нет кэша
+// и делаем это батчами чтобы не перегружать сервер
 function loadPreviews(){
   if(!users.length)return;
-  users.forEach(function(u){
-    socket.emit('get_messages',{with:u.username},function(msgs){
-      if(msgs&&msgs.length){
-        prev[u.username]=msgs[msgs.length-1];
-        savePrev();
-        renderList();
-      }
-    });
+  // Только если совсем нет данных
+  var needed = users.filter(u => !prev[u.username]);
+  if(!needed.length) return;
+  // Берём максимум 10 первых, чтобы не спамить сервер
+  var batch = needed.slice(0, 10);
+  batch.forEach(function(u, i){
+    setTimeout(function(){
+      socket.emit('get_messages',{with:u.username, limit:1},function(msgs){
+        if(msgs&&msgs.length){
+          prev[u.username]=msgs[msgs.length-1];
+          savePrev();
+          if(i===batch.length-1) renderList();
+        }
+      });
+    }, i * 100); // задержка 100мс между запросами
   });
 }
 // G already declared above
@@ -3147,7 +3216,26 @@ function onMsg(msg){
   renderList();
 }
 function mkey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
-function handleImg(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{attachImg=ev.target.result;G('ithumb').src=attachImg;G('is').classList.add('on');};r.readAsDataURL(f);e.target.value='';}
+async function handleImg(e){
+  const f=e.target.files[0];if(!f)return;
+  e.target.value='';
+  // Показываем превью сразу через blob URL (не base64)
+  var blobUrl=URL.createObjectURL(f);
+  G('ithumb').src=blobUrl;
+  G('is').classList.add('on');
+  try {
+    const url = await uploadToCloudinary(f);
+    URL.revokeObjectURL(blobUrl);
+    attachImg=url; // теперь храним URL, не base64
+    G('ithumb').src=url;
+  } catch(err) {
+    URL.revokeObjectURL(blobUrl);
+    G('is').classList.remove('on');
+    attachImg=null;
+    alert('Ошибка загрузки изображения.');
+    console.error(err);
+  }
+}
 function rmImg(){attachImg=null;G('is').classList.remove('on');}
 function resize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
 
@@ -3185,8 +3273,18 @@ async function toggleRec(){
     recorder.onstop=()=>{
       clearInterval(recInt);btn.classList.remove('rec');btn.title='Голосовое сообщение';
       const blob=new Blob(chunks,{type:'audio/webm'});const r=new FileReader();
-      r.onload=ev=>{socket.emit('send_message',{to:cur,content:ev.target.result,type:'voice',duration:fs(sec),replyTo:replyMsg?.id||null},res=>{if(res?.message)pushMsg(res.message);});};
-      r.readAsDataURL(blob);s.getTracks().forEach(t=>t.stop());cancelReply();
+      r.onload=async ev=>{
+        s.getTracks().forEach(t=>t.stop());cancelReply();
+        try {
+          const voiceFile = new File([blob], 'voice.webm', {type:'audio/webm'});
+          const url = await uploadToCloudinary(voiceFile);
+          socket.emit('send_message',{to:cur,content:url,type:'voice',duration:fs(sec),replyTo:replyMsg?.id||null},res=>{if(res?.message)pushMsg(res.message);});
+        } catch(err) {
+          // Fallback: send as base64 if Cloudinary fails
+          socket.emit('send_message',{to:cur,content:ev.target.result,type:'voice',duration:fs(sec),replyTo:replyMsg?.id||null},res=>{if(res?.message)pushMsg(res.message);});
+        }
+      };
+      r.readAsDataURL(blob);
     };
     recorder.start();
   }catch(e){alert('Нет доступа к микрофону');}
@@ -3225,88 +3323,109 @@ function saveProf(){
   const n=G('en').value.trim(),b=G('eb').value.trim();
   socket.emit('update_profile',{displayName:n,bio:b},r=>{if(r?.ok){me=r.user;updMe();G('sef').classList.remove('on');}});
 }
-// ФИКС: аватар через socket (REST /api/avatar не реализован на сервере)
-function chgAv(e){
+// Аватар через Cloudinary → socket (только URL, не base64)
+async function chgAv(e){
   const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    socket.emit('update_profile',{avatar:ev.target.result},res=>{
+  e.target.value='';
+  const btn=G('sett-av');
+  _showUploadSpinner(btn, true);
+  try {
+    const url = await uploadToCloudinary(f);
+    socket.emit('update_profile',{avatar:url},res=>{
       if(res?.ok){ me=res.user; updMe(); }
+      _showUploadSpinner(btn, false);
     });
-  };
-  r.readAsDataURL(f); e.target.value='';
+  } catch(err) {
+    _showUploadSpinner(btn, false);
+    alert('Ошибка загрузки аватара. Проверь настройки Cloudinary.');
+    console.error(err);
+  }
 }
-// Загрузка баннера из модалки профиля
-function uploadBanner(e){
-  const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    socket.emit('update_profile',{banner:ev.target.result},res=>{
-      if(res?.ok){
-        me=res.user;
-        var bannerImg=G('pm-banner-img')||G('pm-banner-img2');
-        var bannerGrad=G('pm-banner-grad')||G('pm-banner-grad2');
-        if(bannerImg&&me.banner){
-          bannerImg.style.backgroundImage='url("'+me.banner+'")';
-          bannerImg.style.backgroundSize='cover';
-          bannerImg.style.backgroundPosition='center';
-          bannerImg.style.backgroundRepeat='no-repeat';
-          bannerImg.style.display='block';
-        }
-        if(bannerGrad) bannerGrad.style.display='none';
-        var prev=G('sett-banner-preview');
-        if(prev&&me.banner){
-          prev.style.backgroundImage='url("'+me.banner+'")';
-          prev.style.backgroundSize='cover';
-          prev.style.backgroundPosition='center';
-        }
-      }
-    });
-  };
-  r.readAsDataURL(f); e.target.value='';
-}
-// Загрузка баннера из настроек
-function settUploadBanner(e){
-  const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    // Показываем превью сразу, не дожидаясь сервера
-    var prev=G('sett-banner-preview');
-    if(prev){
-      prev.style.backgroundImage='url("'+ev.target.result+'")';
-      prev.style.backgroundSize='cover';
-      prev.style.backgroundPosition='center';
-      prev.style.backgroundRepeat='no-repeat';
+// ── Универсальный хелпер применения баннера ко всем точкам UI
+function _applyBannerToDOM(bannerUrl){
+  // Все возможные ID баннерных элементов (из-за дублированного HTML)
+  ['pm-banner-img','pm-banner-img2'].forEach(id=>{
+    var el=G(id);
+    if(!el)return;
+    if(bannerUrl){
+      el.style.backgroundImage='url("'+bannerUrl+'")';
+      el.style.backgroundSize='cover';
+      el.style.backgroundPosition='center';
+      el.style.backgroundRepeat='no-repeat';
+      el.style.display='block';
+    } else {
+      el.style.display='none';
     }
-    socket.emit('update_profile',{banner:ev.target.result},res=>{
+  });
+  ['pm-banner-grad','pm-banner-grad2'].forEach(id=>{
+    var el=G(id);
+    if(el) el.style.display=bannerUrl?'none':'block';
+  });
+  var prev=G('sett-banner-preview');
+  if(prev){
+    prev.style.backgroundImage=bannerUrl?'url("'+bannerUrl+'")':'linear-gradient(135deg,var(--accent),#7c4dff)';
+    prev.style.backgroundSize='cover';
+    prev.style.backgroundPosition='center';
+  }
+}
+
+// Баннер через Cloudinary (из модалки профиля)
+async function uploadBanner(e){
+  const f=e.target.files[0]; if(!f)return;
+  e.target.value='';
+  const editBtn=G('pm-banner-edit-btn');
+  if(editBtn){editBtn.style.opacity='0.5';editBtn.style.pointerEvents='none';}
+  try {
+    const url = await uploadToCloudinary(f);
+    socket.emit('update_profile',{banner:url},res=>{
       if(res?.ok){
         me=res.user;
-        var bannerImg=G('pm-banner-img')||G('pm-banner-img2');
-        var bannerGrad=G('pm-banner-grad')||G('pm-banner-grad2');
-        if(bannerImg&&me.banner){
-          bannerImg.style.background='';
-          bannerImg.style.backgroundImage='url("'+me.banner+'")';
-          bannerImg.style.backgroundSize='cover';
-          bannerImg.style.backgroundPosition='center';
-          bannerImg.style.display='block';
-          if(bannerGrad) bannerGrad.style.display='none';
-        }
+        _applyBannerToDOM(me.banner);
+      }
+      if(editBtn){editBtn.style.opacity='';editBtn.style.pointerEvents='';}
+    });
+  } catch(err) {
+    if(editBtn){editBtn.style.opacity='';editBtn.style.pointerEvents='';}
+    alert('Ошибка загрузки баннера.');
+    console.error(err);
+  }
+}
+
+// Баннер через Cloudinary (из настроек)
+async function settUploadBanner(e){
+  const f=e.target.files[0]; if(!f)return;
+  e.target.value='';
+  // Превью сразу (локальный blob URL — быстро, без base64)
+  var prev=G('sett-banner-preview');
+  var blobUrl=URL.createObjectURL(f);
+  if(prev){
+    prev.style.backgroundImage='url("'+blobUrl+'")';
+    prev.style.backgroundSize='cover';
+    prev.style.backgroundPosition='center';
+  }
+  try {
+    const url = await uploadToCloudinary(f);
+    URL.revokeObjectURL(blobUrl);
+    socket.emit('update_profile',{banner:url},res=>{
+      if(res?.ok){
+        me=res.user;
+        _applyBannerToDOM(me.banner);
         updMe();
       }
     });
-  };
-  r.readAsDataURL(f); e.target.value='';
+  } catch(err) {
+    URL.revokeObjectURL(blobUrl);
+    alert('Ошибка загрузки баннера.');
+    console.error(err);
+  }
 }
+
 // Удалить баннер
 function settRemoveBanner(){
   socket.emit('update_profile',{banner:null},res=>{
     if(res?.ok){
       me=res.user;
-      var prev=G('sett-banner-preview'); if(prev) prev.style.backgroundImage='';
-      var bannerImg=G('pm-banner-img')||G('pm-banner-img2');
-      var bannerGrad=G('pm-banner-grad')||G('pm-banner-grad2');
-      if(bannerImg) bannerImg.style.display='none';
-      if(bannerGrad) bannerGrad.style.display='block';
+      _applyBannerToDOM(null);
     }
   });
 }
@@ -3327,23 +3446,17 @@ function showPM(username){
     st.textContent=u.online?'В сети':'Не в сети';st.className='pm-status '+(u.online?'on':'off');
   }
   G('pmbio').textContent=u.bio||'Нет описания';
-  // Баннер профиля
-  var bannerImg = G('pm-banner-img') || G('pm-banner-img2');
-  var bannerGrad = G('pm-banner-grad') || G('pm-banner-grad2');
+  // Баннер профиля — обновляем ВСЕ баннерные элементы (фикс дублированных ID)
+  ['pm-banner-img','pm-banner-img2'].forEach(id=>{
+    var el=G(id); if(!el)return;
+    if(u.banner){ el.style.backgroundImage='url("'+u.banner+'")'; el.style.backgroundSize='cover'; el.style.backgroundPosition='center'; el.style.backgroundRepeat='no-repeat'; el.style.display='block'; }
+    else { el.style.display='none'; }
+  });
+  ['pm-banner-grad','pm-banner-grad2'].forEach(id=>{
+    var el=G(id); if(el) el.style.display=u.banner?'none':'block';
+  });
   var bannerEditBtn = G('pm-banner-edit-btn');
-  if(bannerImg && bannerGrad){
-    if(u.banner){
-      if(typeof _applyBannerToEl==='function') _applyBannerToEl(bannerImg, u.banner);
-      else { bannerImg.style.backgroundImage='url("'+u.banner+'")'; bannerImg.style.backgroundSize='cover'; bannerImg.style.backgroundPosition='center'; }
-      bannerImg.style.display='block';
-      bannerGrad.style.display='none';
-    } else {
-      bannerImg.style.display='none';
-      bannerGrad.style.display='block';
-    }
-  }
   if(bannerEditBtn) bannerEditBtn.style.display=isSelf?'flex':'none';
-  if(isSelf){ var prev=G('sett-banner-preview'); if(prev&&me.banner){ if(typeof _applyBannerToEl==='function') _applyBannerToEl(prev, me.banner); else prev.style.backgroundImage='url("'+me.banner+'")'; } }
   // Joined date
   const jEl=G('pm-joined');
   if(jEl){
@@ -3487,8 +3600,11 @@ function submitPwd(){
   socket.emit('change_password',{oldPassword:oldP,newPassword:newP},r=>{
     if(r?.error)return G('pwd-err').textContent=r.error;
     G('pwd-ok').textContent='Пароль успешно изменён!';
-    // Обновляем сохранённую сессию с новым паролем
-    try{const s=JSON.parse(localStorage.getItem('userSession')||'{}');s.password=newP;localStorage.setItem('userSession',JSON.stringify(s));}catch(e){}
+    // Обновляем токен если пришёл новый, иначе пароль (лучше бы переlogинить)
+    try{
+      const s=JSON.parse(localStorage.getItem('userSession')||'{}');
+      if(!s.token){s.password=newP;localStorage.setItem('userSession',JSON.stringify(s));}
+    }catch(e){}
     setTimeout(closePwdModal,1500);
   });
 }
