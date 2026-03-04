@@ -4578,13 +4578,6 @@ if(typeof init==="function") init(); else if(typeof connectSocket==="function") 
 // ─── State ───────────────────────────────────────────────────────────────────
 // socket and me already declared
 var allUsers = [], chatHistory = {}, unread = {}, chatPreviews = {};
-// ── ФИКС: синхронизируем hist и chatHistory — одна и та же ссылка ──
-try{ if(typeof hist !== 'undefined') chatHistory = hist; else hist = chatHistory; }catch(e){}
-Object.defineProperty(window, 'hist', {
-  get: function(){ return chatHistory; },
-  set: function(v){ chatHistory = v; },
-  configurable: true
-});
 var replyTo = null;
 var ctxMsg = null;
 let typingTimers = {}, typingState = false;
@@ -11517,7 +11510,33 @@ window.diOptSelect = function(param, val, btn){
   btn.classList.add('active');
   _updateDIPreview();
   if(typeof buildDI==='function') buildDI();
+  _diRestoreIfActive();
 };
+
+
+// ── ФИКС: восстанавливаем DI после пересборки если звонок был свёрнут ──
+function _diRestoreIfActive(){
+  if(!window._callMinimized2 && !window._inCall) return;
+  var di = document.getElementById('dynamic-island');
+  if(!di) return;
+  // Копируем аватар и имя из оверлея
+  var cav=document.getElementById('cav'), diAv=document.getElementById('di-av');
+  if(cav&&diAv){ diAv.style.background=cav.style.background; diAv.innerHTML=cav.innerHTML; }
+  var cnm=document.getElementById('cnm'), diNm=document.getElementById('di-name');
+  if(cnm&&diNm) diNm.textContent=cnm.textContent;
+  // Синхронизируем таймер сразу
+  var ct=document.getElementById('ctmr'), dt=document.getElementById('di-timer');
+  if(ct&&dt) dt.textContent=ct.textContent||'0:00';
+  di.style.display='flex';
+  window._callMinimized2=true;
+  // Перезапускаем синхронизацию таймера
+  clearInterval(window._diTimerSync);
+  window._diTimerSync=setInterval(function(){
+    var ct=document.getElementById('ctmr'),dt=document.getElementById('di-timer');
+    if(ct&&dt) dt.textContent=ct.textContent||'0:00';
+    if(!window._inCall) clearInterval(window._diTimerSync);
+  },500);
+}
 
 window.diColorSelect = function(val, el){
   if(typeof diSet==='function') diSet('color', val);
@@ -11525,6 +11544,7 @@ window.diColorSelect = function(val, el){
   el.classList.add('active');
   _updateDIPreview();
   if(typeof buildDI==='function') buildDI();
+  _diRestoreIfActive();
 };
 
 function _updateDIPreview(){
@@ -11619,7 +11639,7 @@ setTimeout(function(){
   if(!body) return;
   var btn=document.createElement('button');
   btn.className='open-custom-btn';
-  btn.innerHTML='<span style="font-size:24px">🎨</span><div style="text-align:left"><div>Кастомизация</div></div><span style="margin-left:auto;opacity:.8">→</span>';
+  btn.innerHTML='<span style="font-size:24px">🎨</span><div style="text-align:left"><div>Кастомизация</div><div style="font-size:11px;opacity:.75;font-weight:500">Темы, цвета, обои, Island...</div></div><span style="margin-left:auto;opacity:.8">→</span>';
   btn.onclick=function(){ closeSett(); openCustomDrawer(); };
   body.insertBefore(btn, body.firstChild);
   var sp2=document.querySelectorAll('.sett-panel')[1];
@@ -11649,24 +11669,7 @@ function diSettSet(param, val) {
   diSet(param, val);
   if(typeof buildDI === 'function') buildDI();
   // FIX: если звонок свёрнут в DI — восстанавливаем его видимость и контент
-  if(window._callMinimized2){
-    var di = document.getElementById('dynamic-island');
-    if(di){
-      // Копируем аватар и имя обратно
-      var cav = document.getElementById('cav'), diAv = document.getElementById('di-av');
-      if(cav && diAv){ diAv.style.background=cav.style.background; diAv.innerHTML=cav.innerHTML; }
-      var cnm = document.getElementById('cnm'), diNm = document.getElementById('di-name');
-      if(cnm && diNm) diNm.textContent = cnm.textContent;
-      di.style.display = 'flex';
-      // Перезапускаем синхронизацию таймера
-      clearInterval(window._diTimerSync);
-      window._diTimerSync = setInterval(function(){
-        var ct=document.getElementById('ctmr'), dt=document.getElementById('di-timer');
-        if(ct&&dt){ dt.textContent=ct.textContent||'0:00'; }
-        if(!window._inCall){ clearInterval(window._diTimerSync); }
-      }, 500);
-    }
-  }
+  _diRestoreIfActive();
   _updateDISettPreview();
   _syncDISettButtons();
 }
