@@ -278,7 +278,7 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .pm-card { background:var(--sidebar); border:1px solid var(--border); border-radius:22px; width:340px; max-width:calc(100vw - 32px); max-height:calc(100vh - 32px); overflow-y:auto; overflow-x:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.3); }
 .pm-banner { height:140px; position:relative; overflow:hidden; border-radius:22px 22px 0 0; margin:-1px -1px 0 -1px; width:calc(100% + 2px); }
 .pm-banner-grad { position:absolute; top:0; left:0; right:0; bottom:0; background:linear-gradient(135deg,var(--accent) 0%,#7c4dff 100%); }
-.pm-banner-img { position:absolute; top:0; left:0; right:0; bottom:0; width:100%; height:100%; background-size:cover; background-position:center; background-repeat:no-repeat; }
+.pm-banner-img { position:absolute; top:0; left:0; right:0; bottom:0; width:100%; height:100%; background-size:contain; background-position:center; background-repeat:no-repeat; }
 .pm-banner-edit { position:absolute; bottom:8px; right:10px; width:30px; height:30px; background:rgba(0,0,0,0.55); border:1.5px solid rgba(255,255,255,0.2); border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; transition:background .2s; z-index:5; }
 .pm-banner-edit:hover { background:rgba(0,0,0,0.8); }
 .pm-body { padding:0 20px 20px; position:relative; z-index:2; }
@@ -2414,7 +2414,7 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 .pm-card { background:var(--sidebar); border:1px solid var(--border); border-radius:22px; width:340px; max-width:calc(100vw - 32px); max-height:calc(100vh - 32px); overflow-y:auto; overflow-x:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.6); }
 .pm-banner { height:140px; position:relative; overflow:hidden; border-radius:22px 22px 0 0; margin:-1px -1px 0 -1px; width:calc(100% + 2px); }
 .pm-banner-grad { position:absolute; top:0; left:0; right:0; bottom:0; background:linear-gradient(135deg,var(--accent) 0%,#7c4dff 100%); }
-.pm-banner-img { position:absolute; top:0; left:0; right:0; bottom:0; width:100%; height:100%; background-size:cover; background-position:center; background-repeat:no-repeat; }
+.pm-banner-img { position:absolute; top:0; left:0; right:0; bottom:0; width:100%; height:100%; background-size:contain; background-position:center; background-repeat:no-repeat; }
 .pm-body { padding:0 20px 20px; }
 .pm-av-row { display:flex; align-items:flex-end; justify-content:space-between; margin-top:-32px; margin-bottom:12px; }
 .pm-av { width:68px; height:68px; border-radius:18px; border:3px solid var(--sidebar); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700; overflow:hidden; }
