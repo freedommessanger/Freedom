@@ -278,7 +278,7 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .pm-card { background:var(--sidebar); border:1px solid var(--border); border-radius:22px; width:340px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.3); }
 .pm-banner { height:120px; position:relative; overflow:hidden; border-radius:22px 22px 0 0; }
 .pm-banner-grad { position:absolute; inset:0; background:linear-gradient(135deg,var(--accent) 0%,#7c4dff 100%); }
-.pm-banner-img { position:absolute; inset:0; background-size:cover; background-position:center; background-repeat:no-repeat; }
+.pm-banner-img { position:absolute; inset:0; width:100%; height:100%; background-size:cover; background-position:center; background-repeat:no-repeat; }
 .pm-banner-edit { position:absolute; bottom:8px; right:44px; width:30px; height:30px; background:rgba(0,0,0,0.55); border:1.5px solid rgba(255,255,255,0.2); border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; transition:background .2s; z-index:5; }
 .pm-banner-edit:hover { background:rgba(0,0,0,0.8); }
 .pm-body { padding:0 20px 20px; position:relative; z-index:2; }
@@ -2402,7 +2402,7 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 .pm-card { background:var(--sidebar); border:1px solid var(--border); border-radius:22px; width:340px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.6); }
 .pm-banner { height:120px; position:relative; overflow:hidden; border-radius:22px 22px 0 0; }
 .pm-banner-grad { position:absolute; inset:0; background:linear-gradient(135deg,var(--accent) 0%,#7c4dff 100%); }
-.pm-banner-img { position:absolute; inset:0; background-size:cover; background-position:center; background-repeat:no-repeat; }
+.pm-banner-img { position:absolute; inset:0; width:100%; height:100%; background-size:cover; background-position:center; background-repeat:no-repeat; }
 .pm-body { padding:0 20px 20px; }
 .pm-av-row { display:flex; align-items:flex-end; justify-content:space-between; margin-top:-32px; margin-bottom:12px; }
 .pm-av { width:68px; height:68px; border-radius:18px; border:3px solid var(--sidebar); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700; overflow:hidden; }
@@ -8186,6 +8186,8 @@ window.openChat=function(username){
   setTimeout(function(){if(typeof _fixMobHeight==='function')_fixMobHeight();},150);
   if(typeof _applyWallDirect==='function')_applyWallDirect();
   try{unread[username]=0;}catch(e){}try{unreadCounts[username]=0;}catch(e){}
+  // FIX: сохраняем нули сразу, чтобы после перезагрузки бейдж не появлялся снова
+  try{if(me)localStorage.setItem('_unread_'+me.username,JSON.stringify(unread));}catch(e){}
   socket.emit('get_messages',{with:username},function(msgs){
     try{hist[username]=msgs||[];}catch(e){}try{chatHistory[username]=msgs||[];}catch(e){}
     if(typeof renderMsgs==='function')renderMsgs();
@@ -8233,7 +8235,7 @@ window.loadUsers=function(){
       if(u.unread&&u.unread>0){
         // Не перезаписываем если это текущий открытый чат — мы уже его прочитали
         var isCurrent = (typeof cur!=='undefined'&&cur===u.username)||(typeof currentChat!=='undefined'&&currentChat===u.username);
-        var alreadyZero = (unread[u.username] === 0); // явно прочитан — не перезаписывать!
+        var alreadyZero = (u.username in unread && unread[u.username] === 0); // явно прочитан — не перезаписывать!
         if(!isCurrent && !alreadyZero && (!(u.username in unread)||u.unread>=unread[u.username])) unread[u.username]=u.unread;
       }
     });
@@ -11664,6 +11666,21 @@ function _syncDIColorButtons(){
   var et=localStorage.getItem('theme'); if(et){var tdata=THEMES_CD.find(function(x){return x.id===et;});if(tdata)_applyExtraTheme(et,tdata.acc);}
 })();
 
+// FIX: Восстанавливаем контент острова если звонок свёрнут (нужно при смене цвета/формы в настройках)
+window._diRestoreIfActive = function() {
+  if (!window._callMinimized2) return;
+  var di = document.getElementById('dynamic-island');
+  if (!di) return;
+  // Копируем аватар и имя из оверлея звонка
+  var cav = document.getElementById('cav'), diAv = document.getElementById('di-av');
+  if (cav && diAv) { diAv.style.background = cav.style.background; diAv.innerHTML = cav.innerHTML; }
+  var cnm = document.getElementById('cnm'), diNm = document.getElementById('di-name');
+  if (cnm && diNm) diNm.textContent = cnm.textContent;
+  // Показываем остров
+  di.style.display = 'flex';
+  window._callMinimized2 = true;
+};
+
 /* ─── Патчим кнопку в настройках ─── */
 setTimeout(function(){
   var sp=document.getElementById('sp');
@@ -11702,7 +11719,18 @@ function diSettSet(param, val) {
   diSet(param, val);
   var wasMinimized = window._callMinimized2;
   if(typeof buildDI === 'function') buildDI();
-  if(wasMinimized) window._callMinimized2 = true;
+  if(wasMinimized) {
+    window._callMinimized2 = true;
+    // FIX: перезапускаем таймер синхронизации после перестройки острова
+    clearInterval(window._diTimerSync);
+    var _diSyncFn = function(){
+      var ct = document.getElementById('ctmr'), dt = document.getElementById('di-timer');
+      if(ct && dt){ dt.textContent = ct.textContent||'0:00'; }
+      if(!window._inCall){ clearInterval(window._diTimerSync); }
+    };
+    _diSyncFn();
+    window._diTimerSync = setInterval(_diSyncFn, 500);
+  }
   // FIX: если звонок свёрнут в DI — восстанавливаем его видимость и контент
   if(typeof window._diRestoreIfActive==='function') window._diRestoreIfActive();
   _updateDISettPreview();
