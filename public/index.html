@@ -12459,5 +12459,244 @@ window.tCam = function(btn) {
 
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════════
+     FINAL CALL FIX — полная замена логики звонков
+═══════════════════════════════════════════════ -->
+<script>
+(function(){
+
+// Переменные звонка — используем глобальные из старого файла
+// pc, stream, callUser, callKind, callInt, callSecs — уже объявлены
+
+var _ICE = {iceServers:[
+  {urls:'stun:stun.l.google.com:19302'},
+  {urls:'stun:stun1.l.google.com:19302'}
+]};
+
+function G(id){return document.getElementById(id);}
+function fs(s){var m=Math.floor(s/60),sc=s%60;return m+':'+(sc<10?'0':'')+sc;}
+
+var PHONE_ICO='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>';
+
+// ── Получить текущий чат ────────────────────────────────────
+function getCur(){
+  try{if(typeof cur!=='undefined'&&cur)return cur;}catch(e){}
+  try{if(typeof currentChat!=='undefined'&&currentChat)return currentChat;}catch(e){}
+  try{if(typeof activeChat!=='undefined'&&activeChat)return activeChat;}catch(e){}
+  return null;
+}
+function getUsers(){
+  try{return (typeof users!=='undefined'&&users)||allUsers||[];}catch(e){return[];}
+}
+
+// ── UI звонка ────────────────────────────────────────────────
+function showCallUI(u, type, mode, offer){
+  var av=G('cav'); if(av){av.style.background=col(u.username);setAv(av,u,'22px');}
+  var nm=G('cnm'); if(nm) nm.textContent=u.displayName||u.username;
+  var tl=type==='video'?'Видеозвонок':'Аудиозвонок';
+  var st='', btns='';
+  if(mode==='out'){
+    st=tl+' · Исходящий...';
+    btns='<div class="call-btn-wrap"><button class="cbtn end-call" onclick="endCall()">'+PHONE_ICO+'</button><span>Завершить</span></div>';
+  } else if(mode==='in'){
+    st='Входящий '+tl.toLowerCase();
+    var cst=G('cst'); if(cst) cst.textContent=st;
+    var cbtns=G('cbtns');
+    if(cbtns) cbtns.innerHTML='<div class="call-btn-wrap"><button class="cbtn decline" onclick="rejectCall()">'+PHONE_ICO+'</button><span>Отклонить</span></div>'
+      +'<div class="call-btn-wrap"><button id="acc-btn" class="cbtn accept">'+PHONE_ICO+'</button><span>Принять</span></div>';
+    var co=G('co'); if(co){co.classList.add('on');co.style.display='';}
+    var accBtn=G('acc-btn');
+    if(accBtn) accBtn.onclick=function(){accBtn.disabled=true; doAccept(offer);};
+    return;
+  } else {
+    st=tl;
+    var ctmr=G('ctmr'); if(ctmr) ctmr.style.display='block';
+    btns='<div class="call-btn-wrap"><button class="cbtn neutral" id="cbmute" onclick="tMute(this)">'
+      +'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
+      +'<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>'
+      +'<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>'
+      +'<line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>'
+      +'</svg></button><span>Микрофон</span></div>'
+      +'<div class="call-btn-wrap"><button class="cbtn end-call" onclick="endCall()">'+PHONE_ICO+'</button><span>Завершить</span></div>'
+      +(type==='video'?'<div class="call-btn-wrap"><button class="cbtn neutral" id="cbcam" onclick="tCam(this)">'
+      +'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
+      +'<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>'
+      +'</svg></button><span>Камера</span></div>':'');
+  }
+  var cst2=G('cst'); if(cst2) cst2.textContent=st;
+  var cbtns2=G('cbtns'); if(cbtns2) cbtns2.innerHTML=btns;
+  var co2=G('co'); if(co2){co2.classList.add('on');co2.style.display='';}
+}
+
+// ── Таймер ──────────────────────────────────────────────────
+function doStartTimer(){
+  callSecs=0;
+  var el=G('ctmr'); if(el){el.style.display='block'; el.textContent='0:00';}
+  clearInterval(callInt);
+  callInt=setInterval(function(){callSecs++;var el2=G('ctmr');if(el2)el2.textContent=fs(callSecs);},1000);
+}
+
+// ── Создать PeerConnection ───────────────────────────────────
+function makePc(to, type){
+  var np=new RTCPeerConnection(_ICE);
+  np.ontrack=function(e){
+    var s=e.streams[0]; if(!s) return;
+    var rv=G('remoteVideo');
+    if(rv){rv.srcObject=s;rv.style.display='block';try{rv.play();}catch(ex){}}
+    if(type==='video'){var va=G('va');if(va)va.classList.add('on');}
+    // Аудио элемент — гарантирует звук
+    var ra=document.getElementById('remoteAudio');
+    if(!ra){ra=document.createElement('audio');ra.id='remoteAudio';ra.autoplay=true;ra.setAttribute('playsinline','');ra.style.display='none';document.body.appendChild(ra);}
+    ra.srcObject=s;
+    // Воспроизвести — обходим блокировку autoplay на мобиле
+    var p=ra.play(); if(p&&p.catch){p.catch(function(){
+      function unlock(){ra.play().catch(function(){});['touchstart','click'].forEach(function(ev){document.removeEventListener(ev,unlock);});}
+      ['touchstart','click'].forEach(function(ev){document.addEventListener(ev,unlock,{once:true});});
+    });}
+  };
+  np.onicecandidate=function(e){if(e.candidate)socket.emit('ice_candidate',{to:to,candidate:e.candidate});};
+  return np;
+}
+
+// ── ИСХОДЯЩИЙ ЗВОНОК ────────────────────────────────────────
+window.startCall=async function(type){
+  var t=getCur(); if(!t) return;
+  if(window._inCall){alert('Вы уже в звонке');return;}
+  window._inCall=true;
+  callUser=t; callKind=type;
+  var u=getUsers().find(function(x){return x.username===t;})||{username:t,displayName:t};
+  showCallUI(u,type,'out');
+  try{
+    stream=await navigator.mediaDevices.getUserMedia(type==='video'?{video:true,audio:true}:{audio:true});
+    if(type==='video'){var lv=G('localVideo');if(lv){lv.srcObject=stream;lv.style.display='block';}var va=G('va');if(va)va.classList.add('on');}
+    pc=makePc(t,type);
+    stream.getTracks().forEach(function(tk){pc.addTrack(tk,stream);});
+    var offer=await pc.createOffer();await pc.setLocalDescription(offer);
+    socket.emit('call_user',{to:t,offer:offer,callType:type});
+  }catch(e){window._inCall=false;cleanCall();alert('Нет доступа к камере/микрофону: '+(e.message||e));}
+};
+
+// ── ВХОДЯЩИЙ ЗВОНОК (единственный обработчик) ────────────────
+function onInCall(data){
+  if(window._inCall) return; // уже в звонке
+  var from=data.from,offer=data.offer,ct=data.callType||'audio';
+  callUser=from; callKind=ct;
+  window._pendingCaller=from;
+  var u=getUsers().find(function(x){return x.username===from;})||{username:from,displayName:from};
+  showCallUI(u,ct,'in',offer);
+}
+
+// ── ПРИНЯТЬ ЗВОНОК ───────────────────────────────────────────
+async function doAccept(offer){
+  if(window._inCall) return;
+  window._inCall=true;
+  try{
+    stream=await navigator.mediaDevices.getUserMedia(callKind==='video'?{video:true,audio:true}:{audio:true});
+    if(callKind==='video'){var lv=G('localVideo');if(lv){lv.srcObject=stream;lv.style.display='block';}var va=G('va');if(va)va.classList.add('on');}
+    pc=makePc(callUser,callKind);
+    stream.getTracks().forEach(function(tk){pc.addTrack(tk,stream);});
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    var answer=await pc.createAnswer();await pc.setLocalDescription(answer);
+    socket.emit('call_answer',{to:callUser,answer:answer});
+    doStartTimer();
+    var u=getUsers().find(function(x){return x.username===callUser;})||{username:callUser||''};
+    showCallUI(u,callKind,'active');
+  }catch(e){window._inCall=false;cleanCall();alert('Ошибка: '+(e.message||e));}
+}
+window.acceptCall=function(offer){doAccept(offer);};
+
+// ── ОТВЕТ ЗВОНЯЩЕМУ (собеседник принял) ──────────────────────
+async function onCallAns(data){
+  if(!pc){console.warn('onCallAns: нет pc');return;}
+  try{
+    await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+    doStartTimer();
+    var u=getUsers().find(function(x){return x.username===callUser;})||{username:callUser||''};
+    showCallUI(u,callKind,'active');
+  }catch(e){console.error('onCallAns error:',e);}
+}
+
+// ── ЗАВЕРШИТЬ / ОТКЛОНИТЬ ────────────────────────────────────
+window.endCall=function(){if(callUser)socket.emit('call_end',{to:callUser});cleanCall();};
+window.rejectCall=function(){if(callUser)socket.emit('call_reject',{to:callUser});cleanCall();};
+
+window.cleanCall=window._doCleanCall=function(){
+  window._inCall=false; window._pendingCaller=null;
+  if(pc){try{pc.close();}catch(e){}} pc=null; window._pc=null;
+  if(stream){stream.getTracks().forEach(function(t){t.stop();});} stream=null;
+  try{localStream=null;}catch(e){}
+  clearInterval(callInt); callInt=null; callSecs=0;
+  var co=G('co');if(co){co.classList.remove('on');co.style.display='';}
+  var va=G('va');if(va)va.classList.remove('on');
+  var rv=G('remoteVideo');if(rv){rv.srcObject=null;rv.style.display='none';}
+  var lv=G('localVideo');if(lv){lv.srcObject=null;}
+  var ra=document.getElementById('remoteAudio');if(ra){try{ra.pause();}catch(e){}ra.srcObject=null;}
+  var ctmr=G('ctmr');if(ctmr){ctmr.style.display='none';ctmr.textContent='0:00';}
+};
+
+function callSt(msg,close){var el=G('cst');if(el)el.textContent=msg;if(close)setTimeout(window.cleanCall,2000);}
+
+window.tMute=function(btn){if(!stream)return;var t=stream.getAudioTracks()[0];if(!t)return;t.enabled=!t.enabled;if(btn)btn.classList.toggle('muted',!t.enabled);};
+window.tCam=function(btn){if(!stream)return;var t=stream.getVideoTracks()[0];if(!t)return;t.enabled=!t.enabled;if(btn)btn.classList.toggle('muted',!t.enabled);};
+
+// ── ЗАМЕНЯЕМ socket.onevent и socket.on ──────────────────────
+// Ждём socket, затем:
+// 1) Восстанавливаем оригинальный onevent (убираем interceptSocket патч)
+// 2) Снимаем все старые обработчики звонков
+// 3) Вешаем только наши
+function patchSocket(){
+  if(!window.socket){setTimeout(patchSocket,150);return;}
+
+  // Восстанавливаем чистый onevent (убираем патч interceptSocket)
+  // socket.io хранит оригинальный метод в прототипе
+  var proto=Object.getPrototypeOf(socket);
+  if(proto&&proto.onevent){
+    socket.onevent=proto.onevent.bind(socket);
+  }
+  socket.__patched=false;
+
+  // Снимаем ВСЕ старые обработчики звонков
+  ['incoming_call','call_answered','ice_candidate','call_ended','call_rejected','call_busy'].forEach(function(ev){
+    socket.off(ev);
+  });
+
+  // Вешаем единственные правильные
+  socket.on('incoming_call', onInCall);
+  socket.on('call_answered', onCallAns);
+  socket.on('ice_candidate', function(d){try{if(pc)pc.addIceCandidate(new RTCIceCandidate(d.candidate));}catch(e){}});
+  socket.on('call_ended',    function(){callSt('Звонок завершён',true);});
+  socket.on('call_rejected', function(){callSt('Отклонено',true);try{_injectCallMsg&&_injectCallMsg(callUser,'missed');}catch(e){}});
+  socket.on('call_busy',     function(){callSt('Пользователь занят',true);});
+
+  // Нейтрализуем masterCall и связанные функции чтобы не мешали
+  window.masterCall=function(){};
+  window.masterAccept=function(){};
+
+  console.log('[FinalCallFix] ✅ socket.onevent восстановлен, обработчики установлены');
+}
+
+patchSocket();
+
+// Если interceptSocket вызовется повторно (после реконнекта) — нейтрализуем
+var _origIntercept=window.interceptSocket;
+window.interceptSocket=function(){
+  // Запускаем оригинал для new_message (оставляем), но перехват звонков нейтрализован через masterCall=noop
+  if(_origIntercept) _origIntercept();
+  // Повторно назначаем наши обработчики поверх
+  setTimeout(function(){
+    ['incoming_call','call_answered','ice_candidate','call_ended','call_rejected','call_busy'].forEach(function(ev){socket.off(ev);});
+    socket.on('incoming_call',onInCall);
+    socket.on('call_answered',onCallAns);
+    socket.on('ice_candidate',function(d){try{if(pc)pc.addIceCandidate(new RTCIceCandidate(d.candidate));}catch(e){}});
+    socket.on('call_ended',function(){callSt('Звонок завершён',true);});
+    socket.on('call_rejected',function(){callSt('Отклонено',true);try{_injectCallMsg&&_injectCallMsg(callUser,'missed');}catch(e){}});
+    socket.on('call_busy',function(){callSt('Пользователь занят',true);});
+    window.masterCall=function(){};
+  },50);
+};
+
+})();
+</script>
 </body>
 </html>
