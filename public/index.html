@@ -8206,14 +8206,36 @@ window.onAuth=function(user){
   var ae=document.getElementById('auth-screen'),ap=document.getElementById('app');
   if(ae)ae.style.display='none';
   if(ap){ap.classList.add('on');ap.classList.remove('visible');}
+  // Восстанавливаем prev и unread из localStorage сразу — до запроса к серверу
+  try{var sp=localStorage.getItem('_prev_'+me.username);if(sp){var pp=JSON.parse(sp);if(pp&&typeof pp==='object')prev=pp;}}catch(e){}
+  try{var su=localStorage.getItem('_unread_'+me.username);if(su){var uu=JSON.parse(su);if(uu&&typeof uu==='object')unread=uu;}}catch(e){}
+  // Рендерим список сразу с кешем
+  if(typeof renderList==='function')renderList();
   if(typeof updMe==='function')updMe();
   if(typeof window.loadUsers==='function')window.loadUsers();
   interceptSocket();
 };
 
 window.loadUsers=function(){
-  fetch('/api/users').then(function(r){return r.json();}).then(function(u){
-    users=allUsers=u.filter(function(x){return x.username!==me.username;});
+  if(!window.socket||!me){return;}
+  socket.emit('get_contacts',function(contacts){
+    if(!contacts||!contacts.length){return;}
+    users=contacts.filter(function(x){return x.username!==me.username;});
+    try{allUsers=users;}catch(e){}
+    // Обновляем prev из lastMessage
+    users.forEach(function(u){
+      if(u.lastMessage){
+        var c=prev[u.username];
+        if(!c||u.lastMessage.timestamp>=c.timestamp) prev[u.username]=u.lastMessage;
+      }
+      if(u.unread&&u.unread>0){
+        if(!unread[u.username]||u.unread>=unread[u.username]) unread[u.username]=u.unread;
+      }
+    });
+    // Кешируем в localStorage
+    try{localStorage.setItem('_prev_'+me.username,JSON.stringify(prev));}catch(e){}
+    try{localStorage.setItem('_unread_'+me.username,JSON.stringify(unread));}catch(e){}
+    try{var slim=users.map(function(x){return{username:x.username,displayName:x.displayName,avatar:x.avatar,bio:x.bio,online:x.online};});localStorage.setItem('_users_'+me.username,JSON.stringify(slim));}catch(e){}
     if(typeof renderList==='function')renderList();
     if(typeof renderChatList==='function')renderChatList();
   });
