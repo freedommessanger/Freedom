@@ -413,33 +413,20 @@ io.on('connection', (socket) => {
 
 // ── Запуск ─────────────────────────────────────────────────────────────────
 async function start() {
-  // Поднимаем порт СРАЗУ — Railway требует открытый порт в течение нескольких секунд
-  server.listen(PORT, () => {
-    console.log(`
+  try {
+    await db.collection('_health').doc('ping').set({ ts: Date.now() });
+    console.log('✅ Firebase Firestore подключён');
+    server.listen(PORT, () => {
+      console.log(`
   ╔══════════════════════════════════════╗
   ║     Freedom Chat — Firebase mode     ║
   ║  http://localhost:${PORT}               ║
   ╚══════════════════════════════════════╝
-    `);
-  });
-
-  // Firebase проверяем параллельно, не блокируя старт
-  try {
-    await db.collection('_health').doc('ping').set({ ts: Date.now() });
-    console.log('✅ Firebase Firestore подключён');
+      `);
+    });
   } catch (e) {
     console.error('❌ Ошибка Firebase:', e.message);
-    // Не делаем process.exit — сервер уже слушает, даём время на переподключение
-    // Повторная попытка через 5 секунд
-    setTimeout(async () => {
-      try {
-        await db.collection('_health').doc('ping').set({ ts: Date.now() });
-        console.log('✅ Firebase Firestore подключён (повторная попытка)');
-      } catch (e2) {
-        console.error('❌ Firebase недоступен, перезапуск:', e2.message);
-        process.exit(1);
-      }
-    }, 5000);
+    process.exit(1);
   }
 }
 
