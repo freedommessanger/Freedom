@@ -198,9 +198,9 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .iab { width:38px; height:38px; border:none; background:none; color:var(--text2); border-radius:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .18s; flex-shrink:0; }
 .iab:hover { background:var(--surface); color:var(--text); }
 .iwrap { flex:1; position:relative; }
-.msg-inp { width:100%; padding:9px 40px 9px 16px; background:var(--surface); border:1px solid var(--border); border-radius:14px; color:var(--text); font-family:inherit; font-size:14px; outline:none; resize:none; max-height:120px; transition:border-color .2s; line-height:1.5; }
+.msg-inp { width:100%; padding:9px 38px 9px 12px; background:var(--surface); border:1px solid var(--border); border-radius:14px; color:var(--text); font-family:inherit; font-size:14px; outline:none; resize:none; max-height:120px; transition:border-color .2s; line-height:1.5; }
 .msg-inp:focus { border-color:var(--border2); background:var(--surface2); }
-.msg-inp::placeholder { color:var(--text2); }
+.msg-inp::placeholder { color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .emoji-trigger { position:absolute; right:10px; top:50%; transform:translateY(-50%); border:none; background:none; color:var(--text2); cursor:pointer; padding:2px; border-radius:6px; display:flex; transition:color .18s; }
 .emoji-trigger:hover { color:var(--text2); }
 .emoji-picker { display:none; position:absolute; bottom:50px; right:0; background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:10px; z-index:200; width:288px; box-shadow:var(--shadow); }
@@ -275,11 +275,11 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 /* ─── PROFILE MODAL ─── */
 .pm-over { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:400; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
 .pm-over.on { display:flex; }
-.pm-card { background:var(--sidebar); border:1px solid var(--border); border-radius:22px; width:340px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.3); }
+.pm-card { background:var(--sidebar); border:1px solid var(--border); border-radius:22px; width:340px; max-width:calc(100vw - 32px); overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.3); }
 .pm-banner { height:120px; position:relative; overflow:hidden; border-radius:22px 22px 0 0; }
 .pm-banner-grad { position:absolute; inset:0; background:linear-gradient(135deg,var(--accent) 0%,#7c4dff 100%); }
 .pm-banner-img { position:absolute; inset:0; width:100%; height:100%; background-size:cover; background-position:center; background-repeat:no-repeat; }
-.pm-banner-edit { position:absolute; bottom:8px; right:44px; width:30px; height:30px; background:rgba(0,0,0,0.55); border:1.5px solid rgba(255,255,255,0.2); border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; transition:background .2s; z-index:5; }
+.pm-banner-edit { position:absolute; bottom:8px; right:10px; width:30px; height:30px; background:rgba(0,0,0,0.55); border:1.5px solid rgba(255,255,255,0.2); border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; transition:background .2s; z-index:5; }
 .pm-banner-edit:hover { background:rgba(0,0,0,0.8); }
 .pm-body { padding:0 20px 20px; position:relative; z-index:2; }
 .pm-av-row { display:flex; align-items:flex-end; justify-content:space-between; margin-top:-36px; margin-bottom:12px; position:relative; z-index:3; }
@@ -370,6 +370,12 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
   /* Image bubbles: no side padding so image fills edge-to-edge */
   .bubble:has(.bbl-img){padding:4px 4px 0 4px;}
   .bubble:has(.bbl-img) .bbl-meta{padding:2px 6px 4px;margin-top:0;}
+  /* ── Mobile input bar: уменьшаем кнопки чтобы плейсхолдер влезал в одну строку ── */
+  .irow { gap:5px !important; }
+  .ibar { padding:8px 10px 10px !important; }
+  .iab  { width:34px !important; height:34px !important; }
+  .mic-btn { width:34px !important; height:34px !important; }
+  .send-btn { width:34px !important; height:34px !important; }
 }
 .back-btn{display:none;}
 
@@ -2331,9 +2337,9 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 .iab { width:38px; height:38px; border:none; background:none; color:var(--text2); border-radius:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .18s; flex-shrink:0; }
 .iab:hover { background:var(--surface); color:var(--text); }
 .iwrap { flex:1; position:relative; }
-.msg-inp { width:100%; padding:9px 40px 9px 16px; background:var(--surface); border:1px solid var(--border); border-radius:14px; color:var(--text); font-family:inherit; font-size:14px; outline:none; resize:none; max-height:120px; transition:border-color .2s; line-height:1.5; }
+.msg-inp { width:100%; padding:9px 38px 9px 12px; background:var(--surface); border:1px solid var(--border); border-radius:14px; color:var(--text); font-family:inherit; font-size:14px; outline:none; resize:none; max-height:120px; transition:border-color .2s; line-height:1.5; }
 .msg-inp:focus { border-color:var(--border2); background:var(--surface2); }
-.msg-inp::placeholder { color:var(--text2); }
+.msg-inp::placeholder { color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .emoji-trigger { position:absolute; right:10px; top:50%; transform:translateY(-50%); border:none; background:none; color:var(--text2); cursor:pointer; padding:2px; border-radius:6px; display:flex; transition:color .18s; }
 .emoji-trigger:hover { color:var(--text2); }
 .emoji-picker { display:none; position:absolute; bottom:50px; right:0; background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:10px; z-index:200; width:288px; box-shadow:var(--shadow); }
@@ -2399,7 +2405,7 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 /* ─── PROFILE MODAL ─── */
 .pm-over { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:400; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
 .pm-over.on { display:flex; }
-.pm-card { background:var(--sidebar); border:1px solid var(--border); border-radius:22px; width:340px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.6); }
+.pm-card { background:var(--sidebar); border:1px solid var(--border); border-radius:22px; width:340px; max-width:calc(100vw - 32px); overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.6); }
 .pm-banner { height:120px; position:relative; overflow:hidden; border-radius:22px 22px 0 0; }
 .pm-banner-grad { position:absolute; inset:0; background:linear-gradient(135deg,var(--accent) 0%,#7c4dff 100%); }
 .pm-banner-img { position:absolute; inset:0; width:100%; height:100%; background-size:cover; background-position:center; background-repeat:no-repeat; }
@@ -10114,6 +10120,7 @@ s.textContent = `
   border: 1px solid var(--border) !important;
   box-shadow: 0 32px 80px rgba(0,0,0,0.45) !important;
   width: 360px !important;
+  max-width: calc(100vw - 32px) !important;
   overflow: hidden !important;
 }
 .pm-banner-grad {
@@ -10699,8 +10706,8 @@ window.minimizeCallOverlay = function(){
   var co = document.getElementById('co');
   if(co){ co.classList.remove('on'); co.style.display='none'; }
 
-  var di = document.getElementById('dynamic-island');
-  if(!di) di = buildDI();
+  // Всегда пересобираем DI чтобы применить последние настройки (цвет, форма, размер)
+  var di = buildDI();
 
   // Копируем аватар и имя
   var cav = document.getElementById('cav');
@@ -11676,9 +11683,19 @@ window._diRestoreIfActive = function() {
   if (cav && diAv) { diAv.style.background = cav.style.background; diAv.innerHTML = cav.innerHTML; }
   var cnm = document.getElementById('cnm'), diNm = document.getElementById('di-name');
   if (cnm && diNm) diNm.textContent = cnm.textContent;
+  // Синхронизируем таймер сразу
+  var ct = document.getElementById('ctmr'), dt = document.getElementById('di-timer');
+  if (ct && dt) dt.textContent = ct.textContent || '0:00';
   // Показываем остров
   di.style.display = 'flex';
   window._callMinimized2 = true;
+  // Перезапускаем синхронизацию таймера
+  clearInterval(window._diTimerSync);
+  window._diTimerSync = setInterval(function(){
+    var ct2 = document.getElementById('ctmr'), dt2 = document.getElementById('di-timer');
+    if (ct2 && dt2) dt2.textContent = ct2.textContent || '0:00';
+    if (!window._inCall) clearInterval(window._diTimerSync);
+  }, 500);
 };
 
 /* ─── Патчим кнопку в настройках ─── */
