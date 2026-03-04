@@ -11532,12 +11532,12 @@ window.diOptSelect = function(param, val, btn){
   btn.classList.add('active');
   _updateDIPreview();
   if(typeof buildDI==='function') buildDI();
-  _diRestoreIfActive();
+  if(typeof window._diRestoreIfActive==='function') window._diRestoreIfActive();
 };
 
 
 // ── ФИКС: восстанавливаем DI после пересборки если звонок был свёрнут ──
-function _diRestoreIfActive(){
+window._diRestoreIfActive = function _diRestoreIfActive(){
   if(!window._callMinimized2 && !window._inCall) return;
   var di = document.getElementById('dynamic-island');
   if(!di) return;
@@ -11566,7 +11566,7 @@ window.diColorSelect = function(val, el){
   el.classList.add('active');
   _updateDIPreview();
   if(typeof buildDI==='function') buildDI();
-  _diRestoreIfActive();
+  if(typeof window._diRestoreIfActive==='function') window._diRestoreIfActive();
 };
 
 function _updateDIPreview(){
@@ -11691,7 +11691,7 @@ function diSettSet(param, val) {
   diSet(param, val);
   if(typeof buildDI === 'function') buildDI();
   // FIX: если звонок свёрнут в DI — восстанавливаем его видимость и контент
-  _diRestoreIfActive();
+  if(typeof window._diRestoreIfActive==='function') window._diRestoreIfActive();
   _updateDISettPreview();
   _syncDISettButtons();
 }
