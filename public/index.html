@@ -926,7 +926,7 @@ input:-moz-autofill-preview {
 <div class="call-over" id="co">
   <div class="vid-area" id="va">
     <video id="remoteVideo" autoplay playsinline style="display:none"></video>
-    <video id="localVideo" autoplay muted playsinline></video>
+    <video id="localVideo" autoplay muted playsinline style="display:none"></video>
   </div>
   <div class="call-card">
     <button class="call-minimize-btn" onclick="(window.minimizeCallOverlay||function(){})()" title="Свернуть">
@@ -1059,12 +1059,6 @@ function connectSocket() {
   socket.on('user_typing', onTyping);
   socket.on('messages_read', ({by}) => markMessagesRead(by));
   socket.on('message_deleted', ({msgId}) => removeMessageEl(msgId));
-  socket.on('incoming_call', onIncomingCall);
-  socket.on('call_answered', onCallAnswered);
-  socket.on('ice_candidate', onIceCandidate);
-  socket.on('call_ended', onCallEnded);
-  socket.on('call_rejected', () => { showCallStatus('Отклонено', true); try{_injectCallMsg(currentCallUser,'missed');}catch(e){} });
-  socket.on('call_busy', () => showCallStatus('Занято', true));
   // ФИКС: используем токен сессии для восстановления (надёжнее)
   socket.on('connect', () => {
     if(!me){
@@ -2773,17 +2767,7 @@ input:-webkit-autofill:active {
   </div>
 </div>
 
-<!-- CALL MODAL -->
-<div class="call-over" id="co">
-  <div class="vid-area" id="va"><video id="remoteVideo" autoplay playsinline style="display:none"></video><video id="localVideo" autoplay muted playsinline></video></div>
-  <div class="call-card">
-    <div class="call-av" id="cav"></div>
-    <div class="call-name" id="cnm"></div>
-    <div class="call-st" id="cst"></div>
-    <div class="call-timer" id="ctmr" style="display:none"></div>
-    <div class="call-btns" id="cbtns"></div>
-  </div>
-</div>
+<!-- CALL MODAL: основной блок выше (id=co), дубликат удалён -->
 
 <!-- LIGHTBOX -->
 <div class="lightbox" id="lb" onclick="this.classList.remove('on')"><img id="lbi"></div>
@@ -2954,12 +2938,7 @@ function init(){
   socket.on('user_typing',onTypingEvt);
   socket.on('messages_read',({by})=>markRead(by));
   socket.on('message_deleted',({msgId})=>rmEl(msgId));
-  socket.on('incoming_call',onInCall);
-  socket.on('call_answered',onCallAns);
-  socket.on('ice_candidate',({candidate})=>{try{if(pc)pc.addIceCandidate(candidate);}catch(e){}});
-  socket.on('call_ended',()=>callSt('Звонок завершён',true));
-  socket.on('call_rejected',()=>{callSt('Отклонено',true);try{_injectCallMsg(callUser,'missed');}catch(e){}});
-  socket.on('call_busy',()=>callSt('Пользователь недоступен',true));
+  // ЗВОНКИ: обрабатываются единым блоком ниже (блок 3)
   // Восстановление сессии на reconnect — используем login (надёжнее токенов)
   socket.on('connect',()=>{
     if(!me){
@@ -4697,12 +4676,18 @@ function connectSocket() {
   socket.on('user_typing', onTyping);
   socket.on('messages_read', ({by}) => markMessagesRead(by));
   socket.on('message_deleted', ({msgId}) => removeMessageEl(msgId));
-  socket.on('incoming_call', onIncomingCall);
-  socket.on('call_answered', onCallAnswered);
-  socket.on('ice_candidate', onIceCandidate);
-  socket.on('call_ended', onCallEnded);
-  socket.on('call_rejected', () => { showCallStatus('Отклонено', true); try{_injectCallMsg(currentCallUser,'missed');}catch(e){} });
-  socket.on('call_busy', () => showCallStatus('Занято', true));
+  // incoming_call обрабатывается через interceptSocket → masterCall (единая точка входа)
+  socket.on('call_answered', function(data){ try{ onCallAns(data); }catch(e){ console.warn('call_answered err:',e); } });
+  socket.on('ice_candidate', function(data){
+    try{
+      var p=window._pc||peerConnection||pc;
+      if(p && p.remoteDescription){ p.addIceCandidate(data.candidate).catch(function(){}); }
+      else if(p){ try{iceCandidatesQueue.push(data.candidate);}catch(ex){} }
+    }catch(e){}
+  });
+  socket.on('call_ended', function(){ callSt('Звонок завершён', true); });
+  socket.on('call_rejected', function(){ callSt('Отклонено', true); try{_injectCallMsg(callUser||currentCallUser,'missed');}catch(e){} });
+  socket.on('call_busy', function(){ callSt('Пользователь недоступен', true); if(window._doCleanCall)setTimeout(window._doCleanCall,2000); });
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -8192,7 +8177,7 @@ window.masterAccept=async function(offer,ctype,from,u){
   try{
     var ns=await navigator.mediaDevices.getUserMedia(ctype==='video'?{audio:true,video:true}:{audio:true});
     try{stream=ns;}catch(e){}
-    if(ctype==='video'){var lv=document.getElementById('localVideo');if(lv)lv.srcObject=ns;var va=document.getElementById('va');if(va)va.classList.add('on');}
+    if(ctype==='video'){var lv=document.getElementById('localVideo');if(lv){lv.srcObject=ns;lv.style.display='block';}var va=document.getElementById('va');if(va)va.classList.add('on');}
     var np=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
     try{pc=np;}catch(e){}window._pc=np;try{peerConnection=np;}catch(e){}
     ns.getTracks().forEach(function(t){np.addTrack(t,ns);});
@@ -8438,6 +8423,7 @@ window._doCleanCall=function(){
   var co=document.getElementById('co');if(co){co.classList.remove('on');co.style.display='none';}
   var va=document.getElementById('va');if(va)va.classList.remove('on');
   var rv=document.getElementById('remoteVideo');if(rv){rv.srcObject=null;rv.style.display='none';}
+  var lv=document.getElementById('localVideo');if(lv){lv.srcObject=null;lv.style.display='none';}
   var ra=document.getElementById('remoteAudio');if(ra)ra.srcObject=null;
   var ctmr=document.getElementById('ctmr');if(ctmr)ctmr.style.display='none';
 };
@@ -8451,7 +8437,7 @@ window.startCall=async function(type){
   try{
     var ns=await navigator.mediaDevices.getUserMedia(type==='video'?{audio:true,video:true}:{audio:true});
     try{stream=ns;}catch(e){}
-    if(type==='video'){var lv=document.getElementById('localVideo');if(lv)lv.srcObject=ns;var va=document.getElementById('va');if(va)va.classList.add('on');}
+    if(type==='video'){var lv=document.getElementById('localVideo');if(lv){lv.srcObject=ns;lv.style.display='block';}var va=document.getElementById('va');if(va)va.classList.add('on');}
     var np=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
     try{pc=np;}catch(e){}window._pc=np;try{peerConnection=np;}catch(e){}
     ns.getTracks().forEach(function(tk){np.addTrack(tk,ns);});
