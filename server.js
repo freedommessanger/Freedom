@@ -32,6 +32,7 @@ db.settings({ ignoreUndefinedProperties: true });
 const usersCol    = db.collection('users');
 const sessionsCol = db.collection('sessions');
 const msgsCol     = db.collection('messages');
+const e2eKeysCol  = db.collection('e2e_keys');   // Публичные E2E-ключи пользователей
 
 // ── Express + Socket.IO ────────────────────────────────────────────────────
 const app    = express();
@@ -86,6 +87,7 @@ function userPublic(u) {
     online:      isOnline(u.username),
     lastSeen:    u.lastSeen || null,
     privacy:     u.privacy  || { lastSeen: 'everyone', avatar: 'everyone' },
+    e2eEnabled:  u.e2eEnabled || false,   // Поддерживает ли E2E шифрование
   };
 }
 
@@ -300,10 +302,50 @@ io.on('connection', (socket) => {
   });
 
   // ── Отправить сообщение ───────────────────────────────────────────────
-  socket.on('send_message', async ({ to, content, text, image, type, replyTo, duration }, cb) => {
+  // Поддерживает обычные и E2E-зашифрованные сообщения (e2e: true).
+  // Сервер не видит содержимое зашифрованных сообщений — только передаёт
+  // зашифрованный blob и x3dhInit (для первого сообщения в сессии).
+  socket.on('send_message', async ({ to, content, text, image, type, replyTo, duration,
+                                     e2e, encrypted, x3dhInit }, cb) => {
+    if (!me || !to) return cb?.({ ok: false });
+
+    // E2E-сообщение: содержимое зашифровано клиентом
+    if (e2e && encrypted) {
+      try {
+        const msg = {
+          id:           makeId(),
+          from:         me.username,
+          to,
+          chatId:       chatId(me.username, to),
+          participants: [me.username, to],
+          // Зашифрованный payload — сервер не расшифровывает
+          content:      '[e2e]',           // Заглушка для превью (не читаемо)
+          type:         type || 'text',
+          replyTo:      replyTo || null,
+          duration:     duration || null,
+          timestamp:    Date.now(),
+          read:         false,
+          deleted:      false,
+          // E2E-поля (передаются получателю как есть)
+          e2e:          true,
+          encrypted:    encrypted,         // { header, iv, ciphertext }
+          x3dhInit:     x3dhInit || null,  // Только в первом сообщении сессии
+        };
+        await msgsCol.doc(msg.id).set(msg);
+        const out = { ...msg, timestamp: Number(msg.timestamp) };
+        sendTo(to, 'new_message', out);
+        cb?.({ ok: true, message: out });
+      } catch (e) {
+        console.error('send_message(e2e):', e.message);
+        cb?.({ ok: false });
+      }
+      return;
+    }
+
+    // Обычное (нешифрованное) сообщение
     const msgContent = content || text || image || null;
     const msgType    = type || (image ? 'image' : 'text');
-    if (!me || !to || !msgContent) return cb?.({ ok: false });
+    if (!msgContent) return cb?.({ ok: false });
     try {
       const msg = {
         id: makeId(), from: me.username, to,
@@ -312,6 +354,7 @@ io.on('connection', (socket) => {
         content: msgContent, type: msgType,
         replyTo: replyTo || null, duration: duration || null,
         timestamp: Date.now(), read: false, deleted: false,
+        e2e: false,
       };
       await msgsCol.doc(msg.id).set(msg);
       const out = { ...msg, timestamp: Number(msg.timestamp) };
@@ -386,6 +429,140 @@ io.on('connection', (socket) => {
     } catch (e) { cb?.({ ok: false }); }
   });
 
+  // ── E2E: Регистрация публичных ключей ────────────────────────────────
+  // Клиент отправляет свой публичный bundle после генерации ключей.
+  // Сервер хранит только публичные части — приватные ключи никогда не покидают клиент.
+  //
+  // bundle = {
+  //   IK:     string (base64) — Identity Key (долгосрочный)
+  //   SPK:    string (base64) — Signed PreKey (меняется раз в неделю)
+  //   SPKSig: string (base64) — Подпись SPK через IK
+  //   OPKs:   string[]        — One-Time PreKeys (одноразовые, пачка)
+  // }
+  socket.on('register_e2e_keys', async (bundle, cb) => {
+    if (!me) return cb?.({ ok: false });
+    try {
+      const { IK, SPK, SPKSig, OPKs } = bundle;
+      if (!IK || !SPK || !SPKSig || !Array.isArray(OPKs))
+        return cb?.({ ok: false, error: 'Неверный формат bundle' });
+
+      const existing = await e2eKeysCol.doc(me.username).get();
+
+      // Если уже есть запись — сохраняем существующие OPK и добавляем новые
+      const existingOPKs = existing.exists ? (existing.data().OPKs || []) : [];
+      const mergedOPKs = [...existingOPKs, ...OPKs];
+
+      await e2eKeysCol.doc(me.username).set({
+        IK, SPK, SPKSig,
+        OPKs:      mergedOPKs,
+        updatedAt: Date.now(),
+      });
+
+      // Помечаем пользователя как поддерживающего E2E
+      await usersCol.doc(me.username).update({ e2eEnabled: true });
+      me.e2eEnabled = true;
+
+      console.log(`[E2E] ${me.username}: зарегистрировал ключи (OPK: ${mergedOPKs.length})`);
+      cb?.({ ok: true, opkCount: mergedOPKs.length });
+    } catch (e) {
+      console.error('register_e2e_keys:', e.message);
+      cb?.({ ok: false });
+    }
+  });
+
+  // ── E2E: Получить публичный bundle пользователя ───────────────────────
+  // Инициатор запрашивает bundle получателя перед первым сообщением.
+  // Сервер атомарно отдаёт И удаляет один OPK (одноразовый ключ).
+  // Если OPK закончились — уведомляет получателя о пополнении.
+  socket.on('get_e2e_keys', async ({ username: target }, cb) => {
+    if (!me) return cb?.({ ok: false });
+    try {
+      const snap = await e2eKeysCol.doc(target).get();
+      if (!snap.exists) return cb?.({ ok: false, error: 'E2E не поддерживается' });
+
+      const data = snap.data();
+      const { IK, SPK, SPKSig, OPKs } = data;
+
+      // Атомарно берём один OPK и удаляем его из пула
+      let usedOPK = null;
+      let remainingOPKs = OPKs || [];
+
+      if (remainingOPKs.length > 0) {
+        usedOPK = remainingOPKs[0];
+        remainingOPKs = remainingOPKs.slice(1);
+        await e2eKeysCol.doc(target).update({ OPKs: remainingOPKs });
+
+        // Уведомляем получателя если OPK на исходе
+        if (remainingOPKs.length < 5) {
+          sendTo(target, 'e2e_low_opk', { remaining: remainingOPKs.length });
+          console.log(`[E2E] ${target}: мало OPK осталось (${remainingOPKs.length})`);
+        }
+      } else {
+        // OPK нет — сессия без одноразового ключа (менее безопасно, но работает)
+        console.warn(`[E2E] ${target}: OPK пул пуст, сессия без OPK`);
+      }
+
+      cb?.({
+        ok: true,
+        bundle: {
+          IK,
+          SPK,
+          SPKSig,
+          OPKs: usedOPK ? [usedOPK] : [],  // Отдаём ровно один OPK
+        },
+      });
+    } catch (e) {
+      console.error('get_e2e_keys:', e.message);
+      cb?.({ ok: false });
+    }
+  });
+
+  // ── E2E: Пополнение OPK ───────────────────────────────────────────────
+  // Клиент отправляет новую порцию одноразовых ключей когда их стало мало.
+  socket.on('replenish_opks', async (newOPKs, cb) => {
+    if (!me || !Array.isArray(newOPKs)) return cb?.({ ok: false });
+    try {
+      const snap = await e2eKeysCol.doc(me.username).get();
+      if (!snap.exists) return cb?.({ ok: false, error: 'Сначала зарегистрируйте ключи' });
+
+      const current = snap.data().OPKs || [];
+      const merged  = [...current, ...newOPKs];
+      await e2eKeysCol.doc(me.username).update({ OPKs: merged });
+
+      console.log(`[E2E] ${me.username}: пополнил OPK (${current.length} → ${merged.length})`);
+      cb?.({ ok: true, opkCount: merged.length });
+    } catch (e) {
+      console.error('replenish_opks:', e.message);
+      cb?.({ ok: false });
+    }
+  });
+
+  // ── E2E: Обновление SPK (раз в неделю) ───────────────────────────────
+  // Подписанный prekey нужно обновлять периодически для forward secrecy.
+  socket.on('update_spk', async ({ SPK, SPKSig }, cb) => {
+    if (!me || !SPK || !SPKSig) return cb?.({ ok: false });
+    try {
+      await e2eKeysCol.doc(me.username).update({ SPK, SPKSig, updatedAt: Date.now() });
+      console.log(`[E2E] ${me.username}: обновил SPK`);
+      cb?.({ ok: true });
+    } catch (e) {
+      console.error('update_spk:', e.message);
+      cb?.({ ok: false });
+    }
+  });
+
+  // ── E2E: Проверить статус E2E для пользователя ────────────────────────
+  // Клиент может узнать поддерживает ли собеседник E2E перед отправкой.
+  socket.on('check_e2e', async ({ username: target }, cb) => {
+    if (!me) return cb?.({ ok: false });
+    try {
+      const snap = await e2eKeysCol.doc(target).get();
+      cb?.({ ok: true, e2eEnabled: snap.exists, opkAvailable: snap.exists && (snap.data().OPKs || []).length > 0 });
+    } catch (e) {
+      cb?.({ ok: false, e2eEnabled: false });
+    }
+  });
+
   // ── WebRTC ────────────────────────────────────────────────────────────
   socket.on('call_user',     ({ to, offer, callType }) => {
     if (!me) return;
@@ -396,6 +573,47 @@ io.on('connection', (socket) => {
   socket.on('ice_candidate', ({ to, candidate }) => { if (me) sendTo(to, 'ice_candidate',  { from: me.username, candidate }); });
   socket.on('call_end',      ({ to })            => { if (me) sendTo(to, 'call_ended',     { from: me.username }); });
   socket.on('call_reject',   ({ to })            => { if (me) sendTo(to, 'call_rejected',  { from: me.username }); });
+
+  // ── Редактирование сообщения ─────────────────────────────────────────
+  socket.on('edit_message', async ({ msgId, content, chatWith }, cb) => {
+    if (!me || !msgId || !content) return cb?.({ ok: false });
+    try {
+      const snap = await msgsCol.doc(msgId).get();
+      if (!snap.exists) return cb?.({ ok: false, error: 'Сообщение не найдено' });
+      const msg = snap.data();
+      if (msg.from !== me.username) return cb?.({ ok: false, error: 'Нет прав' });
+      await msgsCol.doc(msgId).update({ content, edited: true, editedAt: Date.now() });
+      // Уведомляем собеседника
+      sendTo(chatWith, 'message_edited', { msgId, content, editedAt: Date.now() });
+      cb?.({ ok: true });
+    } catch (e) {
+      console.error('edit_message:', e.message);
+      cb?.({ ok: false });
+    }
+  });
+
+  // ── Реакции на сообщение ─────────────────────────────────────────────
+  socket.on('react_message', async ({ msgId, chatWith, emoji, action }) => {
+    if (!me || !msgId || !emoji) return;
+    try {
+      const snap = await msgsCol.doc(msgId).get();
+      if (!snap.exists) return;
+      const msg = snap.data();
+      const reactions = msg.reactions || {};
+      if (!reactions[emoji]) reactions[emoji] = [];
+      if (action === 'add') {
+        if (!reactions[emoji].includes(me.username)) reactions[emoji].push(me.username);
+      } else {
+        reactions[emoji] = reactions[emoji].filter(u => u !== me.username);
+        if (reactions[emoji].length === 0) delete reactions[emoji];
+      }
+      await msgsCol.doc(msgId).update({ reactions });
+      // Уведомляем собеседника
+      sendTo(chatWith, 'message_reaction', { msgId, emoji, action, from: me.username, chatWith: me.username });
+    } catch (e) {
+      console.error('react_message:', e.message);
+    }
+  });
 
   // ── Отключение ────────────────────────────────────────────────────────
   socket.on('disconnect', async () => {
