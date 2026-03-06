@@ -272,6 +272,12 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 /* ─── DRAFT ─── */
 .draft-tag { font-size:11px; color:var(--red); font-weight:600; flex-shrink:0; }
 
+/* ─── FORWARDED BUBBLE ─── */
+.fwd-bubble { display:flex; flex-direction:column; gap:6px; }
+.fwd-bubble-header { display:flex; align-items:center; gap:7px; padding-bottom:4px; border-bottom:1px solid rgba(255,255,255,0.07); margin-bottom:2px; }
+.fwd-bubble-av { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:#fff; flex-shrink:0; overflow:hidden; }
+.fwd-bubble-name { font-size:12px; font-weight:600; color:var(--accent); }
+
 /* ─── SETTINGS PANEL ─── */
 .sett-panel { position:fixed; top:0; right:-420px; width:380px; height:100vh; background:var(--sidebar); border-left:1px solid var(--border); z-index:300; transition:right .3s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; box-shadow:-8px 0 32px rgba(0,0,0,0.15); }
 .sett-panel.on { right:0; }
@@ -3372,6 +3378,7 @@ function bbl(m){
   const out=m.from===me.username,u=users.find(x=>x.username===m.from)||{username:m.from,displayName:m.from};
   const avC=u.avatar?`<img src="${u.avatar}">`:`<span>${ini(u.displayName||u.username)}</span>`;
   const time=ft(m.timestamp),checks=out?`<span class="chk">${m.read?DBLCHK:CHK}</span>`:'';
+  const editedMark=m.edited?`<span class="msg-edited"> · изм.</span>`:'';
   let reply='';
   if(m.replyTo){
     const orig=(hist[cur]||[]).find(x=>x.id===m.replyTo);
@@ -3380,9 +3387,21 @@ function bbl(m){
   let body='';
   if(m.type==='image')body=`<img class="bbl-img" src="${m.content}" alt="фото">`;
   else if(m.type==='voice'){const bars=Array.from({length:22},()=>`<span style="height:${5+Math.floor(Math.random()*16)}px"></span>`).join('');body=`<div class="voice-msg"><button class="voice-play" onclick="playV(this,'${m.content}')">${PLAY_ICO}</button><div class="voice-waves">${bars}</div><span class="voice-dur">${m.duration||'0:00'}</span></div>`;}
-  else body=`<div class="bbl-text">${esc(m.content||'').replace(/\n/g,'<br>')}</div>`;
+  else if(m.type==='forward'){
+    // Parse "⟫ FromName\ncontent"
+    const raw=m.content||'';
+    const nl=raw.indexOf('\n');
+    const fwdFrom=nl>0?raw.slice(2,nl).trim():'';
+    const fwdText=nl>0?raw.slice(nl+1):raw;
+    // Try to get avatar of original sender
+    const fwdUser=users.find(x=>(x.displayName||x.username)===fwdFrom||(m.forwardFrom&&x.username===m.forwardFrom));
+    const fwdAvBg=fwdUser?col(fwdUser.username):'#4f8ef7';
+    const fwdAvInner=fwdUser&&fwdUser.avatar?`<img src="${fwdUser.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="font-size:9px;font-weight:700">${(fwdFrom||'?')[0].toUpperCase()}</span>`;
+    body=`<div class="fwd-bubble"><div class="fwd-bubble-header"><div class="fwd-bubble-av" style="background:${fwdAvBg}">${fwdAvInner}</div><span class="fwd-bubble-name">${esc(fwdFrom||'Неизвестно')}</span></div><div class="bbl-text">${esc(fwdText).replace(/\n/g,'<br>')}${editedMark}</div></div>`;
+  }
+  else body=`<div class="bbl-text">${esc(m.content||'').replace(/\n/g,'<br>')}${editedMark}</div>`;
   const avEl=!out?`<div class="msg-av" style="background:${col(m.from)}">${avC}</div>`:'';
-  return`<div class="mrow ${out?'out':'in'}" id="mw-${m.id}">${avEl}<div class="bubble" data-id="${m.id}" data-from="${m.from}" data-content="${esc(m.content||'')}">${reply}${body}<div class="bbl-meta">${time}${checks}</div></div></div>`;
+  return`<div class="mrow ${out?'out':'in'}" id="mw-${m.id}">${avEl}<div class="bubble" data-id="${m.id}" data-from="${m.from}" data-content="${esc(m.content||'')}">${reply}${body}${m.type!=='forward'?''/*editedMark already in body*/:''}<div class="bbl-meta">${time}${checks}</div></div></div>`;
 }
 function bindEvts(el){
   el.querySelectorAll('.bubble').forEach(b=>b.addEventListener('contextmenu',e=>{e.preventDefault();showCtx(e,b.dataset.id);}));
@@ -12011,527 +12030,754 @@ setTimeout(function(){
 </script>
 
 <script>
-/* ══════════════════════════════════════════════════════════
-   НОВЫЕ ФИЧИ: Реакции · Редактирование · Пересылка
-                Кнопка ↓ · Черновики
-   ══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   FREEDOM MESSENGER — FEATURES v3
+   Telegram-grade: Реакции · Редактирование · Пересылка · ↓Кнопка · Черновики
+   ═══════════════════════════════════════════════════════════════════ */
+(function (W) {
+'use strict';
 
-// ── Helpers ──────────────────────────────────────────────
-function _getMe(){ try{return me||window.me;}catch(e){return null;} }
-function _getCur(){ try{return cur||window.cur||currentChat;}catch(e){return null;} }
-function _getUsers(){ try{return users||allUsers||window.users||[];}catch(e){return [];} }
-function _getHist(key){ try{return hist[key]||chatHistory[key]||[];}catch(e){return [];} }
-function _getSocket(){ return window.socket||socket; }
-function _col(u){ try{return typeof col==='function'?col(u):(typeof strColor==='function'?strColor(u):'#666');}catch(e){return '#666';} }
-function _setAv(el,u){
-  try{
-    if(u.avatar) el.innerHTML=`<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
-    else{ el.style.background=_col(u.username); el.textContent=(u.displayName||u.username||'?')[0].toUpperCase(); }
-  }catch(e){ el.textContent='?'; }
+/* ─────────────────────────────────────────────────────
+   УТИЛИТЫ
+   ───────────────────────────────────────────────────── */
+function $me()    { try { return W.me || me; }    catch(e) { return null; } }
+function $cur()   { try { return W.cur || cur || W.currentChat || currentChat; } catch(e) { return null; } }
+function $sk()    { try { return W.socket || socket; } catch(e) { return null; } }
+function $users() { try { return W.users || W.allUsers || users || allUsers || []; } catch(e) { return []; } }
+function $hist(k) {
+  try { return (W.hist||hist||{})[k] || (W.chatHistory||chatHistory||{})[k] || []; }
+  catch(e) { return []; }
 }
+function $col(u) {
+  try { return typeof col==='function' ? col(u) : typeof strColor==='function' ? strColor(u) : '#4f8ef7'; }
+  catch(e) { return '#4f8ef7'; }
+}
+function $esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function $inp() {
+  return document.getElementById('mi') || document.getElementById('msg-input');
+}
+function $toast(msg, type) {
+  try { if (typeof toast === 'function') toast(msg, type); } catch(e) {}
+}
+function chatPairKey(a, b) { return [a, b].sort().join('::'); }
 
-// ── ЧЕРНОВИКИ ────────────────────────────────────────────
-var _drafts = {};
+/* ─────────────────────────────────────────────────────
+   ЧЕРНОВИКИ
+   Логика: сохраняем до openChat, восстанавливаем после.
+   Не показываем текст другого чата никогда.
+   ───────────────────────────────────────────────────── */
+var DRAFTS = {}; // { username → raw text }
 
-function _saveDraft(chatUser, text) {
-  if (!chatUser) return;
+function draftSave(forUser, text) {
+  if (!forUser) return;
   if (text && text.trim()) {
-    _drafts[chatUser] = text;
+    DRAFTS[forUser] = text;
   } else {
-    delete _drafts[chatUser];
+    delete DRAFTS[forUser];
   }
-  _renderDraftBadge(chatUser);
 }
 
-function _loadDraft(chatUser) {
-  return _drafts[chatUser] || '';
+function draftLoad(forUser) {
+  return DRAFTS[forUser] || '';
 }
 
-function _renderDraftBadge(chatUser) {
-  // Update sidebar list item if visible
-  var items = document.querySelectorAll('.chat-item');
-  items.forEach(function(item) {
-    var nameEl = item.querySelector('.ci-name');
-    var prevEl = item.querySelector('.ci-prev');
-    var badgeEl = item.querySelector('.draft-tag');
-    if (!nameEl) return;
-    var uname = item.dataset.user || item.getAttribute('data-user');
-    if (!uname) return;
-    if (_drafts[uname]) {
-      if (!badgeEl) {
-        var b = document.createElement('span');
-        b.className = 'draft-tag';
-        b.textContent = 'Черновик';
-        if (prevEl) prevEl.insertBefore(b, prevEl.firstChild);
-      }
-    } else if (badgeEl) {
-      badgeEl.remove();
-    }
-  });
+// Flush current input to the given chat's draft
+function draftFlush(fromChat) {
+  if (!fromChat) return;
+  var inp = $inp();
+  if (inp) draftSave(fromChat, inp.value);
 }
 
-// Патчим openChat чтобы сохранять/восстанавливать черновики
-(function(){
-  var _origOpenChat = window.openChat;
-  window.openChat = function(username) {
-    // Сохраняем черновик текущего чата
-    var oldCur = _getCur();
-    var inp = document.getElementById('mi') || document.getElementById('msg-input') || document.getElementById('mainMsgInput');
-    if (oldCur && inp) {
-      _saveDraft(oldCur, inp.value || '');
-    }
-    // Вызываем оригинальный openChat
-    if (typeof _origOpenChat === 'function') _origOpenChat(username);
-    // Восстанавливаем черновик нового чата
-    setTimeout(function(){
-      var inp2 = document.getElementById('mi') || document.getElementById('msg-input') || document.getElementById('mainMsgInput');
-      if (inp2) {
-        var draft = _loadDraft(username);
-        inp2.value = draft;
-        if (typeof resize === 'function') resize(inp2);
-      }
-    }, 80);
-  };
-})();
+// Restore draft for newly opened chat (clear input first, then fill)
+function draftRestore(toChat) {
+  var inp = $inp();
+  if (!inp) return;
+  // Clear immediately (synchronous) to prevent old text bleed
+  inp.value = '';
+  try { if (typeof resize === 'function') resize(inp); } catch(e) {}
+  // Then restore the draft (also synchronous — no async needed)
+  var d = draftLoad(toChat);
+  if (d) {
+    inp.value = d;
+    try { if (typeof resize === 'function') resize(inp); } catch(e) {}
+  }
+}
 
-// ── КНОПКА ПРОКРУТКИ ВНИЗ ────────────────────────────────
-var _scrollDownUnread = 0;
+/* ─────────────────────────────────────────────────────
+   КНОПКА «ВНИЗ» — как в Telegram
+   ───────────────────────────────────────────────────── */
+var SDB_COUNT = 0;
+var SDB_BOUND_EL = null;
 
-function _initScrollDownBtn() {
+function sdbBind() {
   var msgsEl = document.getElementById('msgs');
   var btn = document.getElementById('scroll-down-btn');
+  if (!msgsEl || !btn) { setTimeout(sdbBind, 300); return; }
+  if (SDB_BOUND_EL === msgsEl) return;
+  SDB_BOUND_EL = msgsEl;
+  msgsEl.addEventListener('scroll', sdbOnScroll, { passive: true });
+  // Ensure the chat wrapper is position:relative for absolute button
+  var wrap = msgsEl.parentElement;
+  if (wrap) wrap.style.position = 'relative';
+}
+
+function sdbOnScroll() {
+  var msgsEl = document.getElementById('msgs');
+  var btn    = document.getElementById('scroll-down-btn');
   if (!msgsEl || !btn) return;
-  msgsEl.addEventListener('scroll', function() {
-    var threshold = 200;
-    var distFromBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight;
-    if (distFromBottom > threshold) {
-      btn.classList.add('show');
-    } else {
-      btn.classList.remove('show');
-      _scrollDownUnread = 0;
-      var badge = document.getElementById('sdb-badge');
-      if (badge) { badge.textContent = ''; badge.classList.remove('show'); }
-    }
-  });
+  var dist = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight;
+  if (dist > 160) {
+    btn.classList.add('show');
+  } else {
+    btn.classList.remove('show');
+    sdbReset();
+  }
 }
 
-window.scrollBotNow = function() {
+function sdbReset() {
+  SDB_COUNT = 0;
+  var b = document.getElementById('sdb-badge');
+  if (b) { b.textContent = ''; b.classList.remove('show'); }
+}
+
+function sdbIncrement() {
+  // Only bump if user is scrolled away from bottom
   var msgsEl = document.getElementById('msgs');
-  if (msgsEl) { msgsEl.scrollTop = msgsEl.scrollHeight; }
-  _scrollDownUnread = 0;
-  var badge = document.getElementById('sdb-badge');
+  if (!msgsEl) return;
+  var dist = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight;
+  if (dist < 120) return; // already at bottom — no badge
+  SDB_COUNT++;
+  var b = document.getElementById('sdb-badge');
   var btn = document.getElementById('scroll-down-btn');
-  if (badge) { badge.textContent = ''; badge.classList.remove('show'); }
+  if (b) { b.textContent = SDB_COUNT > 99 ? '99+' : String(SDB_COUNT); b.classList.add('show'); }
+  if (btn) btn.classList.add('show');
+}
+
+W.scrollBotNow = function () {
+  var msgsEl = document.getElementById('msgs');
+  if (msgsEl) msgsEl.scrollTo({ top: msgsEl.scrollHeight, behavior: 'smooth' });
+  sdbReset();
+  var btn = document.getElementById('scroll-down-btn');
   if (btn) btn.classList.remove('show');
 };
 
-// Когда приходит новое сообщение в текущий чат — увеличиваем счётчик если не внизу
-function _onNewMsgScrollCount(fromUser) {
-  var msgsEl = document.getElementById('msgs');
-  var btn = document.getElementById('scroll-down-btn');
-  if (!msgsEl || !btn) return;
-  var distFromBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight;
-  if (distFromBottom > 150 && fromUser !== _getMe()?.username) {
-    _scrollDownUnread++;
-    var badge = document.getElementById('sdb-badge');
-    if (badge && _scrollDownUnread > 0) {
-      badge.textContent = _scrollDownUnread > 9 ? '9+' : _scrollDownUnread;
-      badge.classList.add('show');
+/* ─────────────────────────────────────────────────────
+   РЕАКЦИИ
+   Хранятся в сообщениях на сервере (reactions: {emoji:[users]})
+   При загрузке чата — читаем из msg.reactions
+   Синхронизируем через socket
+   ───────────────────────────────────────────────────── */
+// RX[chatPairKey][msgId] = { emoji: [user1, user2, ...] }
+var RX = {};
+
+function rxPairKey() {
+  var me = $me(); var cur = $cur();
+  if (!me || !cur) return null;
+  return chatPairKey(me.username, cur);
+}
+
+function rxGetMsg(msgId) {
+  var k = rxPairKey(); if (!k) return {};
+  return (RX[k] || {})[msgId] || {};
+}
+
+function rxSetMsg(msgId, data, pairKey) {
+  var k = pairKey || rxPairKey(); if (!k) return;
+  if (!RX[k]) RX[k] = {};
+  RX[k][msgId] = data;
+}
+
+// Load reactions from a messages array (called after chat load)
+function rxLoadFromMessages(msgs, withUser) {
+  var me = $me(); if (!me) return;
+  var k = chatPairKey(me.username, withUser);
+  if (!RX[k]) RX[k] = {};
+  (msgs || []).forEach(function (m) {
+    if (m.reactions && Object.keys(m.reactions).length > 0) {
+      RX[k][m.id] = JSON.parse(JSON.stringify(m.reactions));
+    } else if (!RX[k][m.id]) {
+      RX[k][m.id] = {};
     }
-    btn.classList.add('show');
-  }
+  });
 }
 
-setTimeout(_initScrollDownBtn, 1000);
-// Re-init when chat opens
-var _sdbOrig = window.openChat;
-window.openChat = (function(orig){
-  return function(u){
-    if(typeof orig==='function') orig(u);
-    setTimeout(_initScrollDownBtn, 200);
-    _scrollDownUnread = 0;
-    var badge = document.getElementById('sdb-badge');
-    if (badge) { badge.textContent=''; badge.classList.remove('show'); }
-  };
-})(window.openChat);
-
-// ── РЕАКЦИИ ──────────────────────────────────────────────
-// reactions[chatId][msgId] = { '👍': ['user1','user2'], '❤️': ['user3'] }
-var _reactions = {};
-
-function _rKey(a, b) {
-  return [a,b].sort().join('__');
-}
-
-function quickReact(emoji) {
-  var m = window._ctxMsg || window.ctxMsg;
-  if (!m) return;
-  document.getElementById('ctx').classList.remove('on');
-  _toggleReaction(m, emoji);
-}
-
-function _toggleReaction(msg, emoji) {
-  var myUser = _getMe();
-  if (!myUser) return;
-  var cur = _getCur();
-  if (!cur) return;
-  var chatKey = _rKey(myUser.username, cur);
-  if (!_reactions[chatKey]) _reactions[chatKey] = {};
-  if (!_reactions[chatKey][msg.id]) _reactions[chatKey][msg.id] = {};
-  var r = _reactions[chatKey][msg.id];
-  if (!r[emoji]) r[emoji] = [];
-  var idx = r[emoji].indexOf(myUser.username);
-  if (idx === -1) {
-    // Remove any existing reaction by me first (one reaction per user)
-    Object.keys(r).forEach(function(e) {
-      var i = r[e].indexOf(myUser.username);
-      if (i !== -1) r[e].splice(i, 1);
-      if (r[e].length === 0) delete r[e];
-    });
-    r[emoji] = r[emoji] || [];
-    r[emoji].push(myUser.username);
-  } else {
-    r[emoji].splice(idx, 1);
-    if (r[emoji].length === 0) delete r[emoji];
-  }
-  // Broadcast reaction via socket
-  try {
-    _getSocket().emit('react_message', {
-      msgId: msg.id,
-      chatWith: cur,
-      emoji: emoji,
-      action: idx === -1 ? 'add' : 'remove'
-    });
-  } catch(e) {}
-  // Re-render reactions on the bubble
-  _renderMsgReactions(msg.id, chatKey);
-}
-
-function _renderMsgReactions(msgId, chatKey) {
-  var myUser = _getMe();
+// Render reaction pills under a message bubble
+function rxRender(msgId) {
   var el = document.getElementById('mw-' + msgId);
   if (!el) return;
-  var existing = el.querySelector('.msg-reactions');
-  if (existing) existing.remove();
-  var r = (_reactions[chatKey] || {})[msgId] || {};
-  var emojis = Object.keys(r).filter(function(e){ return r[e].length > 0; });
-  if (emojis.length === 0) return;
-  var div = document.createElement('div');
-  div.className = 'msg-reactions';
-  emojis.forEach(function(emoji) {
-    var users = r[emoji];
-    var mine = myUser && users.indexOf(myUser.username) !== -1;
-    var pill = document.createElement('span');
-    pill.className = 'react-pill' + (mine ? ' mine' : '');
-    pill.innerHTML = '<span class="rc">'+emoji+'</span><span class="rn">'+users.length+'</span>';
-    pill.title = users.join(', ');
-    pill.onclick = function() {
-      var msg = null;
-      try {
-        var hist = _getHist(_getCur());
-        msg = hist.find(function(m){ return m.id===msgId; });
-      } catch(e) {}
-      if (msg) _toggleReaction(msg, emoji);
+  var me = $me();
+
+  // Remove old pills
+  var old = el.querySelector('.msg-reactions');
+  if (old) old.remove();
+
+  var r = rxGetMsg(msgId);
+  var emojis = Object.keys(r).filter(function (e) { return (r[e] || []).length > 0; });
+  if (!emojis.length) return;
+
+  var wrap = document.createElement('div');
+  wrap.className = 'msg-reactions';
+
+  emojis.forEach(function (emoji) {
+    var users = r[emoji] || [];
+    var mine = me && users.indexOf(me.username) !== -1;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'react-pill' + (mine ? ' mine' : '');
+    // Tooltip: show names
+    var names = users.map(function (u) {
+      var found = $users().find(function (x) { return x.username === u; });
+      return found ? (found.displayName || u) : u;
+    }).join(', ');
+    btn.title = names;
+    btn.innerHTML = '<span class="rc">' + emoji + '</span><span class="rn">' + users.length + '</span>';
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      rxToggle(msgId, emoji);
     };
-    div.appendChild(pill);
+    wrap.appendChild(btn);
   });
-  // Append after bubble content
+
   var bubble = el.querySelector('.bubble') || el;
-  bubble.appendChild(div);
+  bubble.appendChild(wrap);
 }
 
-// Handle incoming reactions from server
-try {
-  _getSocket().on('message_reaction', function(data) {
-    var myUser = _getMe();
-    if (!myUser) return;
-    var chatKey = _rKey(myUser.username, data.from === myUser.username ? data.chatWith : data.from);
-    if (!_reactions[chatKey]) _reactions[chatKey] = {};
-    if (!_reactions[chatKey][data.msgId]) _reactions[chatKey][data.msgId] = {};
-    var r = _reactions[chatKey][data.msgId];
-    if (data.action === 'add') {
-      if (!r[data.emoji]) r[data.emoji] = [];
-      if (r[data.emoji].indexOf(data.from) === -1) r[data.emoji].push(data.from);
-    } else {
-      if (r[data.emoji]) {
-        r[data.emoji] = r[data.emoji].filter(function(u){ return u !== data.from; });
-        if (r[data.emoji].length === 0) delete r[data.emoji];
-      }
-    }
-    _renderMsgReactions(data.msgId, chatKey);
+// Re-render reactions for all visible messages in current chat
+function rxRenderAll() {
+  var k = rxPairKey(); if (!k) return;
+  var keys = Object.keys(RX[k] || {});
+  keys.forEach(function (msgId) { rxRender(msgId); });
+}
+
+// Toggle a reaction (me clicking emoji)
+function rxToggle(msgId, emoji) {
+  var me = $me(); var cur = $cur();
+  if (!me || !cur) return;
+  var k = chatPairKey(me.username, cur);
+  if (!RX[k]) RX[k] = {};
+  if (!RX[k][msgId]) RX[k][msgId] = {};
+  var r = RX[k][msgId];
+
+  // Find my current reaction (one per user, Telegram-style)
+  var prevEmoji = null;
+  Object.keys(r).forEach(function (e) {
+    var idx = (r[e] || []).indexOf(me.username);
+    if (idx !== -1) { prevEmoji = e; }
   });
-} catch(e) {}
 
-// ── РЕДАКТИРОВАНИЕ СООБЩЕНИЙ ─────────────────────────────
-var _editingMsgId = null;
+  // Remove previous reaction
+  if (prevEmoji) {
+    r[prevEmoji] = (r[prevEmoji] || []).filter(function (u) { return u !== me.username; });
+    if (!r[prevEmoji].length) delete r[prevEmoji];
+  }
 
-function ctxEdit() {
-  var m = window._ctxMsg || window.ctxMsg;
+  // If clicking the SAME emoji — it's a toggle off
+  if (prevEmoji !== emoji) {
+    if (!r[emoji]) r[emoji] = [];
+    r[emoji].push(me.username);
+  }
+
+  // Update msg in history
+  try {
+    var h = $hist(cur);
+    var msg = h.find(function (m) { return m.id === msgId; });
+    if (msg) msg.reactions = JSON.parse(JSON.stringify(r));
+  } catch(e) {}
+
+  // Re-render immediately (optimistic)
+  rxRender(msgId);
+
+  // Emit to server
+  try {
+    $sk().emit('react_message', {
+      msgId: msgId,
+      chatWith: cur,
+      emoji: emoji,
+      action: prevEmoji !== emoji ? 'add' : 'remove'
+    });
+  } catch(e) {}
+}
+
+// Handle reaction arriving from another user
+function rxOnIncoming(data) {
+  var me = $me(); if (!me) return;
+  // Determine who the other person is
+  var other = data.from === me.username ? data.chatWith : data.from;
+  var k = chatPairKey(me.username, other);
+  if (!RX[k]) RX[k] = {};
+  if (!RX[k][data.msgId]) RX[k][data.msgId] = {};
+  var r = RX[k][data.msgId];
+
+  if (data.action === 'add') {
+    if (!r[data.emoji]) r[data.emoji] = [];
+    if (r[data.emoji].indexOf(data.from) === -1) r[data.emoji].push(data.from);
+  } else {
+    if (r[data.emoji]) {
+      r[data.emoji] = r[data.emoji].filter(function (u) { return u !== data.from; });
+      if (!r[data.emoji].length) delete r[data.emoji];
+    }
+  }
+
+  // Update history
+  try {
+    var h = $hist(other);
+    var msg = h.find(function (m) { return m.id === data.msgId; });
+    if (msg) msg.reactions = JSON.parse(JSON.stringify(r));
+  } catch(e) {}
+
+  // Re-render if visible
+  var cur = $cur();
+  if (cur === other) rxRender(data.msgId);
+}
+
+// Quick react from context menu
+W.quickReact = function (emoji) {
+  var m = W._ctxMsg || W.ctxMsg;
   if (!m) return;
-  var myUser = _getMe();
-  if (!myUser || m.from !== myUser.username) return;
+  closeCtx();
+  rxToggle(m.id, emoji);
+};
+
+/* ─────────────────────────────────────────────────────
+   РЕДАКТИРОВАНИЕ СООБЩЕНИЙ
+   Мгновенное обновление DOM — без перезагрузки чата
+   ───────────────────────────────────────────────────── */
+var EDIT_ID   = null; // currently editing message id
+var EDIT_ORIG = '';   // original text (for cancel)
+
+W.ctxEdit = function () {
+  var m = W._ctxMsg || W.ctxMsg;
+  if (!m) return;
+  var me = $me();
+  if (!me || m.from !== me.username) return;
   if (m.type === 'image' || m.type === 'voice') return;
-  document.getElementById('ctx').classList.remove('on');
-  _editingMsgId = m.id;
+  closeCtx();
+
+  EDIT_ID   = m.id;
+  EDIT_ORIG = m.content || '';
+
   // Fill input with message text
-  var inp = document.getElementById('mi') || document.getElementById('msg-input');
+  var inp = $inp();
   if (inp) {
     inp.value = m.content || '';
-    if (typeof resize === 'function') resize(inp);
-    inp.focus();
-    inp.setSelectionRange(inp.value.length, inp.value.length);
+    try { if (typeof resize === 'function') resize(inp); } catch(e) {}
+    setTimeout(function () {
+      inp.focus();
+      inp.setSelectionRange(inp.value.length, inp.value.length);
+    }, 20);
   }
-  // Show edit strip
-  var strip = document.getElementById('edit-strip');
-  var stripText = document.getElementById('edit-strip-text');
-  if (strip) strip.classList.add('on');
-  if (stripText) stripText.textContent = m.content || '';
-}
 
-function cancelEdit() {
-  _editingMsgId = null;
+  // Show edit strip, hide reply strip
+  var strip = document.getElementById('edit-strip');
+  var stext = document.getElementById('edit-strip-text');
+  var rs    = document.getElementById('rs');
+  if (strip) strip.classList.add('on');
+  if (stext) stext.textContent = m.content || '';
+  if (rs)    rs.classList.remove('on');
+};
+
+W.cancelEdit = function () {
+  EDIT_ID   = null;
+  EDIT_ORIG = '';
   var strip = document.getElementById('edit-strip');
   if (strip) strip.classList.remove('on');
-  var inp = document.getElementById('mi') || document.getElementById('msg-input');
-  if (inp) { inp.value = ''; if(typeof resize==='function') resize(inp); }
-}
+  var inp = $inp();
+  if (inp) { inp.value = ''; try { if (typeof resize==='function') resize(inp); } catch(e) {} }
+};
 
-// Патчим sendMsg чтобы поддерживать режим редактирования
-(function(){
-  var _origSend = window.sendMsg;
-  window.sendMsg = function() {
-    if (_editingMsgId) {
-      _submitEdit();
-      return;
-    }
-    if (typeof _origSend === 'function') _origSend();
-  };
-
-  // Также патчим mkey (Enter)
-  var _origMkey = window.mkey;
-  window.mkey = function(e) {
-    if (e.key === 'Escape' && _editingMsgId) { cancelEdit(); return; }
-    if (typeof _origMkey === 'function') _origMkey(e);
-  };
-})();
-
-function _submitEdit() {
-  if (!_editingMsgId) return;
-  var inp = document.getElementById('mi') || document.getElementById('msg-input');
+function editSubmit() {
+  if (!EDIT_ID) return;
+  var inp     = $inp();
   var newText = inp ? inp.value.trim() : '';
-  if (!newText) return;
-  var cur = _getCur();
-  _getSocket().emit('edit_message', { msgId: _editingMsgId, content: newText, chatWith: cur }, function(res) {
-    if (res && res.ok) {
-      // Update locally
+  if (!newText || newText === EDIT_ORIG) { W.cancelEdit(); return; }
+  var cur    = $cur();
+  var editId = EDIT_ID;
+
+  // ① Optimistic DOM update (instant, no flicker)
+  editApplyDOM(editId, newText, true);
+
+  // ② Update local history
+  try {
+    var h = $hist(cur);
+    var msg = h.find(function (m) { return m.id === editId; });
+    if (msg) { msg.content = newText; msg.edited = true; }
+  } catch(e) {}
+
+  W.cancelEdit();
+
+  // ③ Persist on server
+  $sk().emit('edit_message', { msgId: editId, content: newText, chatWith: cur }, function (res) {
+    if (res && !res.ok) {
+      // Roll back on error
+      editApplyDOM(editId, EDIT_ORIG, false);
       try {
-        var hist = _getHist(cur);
-        var msg = hist.find(function(m){ return m.id===_editingMsgId; });
-        if (msg) { msg.content = newText; msg.edited = true; }
+        var h2 = $hist(cur);
+        var msg2 = h2.find(function (m) { return m.id === editId; });
+        if (msg2) { msg2.content = EDIT_ORIG; msg2.edited = false; }
       } catch(e) {}
-      // Update bubble text
-      var el = document.getElementById('mw-' + _editingMsgId);
-      if (el) {
-        var textEl = el.querySelector('.bbl-txt,.msg-text,.bubble-text');
-        if (textEl) {
-          textEl.innerHTML = _escHtml(newText);
-          // Add edited mark if not present
-          if (!textEl.querySelector('.msg-edited')) {
-            var ed = document.createElement('span');
-            ed.className = 'msg-edited';
-            ed.textContent = 'изм.';
-            textEl.appendChild(ed);
-          }
-        }
-      }
+      $toast('Не удалось редактировать', 'error');
     }
   });
-  cancelEdit();
 }
 
-function _escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// Apply edited text directly to the DOM element
+function editApplyDOM(msgId, text, addMark) {
+  var el = document.getElementById('mw-' + msgId);
+  if (!el) return;
+
+  // Find text container (try all selectors)
+  var textEl = el.querySelector('.bbl-text')
+             || el.querySelector('.bbl-txt')
+             || el.querySelector('.msg-text')
+             || el.querySelector('.bubble-text');
+  if (!textEl) return;
+
+  // Build new inner HTML — preserve meta row (time/ticks) which is a SIBLING, not child
+  var escaped = $esc(text).replace(/\n/g, '<br>');
+  var markHtml = addMark ? '<span class="msg-edited"> · изм.</span>' : '';
+  textEl.innerHTML = escaped + markHtml;
 }
 
-// Handle edited messages from server
-try {
-  _getSocket().on('message_edited', function(data) {
-    var el = document.getElementById('mw-' + data.msgId);
-    if (el) {
-      var textEl = el.querySelector('.bbl-txt,.msg-text,.bubble-text');
-      if (textEl) {
-        textEl.innerHTML = _escHtml(data.content);
-        if (!textEl.querySelector('.msg-edited')) {
-          var ed = document.createElement('span');
-          ed.className = 'msg-edited';
-          ed.textContent = 'изм.';
-          textEl.appendChild(ed);
-        }
-      }
+// Mark already-edited messages after full re-render
+function markEditedAll() {
+  var cur = $cur(); if (!cur) return;
+  $hist(cur).forEach(function (msg) {
+    if (!msg.edited) return;
+    var el = document.getElementById('mw-' + msg.id);
+    if (!el) return;
+    var textEl = el.querySelector('.bbl-text,.bbl-txt,.msg-text,.bubble-text');
+    if (textEl && !textEl.querySelector('.msg-edited')) {
+      var mk = document.createElement('span');
+      mk.className = 'msg-edited';
+      mk.textContent = ' · изм.';
+      textEl.appendChild(mk);
     }
-    // Update in history
-    try {
-      var cur = _getCur();
-      var hist = _getHist(cur);
-      var msg = hist.find(function(m){ return m.id===data.msgId; });
-      if (msg) { msg.content = data.content; msg.edited = true; }
-    } catch(e) {}
   });
-} catch(e) {}
+}
 
-// Показываем/скрываем "Редактировать" в контекстном меню
-(function(){
-  var _origShowCtx = window.showCtx;
-  window.showCtx = function(e, id) {
-    if (typeof _origShowCtx === 'function') _origShowCtx(e, id);
-    // Keep reference for new functions
-    window._ctxMsg = window.ctxMsg;
-    var editItem = document.getElementById('ctx-edit');
-    if (editItem) {
-      var m = window.ctxMsg || window._ctxMsg;
-      var myUser = _getMe();
-      var canEdit = m && myUser && m.from === myUser.username && m.type !== 'image' && m.type !== 'voice';
-      editItem.style.display = canEdit ? '' : 'none';
-    }
-  };
-})();
+// Incoming edit from other user
+function onMsgEdited(data) {
+  // Update DOM immediately
+  editApplyDOM(data.msgId, data.content, true);
+  // Update history
+  var cur = $cur();
+  try {
+    var h = $hist(cur);
+    var msg = h.find(function (m) { return m.id === data.msgId; });
+    if (msg) { msg.content = data.content; msg.edited = true; }
+  } catch(e) {}
+}
 
-// ── ПЕРЕСЫЛКА СООБЩЕНИЙ ──────────────────────────────────
-var _fwdMsg = null;
-var _fwdSelected = [];
+/* ─────────────────────────────────────────────────────
+   ПЕРЕСЫЛКА СООБЩЕНИЙ (Telegram-style)
+   Показывает аватарку и имя оригинального отправителя
+   ───────────────────────────────────────────────────── */
+var FWD_MSG = null;
+var FWD_SEL = []; // selected recipient usernames
 
-function ctxForward() {
-  var m = window._ctxMsg || window.ctxMsg;
+W.ctxForward = function () {
+  var m = W._ctxMsg || W.ctxMsg;
   if (!m) return;
-  _fwdMsg = m;
-  _fwdSelected = [];
-  document.getElementById('ctx').classList.remove('on');
-  _openFwdModal();
-}
+  FWD_MSG = m;
+  FWD_SEL = [];
+  closeCtx();
+  fwdOpen();
+};
 
-function _openFwdModal() {
+function fwdOpen() {
   var modal = document.getElementById('fwd-modal');
   if (!modal) return;
   modal.classList.add('on');
-  _renderFwdList('');
-  var search = document.getElementById('fwd-search');
-  if (search) { search.value = ''; setTimeout(function(){ search.focus(); }, 100); }
-  var sendBtn = document.getElementById('fwd-send-btn');
-  if (sendBtn) sendBtn.disabled = true;
+  document.getElementById('fwd-search').value = '';
+  fwdRenderList('');
+  fwdUpdateBtn();
+  setTimeout(function () {
+    var s = document.getElementById('fwd-search');
+    if (s) s.focus();
+  }, 80);
 }
 
-function closeFwd() {
+W.closeFwd = function () {
   var modal = document.getElementById('fwd-modal');
   if (modal) modal.classList.remove('on');
-  _fwdMsg = null;
-  _fwdSelected = [];
-}
+  FWD_MSG = null;
+  FWD_SEL = [];
+};
 
-function _renderFwdList(filter) {
+W.filterFwdList = function (val) { fwdRenderList(val); };
+
+function fwdRenderList(filter) {
   var list = document.getElementById('fwd-list');
   if (!list) return;
-  var allU = _getUsers();
-  var myUser = _getMe();
-  var filtered = allU.filter(function(u){
-    if (myUser && u.username === myUser.username) return false;
-    if (!filter) return true;
-    var q = filter.toLowerCase();
-    return (u.displayName||'').toLowerCase().includes(q) || u.username.toLowerCase().includes(q);
+  var me = $me();
+  var q  = (filter || '').toLowerCase().trim();
+
+  var users = $users().filter(function (u) {
+    if (me && u.username === me.username) return false;
+    if (!q) return true;
+    return (u.displayName || '').toLowerCase().includes(q)
+        || u.username.toLowerCase().includes(q);
   });
-  list.innerHTML = filtered.map(function(u){
-    var isSel = _fwdSelected.indexOf(u.username) !== -1;
-    var avBg = _col(u.username);
-    var avHtml = u.avatar
-      ? '<img src="'+u.avatar+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">'
-      : (u.displayName||u.username||'?')[0].toUpperCase();
-    return '<div class="fwd-item'+(isSel?' sel':'')+'" onclick="_toggleFwdUser(\''+u.username+'\')" data-u="'+u.username+'">'
-      +'<div class="fwd-av2" style="background:'+avBg+'">'+avHtml+'</div>'
-      +'<span class="fwd-nm">'+(u.displayName||u.username)+'</span>'
-      +'<span class="fwd-chk">'+(isSel?'✓':'')+'</span>'
-      +'</div>';
-  }).join('') || '<div style="padding:20px;text-align:center;color:var(--text2);font-size:13px">Никого не найдено</div>';
-}
 
-function filterFwdList(val) {
-  _renderFwdList(val);
-}
-
-function _toggleFwdUser(username) {
-  var idx = _fwdSelected.indexOf(username);
-  if (idx === -1) _fwdSelected.push(username);
-  else _fwdSelected.splice(idx, 1);
-  var sendBtn = document.getElementById('fwd-send-btn');
-  if (sendBtn) {
-    sendBtn.disabled = _fwdSelected.length === 0;
-    sendBtn.textContent = _fwdSelected.length > 1
-      ? 'Переслать (' + _fwdSelected.length + ')'
-      : 'Переслать';
+  if (!users.length) {
+    list.innerHTML = '<div style="padding:28px 0;text-align:center;color:var(--text2);font-size:13px">Никого не найдено</div>';
+    return;
   }
-  // Re-render to update checkmarks
-  var search = document.getElementById('fwd-search');
-  _renderFwdList(search ? search.value : '');
+
+  list.innerHTML = users.map(function (u) {
+    var sel   = FWD_SEL.indexOf(u.username) !== -1;
+    var bg    = $col(u.username);
+    var avImg = u.avatar
+      ? '<img src="' + u.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:11px">'
+      : '<span style="font-size:14px;font-weight:700;color:#fff">' + (u.displayName || u.username || '?')[0].toUpperCase() + '</span>';
+    var onlineDot = u.online
+      ? '<div style="width:10px;height:10px;background:var(--green);border-radius:50%;border:2px solid var(--sidebar);position:absolute;bottom:1px;right:1px"></div>'
+      : '';
+    return '<div class="fwd-item' + (sel ? ' sel' : '') + '" onclick="_fwdToggle(\'' + u.username + '\')">'
+      + '<div class="fwd-av2" style="background:' + bg + ';position:relative">' + avImg + onlineDot + '</div>'
+      + '<div style="flex:1;min-width:0">'
+      +   '<div class="fwd-nm">' + $esc(u.displayName || u.username) + '</div>'
+      +   (u.online
+            ? '<div style="font-size:11px;color:var(--green);margin-top:1px">В сети</div>'
+            : '<div style="font-size:11px;color:var(--text3);margin-top:1px">Не в сети</div>')
+      + '</div>'
+      + '<div class="fwd-chk">' + (sel ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '') + '</div>'
+      + '</div>';
+  }).join('');
 }
 
-function sendFwd() {
-  if (!_fwdMsg || _fwdSelected.length === 0) return;
-  var msg = _fwdMsg;
-  var content = msg.type === 'image'
-    ? msg.content
-    : (msg.content ? '↪ ' + msg.content : '↪ [Голосовое]');
-  var type = msg.type === 'image' ? 'image' : 'text';
-  var sk = _getSocket();
-  _fwdSelected.forEach(function(toUser) {
-    sk.emit('send_message', { to: toUser, content: content, type: type }, function(){});
-  });
-  closeFwd();
-  // Toast
-  try {
-    var names = _fwdSelected.map(function(u){
-      var found = _getUsers().find(function(x){ return x.username===u; });
-      return found ? (found.displayName||u) : u;
-    });
-    if (typeof toast === 'function') toast('Переслано: ' + names.join(', '));
-  } catch(e) {}
+W._fwdToggle = function (username) {
+  var idx = FWD_SEL.indexOf(username);
+  if (idx === -1) FWD_SEL.push(username);
+  else            FWD_SEL.splice(idx, 1);
+  fwdUpdateBtn();
+  var s = document.getElementById('fwd-search');
+  fwdRenderList(s ? s.value : '');
+};
+
+function fwdUpdateBtn() {
+  var btn = document.getElementById('fwd-send-btn');
+  if (!btn) return;
+  btn.disabled = FWD_SEL.length === 0;
+  btn.textContent = FWD_SEL.length > 1
+    ? 'Переслать (' + FWD_SEL.length + ')'
+    : 'Переслать';
 }
 
-// ── Показываем "изм." для уже отредактированных сообщений ─
-// Это вызывается после рендера сообщений
-function _markEditedMessages() {
-  try {
-    var cur = _getCur();
-    var hist = _getHist(cur);
-    hist.forEach(function(msg) {
-      if (!msg.edited) return;
-      var el = document.getElementById('mw-' + msg.id);
-      if (!el) return;
-      var textEl = el.querySelector('.bbl-txt,.msg-text,.bubble-text');
-      if (textEl && !textEl.querySelector('.msg-edited')) {
-        var ed = document.createElement('span');
-        ed.className = 'msg-edited';
-        ed.textContent = 'изм.';
-        textEl.appendChild(ed);
+W.sendFwd = function () {
+  if (!FWD_MSG || !FWD_SEL.length) return;
+  var msg = FWD_MSG;
+  var me  = $me();
+  var sk  = $sk();
+
+  // Find who sent the original
+  var fromUser = $users().find(function (u) { return u.username === msg.from; })
+              || { displayName: msg.from, username: msg.from };
+  var fromName = fromUser.displayName || fromUser.username;
+
+  FWD_SEL.forEach(function (toUser) {
+    var payload;
+    if (msg.type === 'image') {
+      payload = { to: toUser, content: msg.content, type: 'image', forwardFrom: msg.from };
+    } else {
+      // Encode attribution: prefix "⟫ Name\n" so bbl() can parse it
+      payload = {
+        to: toUser,
+        content: '\u27EB ' + fromName + '\n' + (msg.content || ''),
+        type: 'forward',
+        forwardFrom: msg.from
+      };
+    }
+    sk.emit('send_message', payload, function (res) {
+      if (res && res.message) {
+        // Show in sender's own chat view if the forward was to the currently open chat
+        var cur = $cur();
+        if (toUser === cur && typeof pushMsg === 'function') {
+          pushMsg(res.message);
+        }
       }
     });
-  } catch(e) {}
+  });
+
+  var names = FWD_SEL.map(function (u) {
+    var f = $users().find(function (x) { return x.username === u; });
+    return f ? (f.displayName || u) : u;
+  }).join(', ');
+  $toast('Переслано: ' + names);
+  W.closeFwd();
+};
+
+/* ─────────────────────────────────────────────────────
+   ПАТЧИ ОСНОВНЫХ ФУНКЦИЙ
+   ───────────────────────────────────────────────────── */
+
+// ── Context menu ────────────────────────────────────
+function closeCtx() {
+  var c = document.getElementById('ctx');
+  if (c) c.classList.remove('on');
 }
 
-// Запускаем после каждого рендера (с задержкой)
-var _origRenderMsgs = window.renderMsgs || window.renderMessages;
-if (typeof _origRenderMsgs === 'function') {
-  window.renderMsgs = window.renderMessages = function() {
-    _origRenderMsgs.apply(this, arguments);
-    setTimeout(_markEditedMessages, 50);
+var _showCtxOrig = W.showCtx;
+W.showCtx = function (e, id) {
+  if (typeof _showCtxOrig === 'function') _showCtxOrig.apply(this, arguments);
+  W._ctxMsg = W.ctxMsg; // expose to new features
+  var m  = W.ctxMsg || W._ctxMsg;
+  var me = $me();
+
+  // Edit: only own text messages
+  var editEl = document.getElementById('ctx-edit');
+  if (editEl) {
+    var canEdit = m && me && m.from === me.username
+               && m.type !== 'image' && m.type !== 'voice' && m.type !== 'forward';
+    editEl.style.display = canEdit ? '' : 'none';
+  }
+};
+
+// ── openChat — drafts + reactions + scroll btn ───────
+var _openChatOrig = W.openChat;
+W.openChat = function (username) {
+  // 1. Save current chat's draft BEFORE changing cur
+  var prevChat = $cur();
+  if (prevChat && prevChat !== username) {
+    draftFlush(prevChat);
+  }
+
+  // 2. Clear input immediately (prevents old text bleed)
+  var inp = $inp();
+  if (inp) {
+    inp.value = '';
+    try { if (typeof resize === 'function') resize(inp); } catch(e) {}
+  }
+
+  // 3. Call original openChat
+  if (typeof _openChatOrig === 'function') _openChatOrig(username);
+
+  // 4. Restore draft for new chat (synchronous, no timeout needed since we already cleared)
+  draftRestore(username);
+
+  // 5. Reset scroll-down badge
+  sdbReset();
+
+  // 6. Re-bind scroll listener (msgs element may have been recreated)
+  SDB_BOUND_EL = null;
+  setTimeout(sdbBind, 100);
+
+  // 7. Load reactions for new chat — try immediately from history, then again after 400ms
+  //    (messages may not have loaded yet at this point)
+  function loadRx() {
+    var msgs = $hist(username);
+    if (msgs.length) {
+      rxLoadFromMessages(msgs, username);
+      rxRenderAll();
+      markEditedAll();
+    }
+  }
+  loadRx();
+  setTimeout(loadRx, 450);
+};
+
+// ── renderMsgs — apply reactions + edited marks ──────
+var _renderMsgsOrig = W.renderMsgs;
+W.renderMsgs = function () {
+  if (typeof _renderMsgsOrig === 'function') _renderMsgsOrig.apply(this, arguments);
+  setTimeout(function () {
+    rxRenderAll();
+    markEditedAll();
+  }, 30);
+};
+
+// ── sendMsg — edit mode intercept ───────────────────
+var _sendMsgOrig = W.sendMsg;
+W.sendMsg = function () {
+  if (EDIT_ID) { editSubmit(); return; }
+  if (typeof _sendMsgOrig === 'function') _sendMsgOrig.apply(this, arguments);
+};
+
+// ── mkey — Escape cancels edit ───────────────────────
+var _mkeyOrig = W.mkey;
+W.mkey = function (e) {
+  if (e.key === 'Escape' && EDIT_ID) { e.preventDefault(); W.cancelEdit(); return; }
+  if (typeof _mkeyOrig === 'function') _mkeyOrig.apply(this, arguments);
+};
+
+// ── pushMsg — increment scroll badge for incoming ───
+var _pushMsgOrig = W.pushMsg;
+W.pushMsg = function (msg) {
+  if (typeof _pushMsgOrig === 'function') _pushMsgOrig.apply(this, arguments);
+  var me = $me();
+  if (msg && me && msg.from !== me.username) sdbIncrement();
+  // Render reactions if message has them
+  if (msg && msg.reactions && Object.keys(msg.reactions).length) {
+    var cur = $cur();
+    if (cur && me) {
+      var k = chatPairKey(me.username, cur);
+      if (!RX[k]) RX[k] = {};
+      RX[k][msg.id] = JSON.parse(JSON.stringify(msg.reactions));
+    }
+    setTimeout(function () { rxRender(msg.id); }, 50);
+  }
+};
+
+/* ─────────────────────────────────────────────────────
+   SOCKET LISTENERS
+   ───────────────────────────────────────────────────── */
+function bindSockets() {
+  var sk = $sk();
+  if (!sk) { setTimeout(bindSockets, 400); return; }
+  if (sk._ff3Bound) return;
+  sk._ff3Bound = true;
+
+  sk.on('message_reaction', rxOnIncoming);
+  sk.on('message_edited',   onMsgEdited);
+
+  // Intercept get_messages to load reactions after chat open
+  var _emitOrig = sk.emit.bind(sk);
+  sk.emit = function (event) {
+    var args = Array.prototype.slice.call(arguments);
+    if (event === 'get_messages') {
+      var data = args[1];
+      var origCb = args[2];
+      if (typeof origCb === 'function') {
+        args[2] = function (msgs) {
+          origCb(msgs);
+          if (Array.isArray(msgs) && data && data.with) {
+            rxLoadFromMessages(msgs, data.with);
+            // Render after a tick (DOM may not be updated yet)
+            setTimeout(function () {
+              rxRenderAll();
+              markEditedAll();
+            }, 60);
+          }
+        };
+      }
+    }
+    return _emitOrig.apply(sk, args);
   };
 }
 
-// ── Инициализация и chat-area relative positioning ─────
-(function(){
-  var chatArea = document.querySelector('.chat-area');
-  if (chatArea) chatArea.style.position = 'relative';
-  setTimeout(_initScrollDownBtn, 800);
-})();
+/* ─────────────────────────────────────────────────────
+   ИНИЦИАЛИЗАЦИЯ
+   ───────────────────────────────────────────────────── */
+// Bind everything once DOM is ready
+function init() {
+  sdbBind();
+  bindSockets();
+  // Apply reactions + edited marks in case a chat is already open
+  setTimeout(function () { rxRenderAll(); markEditedAll(); }, 500);
+}
 
-console.log('[Features] Реакции ✓ | Редактирование ✓ | Пересылка ✓ | Кнопка↓ ✓ | Черновики ✓');
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  setTimeout(init, 200);
+}
+
+console.log('[Freedom Features v3] ✓');
+
+})(window);
+
 </script>
 </body>
 </html>
