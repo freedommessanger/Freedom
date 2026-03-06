@@ -2034,22 +2034,11 @@ async function acceptCall() {
     }
 }
 
+// BUG FIX: onCallAnswered — мёртвый код, FC.onAnswered обрабатывает это событие.
+// Оставляем функцию чтобы не ломать старые вызовы, но она ничего не делает.
 async function onCallAnswered({ answer }) {
-    // Use any available peer connection reference
-    if (!peerConnection && window._pc) peerConnection = window._pc;
-    if (!peerConnection) { console.warn('onCallAnswered: no peerConnection'); return; }
-    try {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-        // Show remote video if it was hidden
-        var rv = document.getElementById('remoteVideo');
-        if (rv) rv.style.display = '';
-        var el = document.getElementById('call-status') || document.getElementById('cst');
-        if (el) el.textContent = 'Соединено';
-        processIceQueue();
-        if (typeof startCallTimer === 'function') startCallTimer();
-    } catch (e) {
-        console.error("Ошибка при установке ответа:", e);
-    }
+    // Handled entirely by FC.onAnswered — see Freedom Calls v2 block
+    console.log('[Legacy] onCallAnswered ignored — FC handles this');
 }
 
 async function onIceCandidate({ candidate }) {
@@ -4793,12 +4782,14 @@ function connectSocket() {
   socket.on('messages_read', ({by}) => markMessagesRead(by));
   socket.on('message_deleted', ({msgId}) => removeMessageEl(msgId));
   // Все события звонков обрабатываются в Freedom Calls v2 (FC)
-  // Эти обработчики заглушены чтобы не конфликтовать
-  socket.on('call_answered', function(data){ /* handled by FC.onAnswered */ });
-  socket.on('ice_candidate', function(data){ /* handled by FC.onICE */ });
-  socket.on('call_ended',    function(){     /* handled by FC.onEnded */ });
-  socket.on('call_rejected', function(){     /* handled by FC.onRejected */ });
-  socket.on('call_busy',     function(){     /* handled by FC.onBusy */ });
+  // BUG FIX: раньше здесь были пустые заглушки, которые регистрировались раньше FC-обработчиков
+  // и перехватывали ice_candidate/call_answered первыми. Теперь делегируем напрямую.
+  socket.on('call_answered', function(data){ if(window.FC) window.FC.onAnswered(data); });
+  socket.on('ice_candidate', function(data){ if(window.FC) window.FC.onICE(data); });
+  socket.on('call_ended',    function(data){ if(window.FC) window.FC.onEnded(data); });
+  socket.on('call_rejected', function(data){ if(window.FC) window.FC.onRejected(data); });
+  socket.on('call_busy',     function(data){ if(window.FC) window.FC.onBusy(data); });
+  socket.on('incoming_call', function(data){ if(window.FC) window.FC.onIncoming(data); });
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -8272,7 +8263,7 @@ window.masterAccept=async function(offer,ctype,from,u){
     var ns=await navigator.mediaDevices.getUserMedia(ctype==='video'?{audio:true,video:true}:{audio:true});
     try{stream=ns;}catch(e){}
     if(ctype==='video'){var lv=document.getElementById('localVideo');if(lv){lv.srcObject=ns;lv.style.display='block';}var va=document.getElementById('va');if(va)va.classList.add('on');}
-    var np=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
+    var np=new RTCPeerConnection(typeof ICE!=='undefined'?ICE:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]}); // BUG FIX: use TURN-enabled ICE config
     try{pc=np;}catch(e){}window._pc=np;try{peerConnection=np;}catch(e){}
     ns.getTracks().forEach(function(t){np.addTrack(t,ns);});
     np.ontrack=function(e){var rv=document.getElementById('remoteVideo');if(rv&&e.streams[0]){rv.style.display='block';rv.srcObject=e.streams[0];}
@@ -8532,7 +8523,7 @@ window.startCall=async function(type){
     var ns=await navigator.mediaDevices.getUserMedia(type==='video'?{audio:true,video:true}:{audio:true});
     try{stream=ns;}catch(e){}
     if(type==='video'){var lv=document.getElementById('localVideo');if(lv){lv.srcObject=ns;lv.style.display='block';}var va=document.getElementById('va');if(va)va.classList.add('on');}
-    var np=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    var np=new RTCPeerConnection(typeof ICE!=='undefined'?ICE:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]}); // BUG FIX: use TURN-enabled ICE config
     try{pc=np;}catch(e){}window._pc=np;try{peerConnection=np;}catch(e){}
     ns.getTracks().forEach(function(tk){np.addTrack(tk,ns);});
     np.ontrack=function(e){var rv=document.getElementById('remoteVideo');if(rv){rv.style.display='block';rv.srcObject=e.streams[0];if(type==='video'){var va2=document.getElementById('va');if(va2)va2.classList.add('on');}}
@@ -9650,7 +9641,7 @@ window.startCall=async function(type){
     var ns=await navigator.mediaDevices.getUserMedia(type==='video'?{audio:true,video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'}}:{audio:true});
     try{stream=ns;}catch(e){}try{localStream=ns;}catch(e){}
     if(type==='video'){var lv=document.getElementById('localVideo');if(lv){lv.srcObject=ns;lv.style.display='block';}var va=document.getElementById('va');if(va)va.classList.add('on');}
-    var np=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
+    var np=new RTCPeerConnection(typeof ICE!=='undefined'?ICE:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]}); // BUG FIX: use TURN-enabled ICE config
     try{pc=np;}catch(e){}window._pc=np;try{peerConnection=np;}catch(e){}
     ns.getTracks().forEach(function(tk){np.addTrack(tk,ns);});
     np.ontrack=function(e){
@@ -12527,14 +12518,21 @@ console.log('[Freedom v4] ✓');
 (function(W){
 'use strict';
 
-/* ── ICE конфиг с TURN — openrelay.metered.ca бесплатный и стабильный ── */
+/* ── ICE конфиг — STUN Google/Cloudflare + TURN openrelay (fallback) ── */
 var ICE = { iceServers: [
+  // Google STUN — первый выбор для обнаружения публичного IP
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:openrelay.metered.ca:80' },
-  { urls: 'turn:openrelay.metered.ca:80',  username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+  { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun3.l.google.com:19302' },
+  // Cloudflare STUN — резерв, работает даже за VPN
+  { urls: 'stun:stun.cloudflare.com:3478' },
+  // TURN через openrelay — нужен когда оба за симметричным NAT (мобильные сети)
+  { urls: 'turn:openrelay.metered.ca:80',              username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443',             username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+  // numb.viagenie.ca — дополнительный TURN резерв
+  { urls: 'turn:numb.viagenie.ca',                     username: 'webrtc@live.com',   credential: 'muazkh' }
 ]};
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -12549,15 +12547,17 @@ var CS = {
   stream:   null,   // local stream
   timer:    null,   // call duration interval
   secs:     0,
-  queuedICE: []     // ICE candidates received before remoteDescription
+  queuedICE: [],    // ICE candidates received before remoteDescription
+  remoteDescReady: null  // Promise: resolved when setRemoteDescription completes (callee side)
 };
 
 function csReset() {
   clearInterval(CS.timer);
+  clearInterval(CS.kaTimer);
   if (CS.pc)     { try { CS.pc.close(); } catch(e) {} CS.pc = null; }
   if (CS.stream) { CS.stream.getTracks().forEach(function(t){ t.stop(); }); CS.stream = null; }
   CS.state = 'idle'; CS.partner = null; CS.type = 'audio';
-  CS.timer = null; CS.secs = 0; CS.queuedICE = [];
+  CS.timer = null; CS.secs = 0; CS.queuedICE = []; CS.remoteDescReady = null;
   W._inCall = false;
   W._callStream = null;
   // Also clean legacy vars
@@ -12635,6 +12635,11 @@ function renderCallUI(mode) {
       // Also update legacy vars
       try { callSecs = CS.secs; callSeconds = CS.secs; } catch(e) {}
     }, 1000);
+    // BUG FIX: keepalive during active call — camera/mic blocks socket ping timer
+    clearInterval(CS.kaTimer);
+    CS.kaTimer = setInterval(function() {
+      try { var sk = $sk(); if (sk && sk.connected) sk.emit('ping_keep', {}); } catch(e) {}
+    }, 5000);
     W._inCall = true;
   }
 
@@ -12792,6 +12797,12 @@ var FC = W.FC = {
       var p = CS.pc; // already created in onIncoming
       if (!p) { p = createPC(); }
 
+      // BUG FIX: wait for setRemoteDescription to fully complete before createAnswer
+      // Without this, createAnswer fails with "Failed to execute 'createAnswer'" race condition
+      if (CS.remoteDescReady) {
+        try { await CS.remoteDescReady; } catch(e) { console.warn('[FC] remoteDescReady rejected:', e); }
+      }
+
       addTracks(p, s);
 
       var answer = await p.createAnswer();
@@ -12917,10 +12928,11 @@ var FC = W.FC = {
     try { currentCallUser = from; } catch(e) {}
 
     // Create PC and set remote description immediately (so we can queue ICE)
+    // BUG FIX: store promise so FC.answer can await it before calling createAnswer
     var p = createPC();
-    p.setRemoteDescription(new RTCSessionDescription(offer)).then(function() {
+    CS.remoteDescReady = p.setRemoteDescription(new RTCSessionDescription(offer)).then(function() {
       return flushICEQueue(p);
-    }).catch(function(e) { console.error('[FC] setRemoteDescription failed:', e); });
+    }).catch(function(e) { console.error('[FC] setRemoteDescription failed:', e); CS.remoteDescReady = null; });
 
     renderCallUI('ringing');
   },
@@ -13033,35 +13045,15 @@ function bindCallSockets() {
   if (sk._fcBound) return;
   sk._fcBound = true;
 
-  // Incoming call
-  sk.on('incoming_call', function(data) {
-    FC.onIncoming(data);
-  });
-
-  // Caller: other side answered
-  sk.on('call_answered', function(data) {
-    FC.onAnswered(data);
-  });
-
-  // ICE candidate
-  sk.on('ice_candidate', function(data) {
-    FC.onICE(data);
-  });
-
-  // Remote ended call
-  sk.on('call_ended', function() {
-    FC.onEnded();
-  });
-
-  // Remote rejected
-  sk.on('call_rejected', function() {
-    FC.onRejected();
-  });
-
-  // Remote busy
-  sk.on('call_busy', function() {
-    FC.onBusy();
-  });
+  // BUG FIX: connectSocket уже регистрирует FC-обработчики напрямую.
+  // bindCallSockets теперь только регистрирует incoming_call если он ещё не зарегистрирован
+  // (для совместимости с версиями где connectSocket мог запуститься без incoming_call binding)
+  if (!sk._incomingBound) {
+    sk._incomingBound = true;
+    sk.on('incoming_call', function(data) {
+      FC.onIncoming(data);
+    });
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -13081,31 +13073,8 @@ W.masterCall = function(data) {
    ───────────────────────────────────────────────────────────────────── */
 setTimeout(bindCallSockets, 200);
 
-// Override existing socket.on listeners from connectSocket() that conflict
-// We do this by rebinding after socket is ready
-setTimeout(function() {
-  var sk = $sk(); if (!sk) return;
-  // Remove the old call_answered handler from connectSocket
-  // Socket.io doesn't support removeListener by reference easily, so we
-  // replace with no-ops via onevent patch
-  if (!sk._fcEvtPatched) {
-    sk._fcEvtPatched = true;
-    var _origOnevent = sk.onevent.bind(sk);
-    sk.onevent = function(packet) {
-      var ev = packet.data && packet.data[0];
-      // Block old handlers for call events — FC handles them now
-      var callEvts = ['call_answered','call_ended','call_rejected','call_busy'];
-      if (callEvts.indexOf(ev) !== -1) {
-        // FC's direct listeners (sk.on) still fire — onevent is called before listeners
-        // So we just call _origOnevent normally, FC listeners will handle it
-        _origOnevent(packet);
-        return;
-      }
-      _origOnevent(packet);
-    };
-  }
-}, 500);
-
+// NOTE: connectSocket уже правильно делегирует все call events → FC.
+// Дополнительный onevent-патч не нужен.
 console.log('[Freedom Calls v2] ✓');
 })(window);
 
