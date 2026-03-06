@@ -608,7 +608,8 @@ io.on('connection', (socket) => {
         if (reactions[emoji].length === 0) delete reactions[emoji];
       }
       await msgsCol.doc(msgId).update({ reactions });
-      // Уведомляем собеседника
+      // Notify the other person. chatWith = the partner the sender is chatting with.
+      // We send 'from' = who reacted, 'chatWith' = the reactor (so receiver can build pair key)
       sendTo(chatWith, 'message_reaction', { msgId, emoji, action, from: me.username, chatWith: me.username });
     } catch (e) {
       console.error('react_message:', e.message);
