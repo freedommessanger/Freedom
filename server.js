@@ -38,7 +38,9 @@ const e2eKeysCol  = db.collection('e2e_keys');   // Публичные E2E-кл�
 const app    = express();
 const server = http.createServer(app);
 const io     = new Server(server, {
-  maxHttpBufferSize: 1 * 1024 * 1024,
+  maxHttpBufferSize: 5 * 1024 * 1024, // 5MB for video notes
+  pingInterval: 8000,    // send ping every 8s
+  pingTimeout:  60000,   // wait 60s for pong — Chrome getUserMedia can block for many seconds
   cors: { origin: '*' },
 });
 
@@ -617,6 +619,11 @@ io.on('connection', (socket) => {
   });
 
   // ── Отключение ────────────────────────────────────────────────────────
+  // FIX: keepalive ping during camera/mic usage — prevents going offline
+  socket.on('ping_keep', function(){
+    // just acknowledge — the socket activity itself resets the ping timer
+  });
+
   socket.on('disconnect', async () => {
     if (!me) return;
     try {
