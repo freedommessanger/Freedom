@@ -4792,36 +4792,13 @@ function connectSocket() {
   socket.on('user_typing', onTyping);
   socket.on('messages_read', ({by}) => markMessagesRead(by));
   socket.on('message_deleted', ({msgId}) => removeMessageEl(msgId));
-  // incoming_call обрабатывается через interceptSocket → masterCall (единая точка входа)
-  socket.on('call_answered', function(data){
-    try{
-      onCallAns(data);
-      // FIX: update caller UI — no longer "Исходящий..."
-      var cst=document.getElementById('cst');
-      if(cst) cst.textContent='Соединено';
-    }catch(e){ console.warn('call_answered err:',e); }
-  });
-  socket.on('ice_candidate', function(data){
-    try{
-      var p=window._pc||peerConnection||pc;
-      if(p && p.remoteDescription){ p.addIceCandidate(data.candidate).catch(function(){}); }
-      else if(p){ try{iceCandidatesQueue.push(data.candidate);}catch(ex){} }
-    }catch(e){}
-  });
-  socket.on('call_ended', function(){
-    // FIX: properly close call overlay instead of just updating text
-    callSt('Звонок завершён', false);
-    setTimeout(function(){ if(window._doCleanCall) window._doCleanCall(); }, 1500);
-  });
-  socket.on('call_rejected', function(){
-    callSt('Отклонено', false);
-    try{_injectCallMsg(callUser||currentCallUser,'missed');}catch(e){}
-    setTimeout(function(){ if(window._doCleanCall) window._doCleanCall(); }, 1500);
-  });
-  socket.on('call_busy', function(){
-    callSt('Пользователь недоступен', false);
-    setTimeout(function(){ if(window._doCleanCall) window._doCleanCall(); }, 2000);
-  });
+  // Все события звонков обрабатываются в Freedom Calls v2 (FC)
+  // Эти обработчики заглушены чтобы не конфликтовать
+  socket.on('call_answered', function(data){ /* handled by FC.onAnswered */ });
+  socket.on('ice_candidate', function(data){ /* handled by FC.onICE */ });
+  socket.on('call_ended',    function(){     /* handled by FC.onEnded */ });
+  socket.on('call_rejected', function(){     /* handled by FC.onRejected */ });
+  socket.on('call_busy',     function(){     /* handled by FC.onBusy */ });
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -8240,38 +8217,8 @@ function interceptSocket(){
     _orig(packet);
     var ev=packet.data&&packet.data[0],data=packet.data&&packet.data[1];
     if(ev==='new_message') masterMsg(data);
-    if(ev==='incoming_call'){
-      // Запоминаем кто звонит — нужно для пропущенного звонка
-      if(data && data.from) window._pendingCaller = data.from;
-      masterCall(data);
-    }
-    // Если звонок завершён звонящим до ответа — это пропущенный звонок для нас
-    if(ev==='call_ended'){
-      if(!window._inCall && window._pendingCaller){
-        var caller = window._pendingCaller;
-        setTimeout(function(){
-          if(typeof _injectCallMsg === 'function') _injectCallMsg(caller, 'missed', true);
-          // Also close the incoming call UI
-          if(typeof window._doCleanCall === 'function') window._doCleanCall();
-        }, 100);
-      } else if(window._inCall) {
-        // Other side ended an active call — inject ended event for US
-        var callPartnerEnded = null;
-        try { callPartnerEnded = callUser || currentCallUser; } catch(e) {}
-        if(callPartnerEnded && typeof _injectCallMsg === 'function') {
-          _injectCallMsg(callPartnerEnded, 'ended');
-        }
-        var cstEl = document.getElementById('cst');
-        if(cstEl) cstEl.textContent = 'Звонок завершён';
-        setTimeout(function(){ if(window._doCleanCall) window._doCleanCall(); }, 1500);
-      }
-      window._pendingCaller = null;
-    }
-    // Когда принимающий отклоняет — сбрасываем и закрываем UI
-    if(ev==='call_rejected'){
-      window._pendingCaller = null;
-      // UI is handled by socket.on('call_rejected') above
-    }
+    // Звонки теперь полностью обрабатываются в Freedom Calls v2 (FC)
+    // interceptSocket больше не вмешивается в call события
   };
 }
 
@@ -11030,24 +10977,8 @@ window._doCleanCall = function(){
   window._callMinimized2=false; window._inCall=false;
 };
 
-// Также перехватываем endCall для чистки
-var _origEndCall = window.endCall;
-window.endCall = function(){
-  // Сохраняем данные звонка ДО сброса флагов
-  var wasInCall = window._inCall;
-  var callPartner = null;
-  try { callPartner = callUser || currentCallUser || cur || currentChat; } catch(e) {}
-  
-  // Инжектируем событие окончания звонка (пока _inCall ещё true)
-  if (wasInCall && callPartner && typeof _injectCallMsg === 'function') {
-    _injectCallMsg(callPartner, 'ended');
-  }
-  
-  clearInterval(window._diTimerSync);
-  var di=document.getElementById('dynamic-island'); if(di) di.style.display='none';
-  window._callMinimized2=false; window._inCall=false;
-  if(typeof _origEndCall==='function') _origEndCall();
-};
+// endCall теперь обрабатывается в FC.hangup() — нейтрализуем старый патч
+// (FC.hangup вызывается через W.endCall = function() { FC.hangup(); })
 
 // Скрываем старый mini-call-bar стилями
 (function(){
@@ -12584,6 +12515,598 @@ setTimeout(function() {
 }, 100);
 
 console.log('[Freedom v4] ✓');
+})(window);
+
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   FREEDOM CALLS v2 — полный рефакторинг системы звонков
+   Единая точка входа, правильные состояния, TURN-серверы
+   ═══════════════════════════════════════════════════════════════════ */
+(function(W){
+'use strict';
+
+/* ── ICE конфиг с TURN — openrelay.metered.ca бесплатный и стабильный ── */
+var ICE = { iceServers: [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:openrelay.metered.ca:80' },
+  { urls: 'turn:openrelay.metered.ca:80',  username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+]};
+
+/* ─────────────────────────────────────────────────────────────────────
+   СОСТОЯНИЕ (единственный источник правды)
+   ───────────────────────────────────────────────────────────────────── */
+// CallState: 'idle' | 'calling' | 'ringing' | 'active'
+var CS = {
+  state:    'idle',
+  partner:  null,   // username of the other person
+  type:     'audio', // 'audio' | 'video'
+  pc:       null,   // RTCPeerConnection
+  stream:   null,   // local stream
+  timer:    null,   // call duration interval
+  secs:     0,
+  queuedICE: []     // ICE candidates received before remoteDescription
+};
+
+function csReset() {
+  clearInterval(CS.timer);
+  if (CS.pc)     { try { CS.pc.close(); } catch(e) {} CS.pc = null; }
+  if (CS.stream) { CS.stream.getTracks().forEach(function(t){ t.stop(); }); CS.stream = null; }
+  CS.state = 'idle'; CS.partner = null; CS.type = 'audio';
+  CS.timer = null; CS.secs = 0; CS.queuedICE = [];
+  W._inCall = false;
+  W._callStream = null;
+  // Also clean legacy vars
+  try { stream = null; } catch(e) {}
+  try { pc = null; } catch(e) {}
+  try { clearInterval(callInt); callSecs = 0; } catch(e) {}
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   UI HELPERS
+   ───────────────────────────────────────────────────────────────────── */
+function $g(id) { return document.getElementById(id); }
+function $sk()  { try { return W.socket || socket; } catch(e) { return null; } }
+function $me()  { try { return W.me || me; } catch(e) { return null; } }
+function $users(){ try { return W.users || W.allUsers || users || allUsers || []; } catch(e) { return []; } }
+function $u(username) { return $users().find(function(u){ return u.username === username; }) || { username: username, displayName: username }; }
+function $col(u){ try { return typeof col === 'function' ? col(u) : '#4f8ef7'; } catch(e) { return '#4f8ef7'; } }
+function $sav(el, u) {
+  if (!el || !u) return;
+  if (u.avatar) { el.innerHTML = '<img src="'+u.avatar+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;">'; }
+  else { el.style.background = $col(u.username); el.textContent = (u.displayName || u.username || '?')[0].toUpperCase(); }
+}
+
+var PHONE_ICO = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>';
+var MIC_ICO   = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 013 3v7a3 3 0 01-6 0V4a3 3 0 013-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+var CAM_ICO   = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>';
+var MIN_ICO   = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 9l-7 7-7-7"/></svg>';
+
+function renderCallUI(mode) {
+  // mode: 'calling' | 'ringing' | 'active'
+  var co = $g('co'); if (!co) return;
+  var u  = $u(CS.partner);
+  var tl = CS.type === 'video' ? 'Видеозвонок' : 'Аудиозвонок';
+
+  // Avatar
+  var cav = $g('cav');
+  if (cav) { cav.style.background = $col(CS.partner); $sav(cav, u); }
+  var cnm = $g('cnm'); if (cnm) cnm.textContent = u.displayName || CS.partner;
+
+  var cst  = $g('cst');
+  var cbtns = $g('cbtns');
+  var ctmr  = $g('ctmr');
+  if (ctmr) ctmr.style.display = 'none';
+
+  if (mode === 'calling') {
+    if (cst)  cst.textContent = tl + ' · Исходящий...';
+    if (cbtns) cbtns.innerHTML =
+      '<div class="call-btn-wrap"><button class="cbtn end-call" onclick="FC.hangup()">'+PHONE_ICO+'</button><span>Отменить</span></div>'+
+      '<div class="call-btn-wrap"><button class="cbtn neutral" onclick="FC.minimize()">'+MIN_ICO+'</button><span>Свернуть</span></div>';
+
+  } else if (mode === 'ringing') {
+    if (cst)  cst.textContent = 'Входящий ' + tl.toLowerCase();
+    if (cbtns) cbtns.innerHTML =
+      '<div class="call-btn-wrap"><button class="cbtn decline" onclick="FC.reject()">'+PHONE_ICO+'</button><span>Отклонить</span></div>'+
+      '<div class="call-btn-wrap"><button class="cbtn accept" onclick="FC.answer()">'+PHONE_ICO+'</button><span>Принять</span></div>';
+
+  } else if (mode === 'active') {
+    if (cst)  cst.textContent = tl;
+    if (ctmr) ctmr.style.display = 'block';
+    var extraBtns = CS.type === 'video'
+      ? '<div class="call-btn-wrap"><button class="cbtn neutral" id="fcCam" onclick="FC.toggleCam(this)">'+CAM_ICO+'</button><span>Камера</span></div>'
+      : '';
+    if (cbtns) cbtns.innerHTML =
+      '<div class="call-btn-wrap"><button class="cbtn neutral" id="fcMic" onclick="FC.toggleMic(this)">'+MIC_ICO+'</button><span>Микрофон</span></div>'+
+      extraBtns+
+      '<div class="call-btn-wrap"><button class="cbtn end-call" onclick="FC.hangup()">'+PHONE_ICO+'</button><span>Завершить</span></div>'+
+      '<div class="call-btn-wrap"><button class="cbtn neutral" onclick="FC.minimize()">'+MIN_ICO+'</button><span>Свернуть</span></div>';
+    // Start timer
+    CS.secs = 0;
+    if (ctmr) ctmr.textContent = '0:00';
+    clearInterval(CS.timer);
+    CS.timer = setInterval(function(){
+      CS.secs++;
+      if (ctmr) ctmr.textContent = Math.floor(CS.secs/60)+':'+String(CS.secs%60).padStart(2,'0');
+      // Also update legacy vars
+      try { callSecs = CS.secs; callSeconds = CS.secs; } catch(e) {}
+    }, 1000);
+    W._inCall = true;
+  }
+
+  co.classList.add('on');
+  co.style.display = '';
+  // Video area
+  var va = $g('va');
+  if (va) va.classList.toggle('on', CS.type === 'video' && mode === 'active');
+}
+
+function hideCallUI() {
+  var co  = $g('co');  if (co)  { co.classList.remove('on'); co.style.display = 'none'; }
+  var va  = $g('va');  if (va)  va.classList.remove('on');
+  var rv  = $g('remoteVideo'); if (rv) { rv.srcObject = null; rv.style.display = 'none'; }
+  var lv  = $g('localVideo');  if (lv) { lv.srcObject = null; lv.style.display = 'none'; }
+  var ra  = $g('remoteAudio'); if (ra) ra.srcObject = null;
+  var ctmr = $g('ctmr'); if (ctmr) ctmr.style.display = 'none';
+  // Dynamic island
+  var di = $g('dynamic-island'); if (di) di.style.display = 'none';
+  var sb = $g('sb-call-status'); if (sb) sb.style.display = 'none';
+  W._callMinimized2 = false;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   PEER CONNECTION SETUP
+   ───────────────────────────────────────────────────────────────────── */
+function createPC() {
+  var p = new RTCPeerConnection(ICE);
+
+  p.onicecandidate = function(e) {
+    if (e.candidate && CS.partner) {
+      $sk().emit('ice_candidate', { to: CS.partner, candidate: e.candidate });
+    }
+  };
+
+  p.oniceconnectionstatechange = function() {
+    console.log('[FC] ICE state:', p.iceConnectionState);
+    if (p.iceConnectionState === 'failed') {
+      p.restartIce && p.restartIce();
+    }
+    if (p.iceConnectionState === 'disconnected' || p.iceConnectionState === 'closed') {
+      if (CS.state === 'active') {
+        setTimeout(function(){
+          if (CS.state !== 'idle') FC.hangup();
+        }, 3000);
+      }
+    }
+  };
+
+  p.ontrack = function(e) {
+    var streams = e.streams;
+    var s = (streams && streams[0]) || new MediaStream([e.track]);
+    if (CS.type === 'video') {
+      var rv = $g('remoteVideo');
+      if (rv) { rv.srcObject = s; rv.style.display = 'block'; }
+    }
+    // Always pipe audio
+    var ra = $g('remoteAudio');
+    if (!ra) {
+      ra = document.createElement('audio');
+      ra.id = 'remoteAudio'; ra.autoplay = true;
+      ra.setAttribute('playsinline', '');
+      ra.style.display = 'none';
+      document.body.appendChild(ra);
+    }
+    ra.srcObject = s;
+    ra.play().catch(function(){});
+  };
+
+  CS.pc = p;
+  W._pc = p;
+  try { pc = p; } catch(ex) {}
+  return p;
+}
+
+async function getMedia() {
+  var constraints = CS.type === 'video'
+    ? { audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true },
+        video: { width:{ideal:1280}, height:{ideal:720}, frameRate:{ideal:30}, facingMode:'user' } }
+    : { audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true } };
+
+  var s = await navigator.mediaDevices.getUserMedia(constraints)
+    .catch(async function() {
+      // fallback: minimal
+      return navigator.mediaDevices.getUserMedia(CS.type === 'video' ? { video: true, audio: true } : { audio: true });
+    });
+
+  CS.stream = s;
+  W._callStream = s;
+  try { stream = s; localStream = s; } catch(e) {}
+
+  if (CS.type === 'video') {
+    var lv = $g('localVideo');
+    if (lv) { lv.srcObject = s; lv.style.display = 'block'; }
+  }
+  return s;
+}
+
+async function addTracks(p, s) {
+  s.getTracks().forEach(function(t) { p.addTrack(t, s); });
+}
+
+async function flushICEQueue(p) {
+  while (CS.queuedICE.length) {
+    var c = CS.queuedICE.shift();
+    try { await p.addIceCandidate(new RTCIceCandidate(c)); } catch(e) {}
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   FC — публичный API
+   ───────────────────────────────────────────────────────────────────── */
+var FC = W.FC = {
+
+  // ── Звонить ────────────────────────────────────────────────────────
+  call: async function(type) {
+    if (CS.state !== 'idle') { console.warn('[FC] Already in call'); return; }
+    var me = $me(); if (!me) return;
+    var partner = null;
+    try { partner = W.cur || cur || W.currentChat || currentChat; } catch(e) {}
+    if (!partner) return;
+
+    CS.state = 'calling';
+    CS.partner = partner;
+    CS.type = type || 'audio';
+    CS.queuedICE = [];
+
+    // Update legacy vars
+    try { callUser = partner; callKind = CS.type; } catch(e) {}
+    try { currentCallUser = partner; } catch(e) {}
+
+    renderCallUI('calling');
+
+    try {
+      var s = await getMedia();
+      var p = createPC();
+      addTracks(p, s);
+
+      var offer = await p.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: CS.type === 'video' });
+      await p.setLocalDescription(offer);
+      $sk().emit('call_user', { to: partner, offer: offer, callType: CS.type });
+    } catch(err) {
+      alert('Нет доступа к микрофону/камере: ' + (err.message || err));
+      FC.cleanup('error');
+    }
+  },
+
+  // ── Ответить ───────────────────────────────────────────────────────
+  answer: async function() {
+    if (CS.state !== 'ringing') return;
+    CS.state = 'answering'; // Prevent double clicks
+
+    try {
+      var s = await getMedia();
+      var p = CS.pc; // already created in onIncoming
+      if (!p) { p = createPC(); }
+
+      addTracks(p, s);
+
+      var answer = await p.createAnswer();
+      await p.setLocalDescription(answer);
+      $sk().emit('call_answer', { to: CS.partner, answer: answer });
+
+      await flushICEQueue(p);
+
+      CS.state = 'active';
+      renderCallUI('active');
+      if (CS.type === 'video') { var va = $g('va'); if (va) va.classList.add('on'); }
+    } catch(err) {
+      alert('Ошибка принятия звонка: ' + (err.message || err));
+      FC.cleanup('error');
+    }
+  },
+
+  // ── Отклонить входящий ─────────────────────────────────────────────
+  reject: function() {
+    if (CS.state !== 'ringing') return;
+    $sk().emit('call_reject', { to: CS.partner });
+    FC.cleanup('rejected_by_me');
+  },
+
+  // ── Завершить/положить трубку ──────────────────────────────────────
+  hangup: function() {
+    var wasActive = CS.state === 'active';
+    var wasCalling = CS.state === 'calling';
+    var partner = CS.partner;
+
+    $sk().emit('call_end', { to: partner });
+
+    // Inject call event
+    if (partner) {
+      if (wasActive && typeof _injectCallMsg === 'function') {
+        _injectCallMsg(partner, 'ended');
+      } else if ((wasCalling || CS.state === 'ringing') && typeof _injectCallMsg === 'function') {
+        _injectCallMsg(partner, 'missed');
+      }
+    }
+    FC.cleanup('hangup');
+  },
+
+  // ── Сворачиваем ────────────────────────────────────────────────────
+  minimize: function() {
+    var co = $g('co'); if (co) { co.classList.remove('on'); co.style.display = 'none'; }
+    var di = $g('dynamic-island');
+    if (di) {
+      di.style.display = 'flex';
+      var nm = di.querySelector('#di-name,.di-name');
+      if (nm) nm.textContent = $u(CS.partner).displayName || CS.partner;
+    }
+    W._callMinimized2 = true;
+  },
+
+  // ── Восстановить UI ────────────────────────────────────────────────
+  restore: function() {
+    var mode = CS.state === 'active' ? 'active' : CS.state === 'ringing' ? 'ringing' : 'calling';
+    renderCallUI(mode);
+    W._callMinimized2 = false;
+    var di = $g('dynamic-island'); if (di) di.style.display = 'none';
+  },
+
+  // ── Toggle mic ─────────────────────────────────────────────────────
+  toggleMic: function(btn) {
+    var s = CS.stream || W._callStream;
+    if (!s) return;
+    var tracks = s.getAudioTracks();
+    if (!tracks.length) return;
+    tracks[0].enabled = !tracks[0].enabled;
+    if (btn) btn.classList.toggle('muted', !tracks[0].enabled);
+  },
+
+  // ── Toggle cam ─────────────────────────────────────────────────────
+  toggleCam: function(btn) {
+    var s = CS.stream || W._callStream;
+    if (!s) return;
+    var tracks = s.getVideoTracks();
+    if (!tracks.length) return;
+    tracks[0].enabled = !tracks[0].enabled;
+    if (btn) btn.classList.toggle('muted', !tracks[0].enabled);
+  },
+
+  // ── Cleanup ────────────────────────────────────────────────────────
+  cleanup: function(reason) {
+    console.log('[FC] cleanup, reason:', reason, 'state was:', CS.state);
+    var cst = $g('cst');
+    if (reason === 'rejected' && cst)     cst.textContent = 'Отклонено';
+    else if (reason === 'ended' && cst)   cst.textContent = 'Звонок завершён';
+    else if (reason === 'busy' && cst)    cst.textContent = 'Пользователь недоступен';
+    else if (reason === 'timeout' && cst) cst.textContent = 'Нет ответа';
+
+    if (reason && reason !== 'hangup' && reason !== 'error' && reason !== 'rejected_by_me') {
+      // Show message briefly then close
+      setTimeout(function() {
+        csReset();
+        hideCallUI();
+      }, 1800);
+    } else {
+      csReset();
+      hideCallUI();
+    }
+  },
+
+  // ── Handle incoming call ───────────────────────────────────────────
+  onIncoming: function(data) {
+    if (!data) return;
+    var from = data.from, offer = data.offer, type = data.callType || 'audio';
+
+    // If already in active call — busy
+    if (CS.state !== 'idle') {
+      $sk().emit('call_reject', { to: from });
+      return;
+    }
+
+    CS.state = 'ringing';
+    CS.partner = from;
+    CS.type = type;
+    CS.queuedICE = [];
+
+    // Update legacy vars
+    try { callUser = from; callKind = type; } catch(e) {}
+    try { currentCallUser = from; } catch(e) {}
+
+    // Create PC and set remote description immediately (so we can queue ICE)
+    var p = createPC();
+    p.setRemoteDescription(new RTCSessionDescription(offer)).then(function() {
+      return flushICEQueue(p);
+    }).catch(function(e) { console.error('[FC] setRemoteDescription failed:', e); });
+
+    renderCallUI('ringing');
+  },
+
+  // ── Handle call answered (caller side) ────────────────────────────
+  onAnswered: async function(data) {
+    if (CS.state !== 'calling') {
+      console.warn('[FC] onAnswered received but state is:', CS.state);
+      return;
+    }
+    CS.state = 'answering_remote';
+    try {
+      await CS.pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+      await flushICEQueue(CS.pc);
+      CS.state = 'active';
+      renderCallUI('active');
+      if (CS.type === 'video') { var va = $g('va'); if (va) va.classList.add('on'); }
+    } catch(e) {
+      console.error('[FC] onAnswered error:', e);
+      FC.cleanup('error');
+    }
+  },
+
+  // ── Handle ICE candidate ──────────────────────────────────────────
+  onICE: async function(data) {
+    if (!data || !data.candidate) return;
+    var p = CS.pc;
+    if (!p) return;
+    try {
+      if (p.remoteDescription && p.remoteDescription.type) {
+        await p.addIceCandidate(new RTCIceCandidate(data.candidate));
+      } else {
+        CS.queuedICE.push(data.candidate);
+      }
+    } catch(e) {}
+  },
+
+  // ── Handle remote ended ───────────────────────────────────────────
+  onEnded: function() {
+    if (CS.state === 'idle') return;
+    var partner = CS.partner;
+    var wasActive = CS.state === 'active';
+    if (wasActive && partner && typeof _injectCallMsg === 'function') {
+      _injectCallMsg(partner, 'ended');
+    } else if (CS.state === 'ringing' && partner && typeof _injectCallMsg === 'function') {
+      // Caller cancelled before we answered
+      _injectCallMsg(partner, 'missed', true);
+    }
+    FC.cleanup('ended');
+  },
+
+  // ── Handle rejected ───────────────────────────────────────────────
+  onRejected: function() {
+    if (CS.state === 'idle') return;
+    var partner = CS.partner;
+    if (partner && typeof _injectCallMsg === 'function') {
+      _injectCallMsg(partner, 'missed');
+    }
+    FC.cleanup('rejected');
+  },
+
+  // ── Handle busy ───────────────────────────────────────────────────
+  onBusy: function() {
+    FC.cleanup('busy');
+  }
+};
+
+/* ─────────────────────────────────────────────────────────────────────
+   OVERRIDE ALL OLD CALL FUNCTIONS → FC
+   ───────────────────────────────────────────────────────────────────── */
+W.startCall = function(type) { FC.call(type || 'audio'); };
+W.endCall   = function() { FC.hangup(); };
+W.rejectCall = function() { FC.reject(); };
+W.acceptCall = function(offer) {
+  // Some old UI buttons call acceptCall(offer) directly
+  // FC.answer() handles this — offer already set via onIncoming
+  FC.answer();
+};
+
+W.masterAccept = function(offer, ctype, from, u) {
+  // Legacy compatibility — happens if old incoming_call handler fires
+  // FC.onIncoming already set up PC; just call answer
+  if (CS.state === 'ringing' && CS.partner === from) {
+    FC.answer();
+  } else {
+    CS.state = 'ringing'; CS.partner = from; CS.type = ctype || 'audio';
+    try { callUser = from; } catch(e) {}
+    var p = createPC();
+    p.setRemoteDescription(new RTCSessionDescription(offer)).then(function(){
+      FC.answer();
+    }).catch(function(e){ console.error('[FC] legacy accept error:', e); });
+  }
+};
+W.tMute = function(btn) { FC.toggleMic(btn); };
+W.tCam  = function(btn) { FC.toggleCam(btn); };
+W.restoreCallOverlay = function() { if(CS.state !== 'idle') FC.restore(); };
+W.masterToggleMute = function(btn) { FC.toggleMic(btn); };
+W.masterToggleCam  = function(btn) { FC.toggleCam(btn); };
+W._doCleanCall = function() { csReset(); hideCallUI(); };
+
+// Legacy startCallTimer — now handled inside renderCallUI('active')
+W.startCallTimer = function() { /* handled by FC */ };
+
+/* ─────────────────────────────────────────────────────────────────────
+   SOCKET LISTENERS — единственный набор
+   ───────────────────────────────────────────────────────────────────── */
+function bindCallSockets() {
+  var sk = $sk();
+  if (!sk) { setTimeout(bindCallSockets, 300); return; }
+  if (sk._fcBound) return;
+  sk._fcBound = true;
+
+  // Incoming call
+  sk.on('incoming_call', function(data) {
+    FC.onIncoming(data);
+  });
+
+  // Caller: other side answered
+  sk.on('call_answered', function(data) {
+    FC.onAnswered(data);
+  });
+
+  // ICE candidate
+  sk.on('ice_candidate', function(data) {
+    FC.onICE(data);
+  });
+
+  // Remote ended call
+  sk.on('call_ended', function() {
+    FC.onEnded();
+  });
+
+  // Remote rejected
+  sk.on('call_rejected', function() {
+    FC.onRejected();
+  });
+
+  // Remote busy
+  sk.on('call_busy', function() {
+    FC.onBusy();
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   PATCH interceptSocket — убираем конфликтующие обработчики
+   ───────────────────────────────────────────────────────────────────── */
+// interceptSocket использует onevent для перехвата incoming_call через masterCall.
+// Нам это больше не нужно — FC.onIncoming подписан напрямую.
+// Перебиваем masterCall чтобы он не мешал
+W.masterCall = function(data) {
+  // Ignore — FC.onIncoming handles everything
+  console.log('[FC] masterCall intercepted, delegating to FC.onIncoming');
+  FC.onIncoming(data);
+};
+
+/* ─────────────────────────────────────────────────────────────────────
+   INIT
+   ───────────────────────────────────────────────────────────────────── */
+setTimeout(bindCallSockets, 200);
+
+// Override existing socket.on listeners from connectSocket() that conflict
+// We do this by rebinding after socket is ready
+setTimeout(function() {
+  var sk = $sk(); if (!sk) return;
+  // Remove the old call_answered handler from connectSocket
+  // Socket.io doesn't support removeListener by reference easily, so we
+  // replace with no-ops via onevent patch
+  if (!sk._fcEvtPatched) {
+    sk._fcEvtPatched = true;
+    var _origOnevent = sk.onevent.bind(sk);
+    sk.onevent = function(packet) {
+      var ev = packet.data && packet.data[0];
+      // Block old handlers for call events — FC handles them now
+      var callEvts = ['call_answered','call_ended','call_rejected','call_busy'];
+      if (callEvts.indexOf(ev) !== -1) {
+        // FC's direct listeners (sk.on) still fire — onevent is called before listeners
+        // So we just call _origOnevent normally, FC listeners will handle it
+        _origOnevent(packet);
+        return;
+      }
+      _origOnevent(packet);
+    };
+  }
+}, 500);
+
+console.log('[Freedom Calls v2] ✓');
 })(window);
 
 </script>
