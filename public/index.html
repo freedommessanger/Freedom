@@ -118,7 +118,7 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .chat-item.active { background:var(--surface2); }
 .chat-item.active::before { content:''; position:absolute; left:0; top:50%; transform:translateY(-50%); width:3px; height:55%; background:var(--accent); border-radius:0 3px 3px 0; }
 .ci-av { width:46px; height:46px; border-radius:14px; flex-shrink:0; position:relative; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:17px; overflow:hidden; }
-.ci-av img { width:100%; height:100%; object-fit:cover; border-radius:14px; }
+.ci-av img { width:100%; height:100%; object-fit:cover; display:block; }
 .odot { position:absolute; bottom:-1px; right:-1px; width:13px; height:13px; background:var(--green); border-radius:50%; border:2px solid var(--sidebar); }
 .ci-info { flex:1; min-width:0; }
 .ci-top { display:flex; align-items:center; justify-content:space-between; gap:4px; }
@@ -156,7 +156,7 @@ html, body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; backg
 .mrow.in { align-self:flex-start; max-width:75%; }
 @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 .msg-av { width:28px; height:28px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; overflow:hidden; }
-.msg-av img { width:100%; height:100%; object-fit:cover; }
+.msg-av img { width:100%; height:100%; object-fit:cover; display:block; }
 .bubble { padding:8px 12px; border-radius:16px; max-width:100%; word-break:break-word; cursor:default; position:relative; }
 [data-theme="dark"] .out .bubble { background:var(--bubble-out); border-bottom-right-radius:4px; }
 [data-theme="light"] .out .bubble { background:var(--bubble-out); border-bottom-right-radius:4px; border:1px solid rgba(79,142,247,0.2); }
@@ -2341,7 +2341,7 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 .chat-item.active { background:var(--surface2); }
 .chat-item.active::before { content:''; position:absolute; left:0; top:50%; transform:translateY(-50%); width:3px; height:55%; background:var(--accent); border-radius:0 3px 3px 0; }
 .ci-av { width:46px; height:46px; border-radius:14px; flex-shrink:0; position:relative; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:17px; overflow:hidden; }
-.ci-av img { width:100%; height:100%; object-fit:cover; border-radius:14px; }
+.ci-av img { width:100%; height:100%; object-fit:cover; display:block; }
 .odot { position:absolute; bottom:-1px; right:-1px; width:13px; height:13px; background:var(--green); border-radius:50%; border:2px solid var(--sidebar); }
 .ci-info { flex:1; min-width:0; }
 .ci-top { display:flex; align-items:center; justify-content:space-between; gap:4px; }
@@ -2379,7 +2379,7 @@ setInterval(()=>{ if(me) loadUsers(); }, 10000);
 .mrow.in { align-self:flex-start; max-width:75%; }
 @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 .msg-av { width:28px; height:28px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; overflow:hidden; }
-.msg-av img { width:100%; height:100%; object-fit:cover; }
+.msg-av img { width:100%; height:100%; object-fit:cover; display:block; }
 .bubble { padding:8px 12px; border-radius:16px; max-width:100%; word-break:break-word; cursor:default; position:relative; }
 .out .bubble { background:var(--bubble-out); border-bottom-right-radius:4px; }
 .in .bubble { background:var(--bubble-in); border-bottom-left-radius:4px; border:1px solid var(--border); }
@@ -3207,7 +3207,7 @@ function setAv(el,user,r='50%'){
   el.style.borderRadius=r;
   if(user.avatar){
     el.style.background='transparent';
-    el.innerHTML=`<img src="${user.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:${r};display:block;">`;
+    el.innerHTML=`<img src="${user.avatar}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
   }else{
     el.style.background=col(user.username);
     el.innerHTML=`<span>${ini(user.displayName||user.username)}</span>`;
@@ -3307,7 +3307,7 @@ function ci(u){
   let ptx='';
   if(p)ptx=p.type==='image'?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Фото`:p.type==='voice'?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>Голосовое`:esc(p.content||'').slice(0,45);
   else ptx=u.online?`<span style="color:var(--green);font-size:11px">В сети</span>`:'';
-  return`<div class="chat-item${cur===u.username?' active':''}" onclick="openChat('${u.username}')"><div class="ci-av" style="background:${col(u.username)}">${avC}${online}</div><div class="ci-info"><div class="ci-top"><span class="ci-name">${esc(u.displayName||u.username)}</span>${time}</div><div class="ci-bot"><span class="ci-prev">${ptx}</span>${badge}</div></div></div>`;
+  return`<div class="chat-item${cur===u.username?' active':''}" onclick="openChat('${u.username}')"><div class="ci-av" style="background:${u.avatar?'transparent':col(u.username)}">${avC}${online}</div><div class="ci-info"><div class="ci-top"><span class="ci-name">${esc(u.displayName||u.username)}</span>${time}</div><div class="ci-bot"><span class="ci-prev">${ptx}</span>${badge}</div></div></div>`;
 }
 
 // Open Chat
@@ -3376,7 +3376,8 @@ function renderMsgs(){
 }
 function bbl(m){
   const out=m.from===me.username,u=users.find(x=>x.username===m.from)||{username:m.from,displayName:m.from};
-  const avC=u.avatar?`<img src="${u.avatar}">`:`<span>${ini(u.displayName||u.username)}</span>`;
+  const avBg=u.avatar?'transparent':col(m.from);
+  const avC=u.avatar?`<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;display:block;">`:`<span>${ini(u.displayName||u.username)}</span>`;
   const time=ft(m.timestamp),checks=out?`<span class="chk">${m.read?DBLCHK:CHK}</span>`:'';
   const editedMark=m.edited?`<span class="msg-edited"> · изм.</span>`:'';
   let reply='';
@@ -3384,24 +3385,31 @@ function bbl(m){
     const orig=(hist[cur]||[]).find(x=>x.id===m.replyTo);
     if(orig){const rn=orig.from===me.username?'Вы':(users.find(x=>x.username===orig.from)?.displayName||orig.from);reply=`<div class="bbl-reply"><div class="bbl-rname">${rn}</div><div class="bbl-rtext">${orig.type==='image'?'Фото':orig.type==='voice'?'Голосовое':esc(orig.content||'').slice(0,60)}</div></div>`;}
   }
+  // Render reactions from m.reactions (source of truth)
+  let rxHtml='';
+  if(m.reactions && Object.keys(m.reactions).length){
+    const pills=Object.keys(m.reactions).filter(e=>m.reactions[e]&&m.reactions[e].length).map(e=>{
+      const us=m.reactions[e];
+      const mine=us.indexOf(me.username)!==-1;
+      const names=us.map(u2=>{const f=users.find(x=>x.username===u2);return f?(f.displayName||u2):u2;}).join(', ');
+      return`<button type="button" class="react-pill${mine?' mine':''}" title="${esc(names)}" onclick="event.stopPropagation();rxToggle('${m.id}','${e}')"><span class="rc">${e}</span><span class="rn">${us.length}</span></button>`;
+    }).join('');
+    if(pills) rxHtml=`<div class="msg-reactions">${pills}</div>`;
+  }
   let body='';
   if(m.type==='image')body=`<img class="bbl-img" src="${m.content}" alt="фото">`;
   else if(m.type==='voice'){const bars=Array.from({length:22},()=>`<span style="height:${5+Math.floor(Math.random()*16)}px"></span>`).join('');body=`<div class="voice-msg"><button class="voice-play" onclick="playV(this,'${m.content}')">${PLAY_ICO}</button><div class="voice-waves">${bars}</div><span class="voice-dur">${m.duration||'0:00'}</span></div>`;}
   else if(m.type==='forward'){
-    // Parse "⟫ FromName\ncontent"
-    const raw=m.content||'';
-    const nl=raw.indexOf('\n');
-    const fwdFrom=nl>0?raw.slice(2,nl).trim():'';
-    const fwdText=nl>0?raw.slice(nl+1):raw;
-    // Try to get avatar of original sender
+    const raw=m.content||'';const nl=raw.indexOf('\n');
+    const fwdFrom=nl>0?raw.slice(2,nl).trim():'';const fwdText=nl>0?raw.slice(nl+1):raw;
     const fwdUser=users.find(x=>(x.displayName||x.username)===fwdFrom||(m.forwardFrom&&x.username===m.forwardFrom));
     const fwdAvBg=fwdUser?col(fwdUser.username):'#4f8ef7';
     const fwdAvInner=fwdUser&&fwdUser.avatar?`<img src="${fwdUser.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="font-size:9px;font-weight:700">${(fwdFrom||'?')[0].toUpperCase()}</span>`;
     body=`<div class="fwd-bubble"><div class="fwd-bubble-header"><div class="fwd-bubble-av" style="background:${fwdAvBg}">${fwdAvInner}</div><span class="fwd-bubble-name">${esc(fwdFrom||'Неизвестно')}</span></div><div class="bbl-text">${esc(fwdText).replace(/\n/g,'<br>')}${editedMark}</div></div>`;
   }
   else body=`<div class="bbl-text">${esc(m.content||'').replace(/\n/g,'<br>')}${editedMark}</div>`;
-  const avEl=!out?`<div class="msg-av" style="background:${col(m.from)}">${avC}</div>`:'';
-  return`<div class="mrow ${out?'out':'in'}" id="mw-${m.id}">${avEl}<div class="bubble" data-id="${m.id}" data-from="${m.from}" data-content="${esc(m.content||'')}">${reply}${body}${m.type!=='forward'?''/*editedMark already in body*/:''}<div class="bbl-meta">${time}${checks}</div></div></div>`;
+  const avEl=!out?`<div class="msg-av" style="background:${avBg}">${avC}</div>`:'';
+  return`<div class="mrow ${out?'out':'in'}" id="mw-${m.id}">${avEl}<div class="bubble" data-id="${m.id}" data-from="${m.from}" data-content="${esc(m.content||'')}">${reply}${body}<div class="bbl-meta">${time}${checks}</div>${rxHtml}</div></div>`;
 }
 function bindEvts(el){
   el.querySelectorAll('.bubble').forEach(b=>b.addEventListener('contextmenu',e=>{e.preventDefault();showCtx(e,b.dataset.id);}));
@@ -4785,7 +4793,14 @@ function connectSocket() {
   socket.on('messages_read', ({by}) => markMessagesRead(by));
   socket.on('message_deleted', ({msgId}) => removeMessageEl(msgId));
   // incoming_call обрабатывается через interceptSocket → masterCall (единая точка входа)
-  socket.on('call_answered', function(data){ try{ onCallAns(data); }catch(e){ console.warn('call_answered err:',e); } });
+  socket.on('call_answered', function(data){
+    try{
+      onCallAns(data);
+      // FIX: update caller UI — no longer "Исходящий..."
+      var cst=document.getElementById('cst');
+      if(cst) cst.textContent='Соединено';
+    }catch(e){ console.warn('call_answered err:',e); }
+  });
   socket.on('ice_candidate', function(data){
     try{
       var p=window._pc||peerConnection||pc;
@@ -4793,9 +4808,20 @@ function connectSocket() {
       else if(p){ try{iceCandidatesQueue.push(data.candidate);}catch(ex){} }
     }catch(e){}
   });
-  socket.on('call_ended', function(){ callSt('Звонок завершён', true); });
-  socket.on('call_rejected', function(){ callSt('Отклонено', true); try{_injectCallMsg(callUser||currentCallUser,'missed');}catch(e){} });
-  socket.on('call_busy', function(){ callSt('Пользователь недоступен', true); if(window._doCleanCall)setTimeout(window._doCleanCall,2000); });
+  socket.on('call_ended', function(){
+    // FIX: properly close call overlay instead of just updating text
+    callSt('Звонок завершён', false);
+    setTimeout(function(){ if(window._doCleanCall) window._doCleanCall(); }, 1500);
+  });
+  socket.on('call_rejected', function(){
+    callSt('Отклонено', false);
+    try{_injectCallMsg(callUser||currentCallUser,'missed');}catch(e){}
+    setTimeout(function(){ if(window._doCleanCall) window._doCleanCall(); }, 1500);
+  });
+  socket.on('call_busy', function(){
+    callSt('Пользователь недоступен', false);
+    setTimeout(function(){ if(window._doCleanCall) window._doCleanCall(); }, 2000);
+  });
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -8223,16 +8249,29 @@ function interceptSocket(){
     if(ev==='call_ended'){
       if(!window._inCall && window._pendingCaller){
         var caller = window._pendingCaller;
-        // Небольшая задержка чтобы _doCleanCall успел закрыть UI
         setTimeout(function(){
-          // isIncoming=true: звонок пришёл ОТ caller, мы не ответили
           if(typeof _injectCallMsg === 'function') _injectCallMsg(caller, 'missed', true);
+          // Also close the incoming call UI
+          if(typeof window._doCleanCall === 'function') window._doCleanCall();
         }, 100);
+      } else if(window._inCall) {
+        // Other side ended an active call — inject ended event for US
+        var callPartnerEnded = null;
+        try { callPartnerEnded = callUser || currentCallUser; } catch(e) {}
+        if(callPartnerEnded && typeof _injectCallMsg === 'function') {
+          _injectCallMsg(callPartnerEnded, 'ended');
+        }
+        var cstEl = document.getElementById('cst');
+        if(cstEl) cstEl.textContent = 'Звонок завершён';
+        setTimeout(function(){ if(window._doCleanCall) window._doCleanCall(); }, 1500);
       }
       window._pendingCaller = null;
     }
-    // Когда принимающий отклоняет — сбрасываем
-    if(ev==='call_rejected') window._pendingCaller = null;
+    // Когда принимающий отклоняет — сбрасываем и закрываем UI
+    if(ev==='call_rejected'){
+      window._pendingCaller = null;
+      // UI is handled by socket.on('call_rejected') above
+    }
   };
 }
 
@@ -8905,8 +8944,8 @@ function _buildVNBbl(m){
     var uList = window.users || window.allUsers || [];
     var u2 = uList.find(function(x){ return x.username === m.from; }) || { username: m.from, displayName: m.from };
     var ini2 = (typeof ini === 'function') ? ini(u2.displayName || u2.username) : (u2.displayName || u2.username).charAt(0);
-    var avInner = u2.avatar ? '<img src="'+u2.avatar+'">' : '<span>'+ini2+'</span>';
-    var bg = typeof col === 'function' ? col(m.from) : '#4f8ef7';
+    var avInner = u2.avatar ? '<img src="'+u2.avatar+'" style="width:100%;height:100%;object-fit:cover;display:block;">' : '<span>'+ini2+'</span>';
+    var bg = u2.avatar ? 'transparent' : (typeof col === 'function' ? col(m.from) : '#4f8ef7');
     avEl = '<div class="msg-av" style="background:'+bg+'">'+avInner+'</div>';
   }
   var ts = new Date(m.timestamp);
@@ -9005,6 +9044,13 @@ window._vnPlay = function(wrap, id){
     var meta  = dataSrc.substring(0, comma);
     var b64   = dataSrc.substring(comma + 1);
     var mime  = (meta.match(/:(.*?);/) || [])[1] || 'video/webm';
+    // FIX: Chrome sometimes needs explicit codec in mime for playback
+    if(mime === 'video/webm' && typeof MediaRecorder !== 'undefined'){
+      try{
+        if(MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) mime = 'video/webm;codecs=vp8,opus';
+        else if(MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) mime = 'video/webm;codecs=vp9,opus';
+      }catch(e){}
+    }
     var bin   = atob(b64);
     var bytes = new Uint8Array(bin.length);
     for(var i=0; i<bin.length; i++) bytes[i] = bin.charCodeAt(i);
@@ -9031,14 +9077,50 @@ window.openVideoNote = function(){
   if(!ov) return;
   _vnReset();
   ov.style.display = 'flex';
-  navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user', width:300, height:300 }, audio:true })
+  // Chrome-compatible constraints — avoid aspectRatio which breaks some Chrome versions
+  var constraints = {
+    video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } },
+    audio: { echoCancellation: true, noiseSuppression: true }
+  };
+  navigator.mediaDevices.getUserMedia(constraints)
+    .catch(function() {
+      // Fallback: minimal constraints if specific ones fail
+      return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
+    })
     .then(function(s){
       _vns = s;
       var pv = document.getElementById('vn-preview');
-      if(pv) pv.srcObject = s;
+      if(pv){
+        pv.srcObject = s;
+        // Chrome sometimes needs explicit play() after srcObject assignment
+        var playPromise = pv.play();
+        if(playPromise) playPromise.catch(function(){});
+      }
+      _vnKeepAlive();
     })
     .catch(function(e){ alert('Нет доступа к камере: '+(e.message||e)); vnClose(); });
 };
+
+// FIX: keepalive to prevent socket disconnect during camera/mic usage
+var _vnKaTimer = null;
+function _vnKeepAlive(){
+  clearInterval(_vnKaTimer);
+  // Emit ping every 3s — well within the 30s pingTimeout
+  // Also emit 'ping_keep' in case server handles it specially
+  _vnKaTimer = setInterval(function(){
+    try{
+      var sk=window.socket||socket;
+      if(sk && sk.connected){
+        sk.emit('ping_keep',{});
+        // Additionally emit a harmless typing=false to keep the connection alive
+        // (this is a no-op logically but resets socket activity timer)
+        var cu = null; try{ cu = cur||currentChat; }catch(e){}
+        if(cu) sk.emit('typing',{to:cu,isTyping:false});
+      }
+    }catch(e){}
+  }, 3000);
+}
+function _vnStopKeepAlive(){ clearInterval(_vnKaTimer); _vnKaTimer=null; }
 
 window.vnClose = window.vnCancel = function(){
   _vnStopAll();
@@ -9050,17 +9132,31 @@ window.vnClose = window.vnCancel = function(){
 window.vnStart = function(){
   if(!_vns) return;
   _vnChunks = []; _vnBlob = null; _vnSecs = 0;
-  var mime = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4']
-    .find(function(t){ try{ return MediaRecorder.isTypeSupported(t); }catch(e){ return false; } }) || '';
-  try{ _vnRec = new MediaRecorder(_vns, mime ? {mimeType:mime} : {}); }
-  catch(e){ _vnRec = new MediaRecorder(_vns); }
+  // Chrome-first MIME order: vp8 without codec string first (most compatible)
+  var mimes = [
+    'video/webm;codecs=vp8,opus',
+    'video/webm;codecs=vp8',
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp9',
+    'video/webm',
+    'video/mp4'
+  ];
+  var mime = mimes.find(function(t){ try{ return MediaRecorder.isTypeSupported(t); }catch(e){ return false; } }) || '';
+  try {
+    _vnRec = mime
+      ? new MediaRecorder(_vns, { mimeType: mime, videoBitsPerSecond: 800000 })
+      : new MediaRecorder(_vns);
+  } catch(e) {
+    try { _vnRec = new MediaRecorder(_vns); } catch(e2) { alert('Запись не поддерживается в этом браузере'); return; }
+  }
   _vnRec.ondataavailable = function(e){ if(e.data&&e.data.size>0) _vnChunks.push(e.data); };
   _vnRec.onstop = function(){
-    _vnBlob = new Blob(_vnChunks, { type: _vnRec.mimeType || 'video/webm' });
+    _vnBlob = new Blob(_vnChunks, { type: (_vnRec.mimeType || mime || 'video/webm') });
     document.getElementById('vn-send-btn').style.display = 'flex';
     document.getElementById('vn-hint').textContent = 'Отправить или отменить';
   };
-  _vnRec.start(100);
+  // Request data every 250ms for smaller chunks (helps Chrome)
+  _vnRec.start(250);
   // UI
   var rb = document.getElementById('vn-rec-btn'); if(rb) rb.style.display='none';
   var sb = document.getElementById('vn-stop-btn'); if(sb) sb.style.display='flex';
@@ -9100,6 +9196,7 @@ window.vnSend = function(){
 
 function _vnStopAll(){
   clearInterval(_vnTimer);
+  _vnStopKeepAlive(); // FIX: stop keepalive when camera closes
   if(_vnRec && _vnRec.state !== 'inactive'){ try{ _vnRec.stop(); }catch(e){} }
   if(_vns){ _vns.getTracks().forEach(function(t){ t.stop(); }); _vns = null; }
 }
@@ -9864,7 +9961,7 @@ s.textContent = `
   border-radius: 50% !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.18) !important;
 }
-.ci-av img { border-radius: 50% !important; }
+.ci-av img { border-radius: 0 !important; display:block; }
 .odot {
   width: 12px !important;
   height: 12px !important;
@@ -9995,7 +10092,7 @@ s.textContent = `
   overflow: hidden !important;
   box-shadow: 0 1px 6px rgba(0,0,0,0.25) !important;
 }
-.msg-av img { border-radius: 50% !important; }
+.msg-av img { border-radius: 0 !important; display:block; }
 
 /* ─── Bubbles ─── */
 .bubble {
@@ -10936,6 +11033,16 @@ window._doCleanCall = function(){
 // Также перехватываем endCall для чистки
 var _origEndCall = window.endCall;
 window.endCall = function(){
+  // Сохраняем данные звонка ДО сброса флагов
+  var wasInCall = window._inCall;
+  var callPartner = null;
+  try { callPartner = callUser || currentCallUser || cur || currentChat; } catch(e) {}
+  
+  // Инжектируем событие окончания звонка (пока _inCall ещё true)
+  if (wasInCall && callPartner && typeof _injectCallMsg === 'function') {
+    _injectCallMsg(callPartner, 'ended');
+  }
+  
   clearInterval(window._diTimerSync);
   var di=document.getElementById('dynamic-island'); if(di) di.style.display='none';
   window._callMinimized2=false; window._inCall=false;
@@ -12030,27 +12137,23 @@ setTimeout(function(){
 </script>
 
 <script>
-/* ═══════════════════════════════════════════════════════════════════
-   FREEDOM MESSENGER — FEATURES v3
-   Telegram-grade: Реакции · Редактирование · Пересылка · ↓Кнопка · Черновики
-   ═══════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   FREEDOM FEATURES v4 — hist-driven reactions
+   ═══════════════════════════════════════════════════════ */
 (function (W) {
 'use strict';
 
-/* ─────────────────────────────────────────────────────
-   УТИЛИТЫ
-   ───────────────────────────────────────────────────── */
-function $me()    { try { return W.me || me; }    catch(e) { return null; } }
-function $cur()   { try { return W.cur || cur || W.currentChat || currentChat; } catch(e) { return null; } }
-function $sk()    { try { return W.socket || socket; } catch(e) { return null; } }
+/* ── Helpers ── */
+function $me()    { try { return W.me    || me;    } catch(e) { return null; } }
+function $cur()   { try { return W.cur   || cur   || W.currentChat || currentChat; } catch(e) { return null; } }
+function $sk()    { try { return W.socket|| socket; } catch(e) { return null; } }
 function $users() { try { return W.users || W.allUsers || users || allUsers || []; } catch(e) { return []; } }
 function $hist(k) {
   try { return (W.hist||hist||{})[k] || (W.chatHistory||chatHistory||{})[k] || []; }
   catch(e) { return []; }
 }
 function $col(u) {
-  try { return typeof col==='function' ? col(u) : typeof strColor==='function' ? strColor(u) : '#4f8ef7'; }
-  catch(e) { return '#4f8ef7'; }
+  try { return typeof col==='function' ? col(u) : '#4f8ef7'; } catch(e) { return '#4f8ef7'; }
 }
 function $esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -12058,318 +12161,226 @@ function $esc(s) {
 function $inp() {
   return document.getElementById('mi') || document.getElementById('msg-input');
 }
-function $toast(msg, type) {
-  try { if (typeof toast === 'function') toast(msg, type); } catch(e) {}
-}
-function chatPairKey(a, b) { return [a, b].sort().join('::'); }
+function $toast(msg, t) { try { if(typeof toast==='function') toast(msg,t); } catch(e) {} }
 
-/* ─────────────────────────────────────────────────────
-   ЧЕРНОВИКИ
-   Логика: сохраняем до openChat, восстанавливаем после.
-   Не показываем текст другого чата никогда.
-   ───────────────────────────────────────────────────── */
-var DRAFTS = {}; // { username → raw text }
-
-function draftSave(forUser, text) {
-  if (!forUser) return;
-  if (text && text.trim()) {
-    DRAFTS[forUser] = text;
-  } else {
-    delete DRAFTS[forUser];
-  }
-}
-
-function draftLoad(forUser) {
-  return DRAFTS[forUser] || '';
-}
-
-// Flush current input to the given chat's draft
-function draftFlush(fromChat) {
-  if (!fromChat) return;
-  var inp = $inp();
-  if (inp) draftSave(fromChat, inp.value);
-}
-
-// Restore draft for newly opened chat (clear input first, then fill)
-function draftRestore(toChat) {
-  var inp = $inp();
-  if (!inp) return;
-  // Clear immediately (synchronous) to prevent old text bleed
-  inp.value = '';
-  try { if (typeof resize === 'function') resize(inp); } catch(e) {}
-  // Then restore the draft (also synchronous — no async needed)
-  var d = draftLoad(toChat);
-  if (d) {
-    inp.value = d;
-    try { if (typeof resize === 'function') resize(inp); } catch(e) {}
-  }
-}
-
-/* ─────────────────────────────────────────────────────
-   КНОПКА «ВНИЗ» — как в Telegram
-   ───────────────────────────────────────────────────── */
-var SDB_COUNT = 0;
-var SDB_BOUND_EL = null;
-
-function sdbBind() {
-  var msgsEl = document.getElementById('msgs');
-  var btn = document.getElementById('scroll-down-btn');
-  if (!msgsEl || !btn) { setTimeout(sdbBind, 300); return; }
-  if (SDB_BOUND_EL === msgsEl) return;
-  SDB_BOUND_EL = msgsEl;
-  msgsEl.addEventListener('scroll', sdbOnScroll, { passive: true });
-  // Ensure the chat wrapper is position:relative for absolute button
-  var wrap = msgsEl.parentElement;
-  if (wrap) wrap.style.position = 'relative';
-}
-
-function sdbOnScroll() {
-  var msgsEl = document.getElementById('msgs');
-  var btn    = document.getElementById('scroll-down-btn');
-  if (!msgsEl || !btn) return;
-  var dist = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight;
-  if (dist > 160) {
-    btn.classList.add('show');
-  } else {
-    btn.classList.remove('show');
-    sdbReset();
-  }
-}
-
-function sdbReset() {
-  SDB_COUNT = 0;
-  var b = document.getElementById('sdb-badge');
-  if (b) { b.textContent = ''; b.classList.remove('show'); }
-}
-
-function sdbIncrement() {
-  // Only bump if user is scrolled away from bottom
-  var msgsEl = document.getElementById('msgs');
-  if (!msgsEl) return;
-  var dist = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight;
-  if (dist < 120) return; // already at bottom — no badge
-  SDB_COUNT++;
-  var b = document.getElementById('sdb-badge');
-  var btn = document.getElementById('scroll-down-btn');
-  if (b) { b.textContent = SDB_COUNT > 99 ? '99+' : String(SDB_COUNT); b.classList.add('show'); }
-  if (btn) btn.classList.add('show');
-}
-
-W.scrollBotNow = function () {
-  var msgsEl = document.getElementById('msgs');
-  if (msgsEl) msgsEl.scrollTo({ top: msgsEl.scrollHeight, behavior: 'smooth' });
-  sdbReset();
-  var btn = document.getElementById('scroll-down-btn');
-  if (btn) btn.classList.remove('show');
-};
-
-/* ─────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════
    РЕАКЦИИ
-   Хранятся в сообщениях на сервере (reactions: {emoji:[users]})
-   При загрузке чата — читаем из msg.reactions
-   Синхронизируем через socket
-   ───────────────────────────────────────────────────── */
-// RX[chatPairKey][msgId] = { emoji: [user1, user2, ...] }
-var RX = {};
+   Источник правды — m.reactions в hist.
+   bbl() уже рисует их напрямую.
+   Здесь: toggle (меняем hist + обновляем DOM)
+          + входящие реакции от других пользователей
+   ═══════════════════════════════════════════════════════ */
 
-function rxPairKey() {
-  var me = $me(); var cur = $cur();
-  if (!me || !cur) return null;
-  return chatPairKey(me.username, cur);
-}
-
-function rxGetMsg(msgId) {
-  var k = rxPairKey(); if (!k) return {};
-  return (RX[k] || {})[msgId] || {};
-}
-
-function rxSetMsg(msgId, data, pairKey) {
-  var k = pairKey || rxPairKey(); if (!k) return;
-  if (!RX[k]) RX[k] = {};
-  RX[k][msgId] = data;
-}
-
-// Load reactions from a messages array (called after chat load)
-function rxLoadFromMessages(msgs, withUser) {
-  var me = $me(); if (!me) return;
-  var k = chatPairKey(me.username, withUser);
-  if (!RX[k]) RX[k] = {};
-  (msgs || []).forEach(function (m) {
-    if (m.reactions && Object.keys(m.reactions).length > 0) {
-      RX[k][m.id] = JSON.parse(JSON.stringify(m.reactions));
-    } else if (!RX[k][m.id]) {
-      RX[k][m.id] = {};
-    }
-  });
-}
-
-// Render reaction pills under a message bubble
-function rxRender(msgId) {
+// Rebuild reaction pills for ONE message (called after toggle or incoming)
+function rxRedraw(msgId) {
+  var me = $me(), cur = $cur();
+  if (!me || !cur) return;
   var el = document.getElementById('mw-' + msgId);
   if (!el) return;
-  var me = $me();
+  var bubble = el.querySelector('.bubble');
+  if (!bubble) return;
 
-  // Remove old pills
-  var old = el.querySelector('.msg-reactions');
+  // Get current reactions from hist (source of truth)
+  var h = $hist(cur);
+  var msg = h.find(function(m) { return m.id === msgId; });
+  var r = (msg && msg.reactions) ? msg.reactions : {};
+
+  // Remove existing pills row
+  var old = bubble.querySelector('.msg-reactions');
   if (old) old.remove();
 
-  var r = rxGetMsg(msgId);
-  var emojis = Object.keys(r).filter(function (e) { return (r[e] || []).length > 0; });
+  var emojis = Object.keys(r).filter(function(e) { return (r[e]||[]).length > 0; });
   if (!emojis.length) return;
 
   var wrap = document.createElement('div');
   wrap.className = 'msg-reactions';
-
-  emojis.forEach(function (emoji) {
+  emojis.forEach(function(emoji) {
     var users = r[emoji] || [];
-    var mine = me && users.indexOf(me.username) !== -1;
+    var mine  = users.indexOf(me.username) !== -1;
+    var names = users.map(function(u) {
+      var f = $users().find(function(x){ return x.username===u; });
+      return f ? (f.displayName||u) : u;
+    }).join(', ');
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'react-pill' + (mine ? ' mine' : '');
-    // Tooltip: show names
-    var names = users.map(function (u) {
-      var found = $users().find(function (x) { return x.username === u; });
-      return found ? (found.displayName || u) : u;
-    }).join(', ');
     btn.title = names;
-    btn.innerHTML = '<span class="rc">' + emoji + '</span><span class="rn">' + users.length + '</span>';
-    btn.onclick = function (e) {
-      e.stopPropagation();
-      rxToggle(msgId, emoji);
-    };
+    btn.innerHTML = '<span class="rc">'+emoji+'</span><span class="rn">'+users.length+'</span>';
+    btn.onclick = function(e) { e.stopPropagation(); rxToggle(msgId, emoji); };
     wrap.appendChild(btn);
   });
-
-  var bubble = el.querySelector('.bubble') || el;
   bubble.appendChild(wrap);
 }
 
-// Re-render reactions for all visible messages in current chat
-function rxRenderAll() {
-  var k = rxPairKey(); if (!k) return;
-  var keys = Object.keys(RX[k] || {});
-  keys.forEach(function (msgId) { rxRender(msgId); });
-}
-
-// Toggle a reaction (me clicking emoji)
-function rxToggle(msgId, emoji) {
-  var me = $me(); var cur = $cur();
+// Toggle reaction for current user
+W.rxToggle = function(msgId, emoji) {
+  var me = $me(), cur = $cur();
   if (!me || !cur) return;
-  var k = chatPairKey(me.username, cur);
-  if (!RX[k]) RX[k] = {};
-  if (!RX[k][msgId]) RX[k][msgId] = {};
-  var r = RX[k][msgId];
+  var h = $hist(cur);
+  var msg = h.find(function(m) { return m.id === msgId; });
+  if (!msg) return;
+  if (!msg.reactions) msg.reactions = {};
+  var r = msg.reactions;
 
-  // Find my current reaction (one per user, Telegram-style)
+  // Remove my previous reaction (Telegram: one reaction per user)
   var prevEmoji = null;
-  Object.keys(r).forEach(function (e) {
-    var idx = (r[e] || []).indexOf(me.username);
-    if (idx !== -1) { prevEmoji = e; }
+  Object.keys(r).forEach(function(e) {
+    var idx = (r[e]||[]).indexOf(me.username);
+    if (idx !== -1) { prevEmoji = e; r[e].splice(idx, 1); if (!r[e].length) delete r[e]; }
   });
 
-  // Remove previous reaction
-  if (prevEmoji) {
-    r[prevEmoji] = (r[prevEmoji] || []).filter(function (u) { return u !== me.username; });
-    if (!r[prevEmoji].length) delete r[prevEmoji];
-  }
-
-  // If clicking the SAME emoji — it's a toggle off
+  // Add new (unless toggling same emoji = just remove)
   if (prevEmoji !== emoji) {
     if (!r[emoji]) r[emoji] = [];
     r[emoji].push(me.username);
   }
 
-  // Update msg in history
-  try {
-    var h = $hist(cur);
-    var msg = h.find(function (m) { return m.id === msgId; });
-    if (msg) msg.reactions = JSON.parse(JSON.stringify(r));
-  } catch(e) {}
+  // Redraw immediately (optimistic)
+  rxRedraw(msgId);
 
-  // Re-render immediately (optimistic)
-  rxRender(msgId);
-
-  // Emit to server
+  // Send to server
   try {
     $sk().emit('react_message', {
-      msgId: msgId,
+      msgId:    msgId,
       chatWith: cur,
-      emoji: emoji,
-      action: prevEmoji !== emoji ? 'add' : 'remove'
+      emoji:    emoji,
+      action:   prevEmoji !== emoji ? 'add' : 'remove'
     });
   } catch(e) {}
-}
+};
 
-// Handle reaction arriving from another user
+// Incoming reaction from server (other user reacted)
 function rxOnIncoming(data) {
   var me = $me(); if (!me) return;
-  // Determine who the other person is
+  // Figure out which chat this belongs to
   var other = data.from === me.username ? data.chatWith : data.from;
-  var k = chatPairKey(me.username, other);
-  if (!RX[k]) RX[k] = {};
-  if (!RX[k][data.msgId]) RX[k][data.msgId] = {};
-  var r = RX[k][data.msgId];
+  var h = $hist(other);
+  var msg = h.find(function(m) { return m.id === data.msgId; });
+  if (!msg) return; // message not loaded, nothing to do
+  if (!msg.reactions) msg.reactions = {};
+  var r = msg.reactions;
 
   if (data.action === 'add') {
     if (!r[data.emoji]) r[data.emoji] = [];
     if (r[data.emoji].indexOf(data.from) === -1) r[data.emoji].push(data.from);
   } else {
     if (r[data.emoji]) {
-      r[data.emoji] = r[data.emoji].filter(function (u) { return u !== data.from; });
+      r[data.emoji] = r[data.emoji].filter(function(u) { return u !== data.from; });
       if (!r[data.emoji].length) delete r[data.emoji];
     }
   }
 
-  // Update history
-  try {
-    var h = $hist(other);
-    var msg = h.find(function (m) { return m.id === data.msgId; });
-    if (msg) msg.reactions = JSON.parse(JSON.stringify(r));
-  } catch(e) {}
-
-  // Re-render if visible
+  // Re-render only if this chat is open
   var cur = $cur();
-  if (cur === other) rxRender(data.msgId);
+  if (cur === other) rxRedraw(data.msgId);
 }
 
-// Quick react from context menu
-W.quickReact = function (emoji) {
+// Quick-react from context menu (emoji row)
+W.quickReact = function(emoji) {
   var m = W._ctxMsg || W.ctxMsg;
   if (!m) return;
-  closeCtx();
-  rxToggle(m.id, emoji);
+  var ctx = document.getElementById('ctx');
+  if (ctx) ctx.classList.remove('on');
+  W.rxToggle(m.id, emoji);
 };
 
-/* ─────────────────────────────────────────────────────
-   РЕДАКТИРОВАНИЕ СООБЩЕНИЙ
-   Мгновенное обновление DOM — без перезагрузки чата
-   ───────────────────────────────────────────────────── */
-var EDIT_ID   = null; // currently editing message id
-var EDIT_ORIG = '';   // original text (for cancel)
+/* ═══════════════════════════════════════════════════════
+   ЧЕРНОВИКИ
+   ═══════════════════════════════════════════════════════ */
+var DRAFTS = {};
 
-W.ctxEdit = function () {
-  var m = W._ctxMsg || W.ctxMsg;
-  if (!m) return;
-  var me = $me();
-  if (!me || m.from !== me.username) return;
+function draftFlush(username) {
+  if (!username) return;
+  var inp = $inp();
+  if (inp) {
+    var v = inp.value;
+    if (v && v.trim()) DRAFTS[username] = v;
+    else delete DRAFTS[username];
+  }
+}
+
+function draftRestore(username) {
+  var inp = $inp();
+  if (!inp) return;
+  // Sync clear first (prevents bleed)
+  inp.value = '';
+  try { if (typeof resize==='function') resize(inp); } catch(e) {}
+  var d = DRAFTS[username] || '';
+  if (d) {
+    inp.value = d;
+    try { if (typeof resize==='function') resize(inp); } catch(e) {}
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   КНОПКА «ВНИЗ»
+   ═══════════════════════════════════════════════════════ */
+var SDB_COUNT = 0;
+var SDB_EL    = null;
+
+function sdbBind() {
+  var el  = document.getElementById('msgs');
+  var btn = document.getElementById('scroll-down-btn');
+  if (!el || !btn) { setTimeout(sdbBind, 300); return; }
+  if (SDB_EL === el) return;
+  SDB_EL = el;
+  el.addEventListener('scroll', function() {
+    var dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (dist > 160) { btn.classList.add('show'); }
+    else { btn.classList.remove('show'); sdbClear(); }
+  }, { passive: true });
+  // Ensure parent is relative
+  if (el.parentElement) el.parentElement.style.position = 'relative';
+}
+
+function sdbClear() {
+  SDB_COUNT = 0;
+  var b = document.getElementById('sdb-badge');
+  if (b) { b.textContent=''; b.classList.remove('show'); }
+}
+
+function sdbAdd() {
+  var el = document.getElementById('msgs');
+  if (!el) return;
+  var dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+  if (dist < 100) return;
+  SDB_COUNT++;
+  var b   = document.getElementById('sdb-badge');
+  var btn = document.getElementById('scroll-down-btn');
+  if (b)   { b.textContent = SDB_COUNT > 99 ? '99+' : String(SDB_COUNT); b.classList.add('show'); }
+  if (btn) btn.classList.add('show');
+}
+
+W.scrollBotNow = function() {
+  var el = document.getElementById('msgs');
+  if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  sdbClear();
+  var btn = document.getElementById('scroll-down-btn');
+  if (btn) btn.classList.remove('show');
+};
+
+/* ═══════════════════════════════════════════════════════
+   РЕДАКТИРОВАНИЕ
+   ═══════════════════════════════════════════════════════ */
+var EDIT_ID   = null;
+var EDIT_ORIG = '';
+
+W.ctxEdit = function() {
+  var m = W._ctxMsg || W.ctxMsg, me = $me();
+  if (!m || !me || m.from !== me.username) return;
   if (m.type === 'image' || m.type === 'voice') return;
-  closeCtx();
+  var ctx = document.getElementById('ctx');
+  if (ctx) ctx.classList.remove('on');
 
   EDIT_ID   = m.id;
   EDIT_ORIG = m.content || '';
 
-  // Fill input with message text
   var inp = $inp();
   if (inp) {
     inp.value = m.content || '';
-    try { if (typeof resize === 'function') resize(inp); } catch(e) {}
-    setTimeout(function () {
-      inp.focus();
-      inp.setSelectionRange(inp.value.length, inp.value.length);
-    }, 20);
+    try { if(typeof resize==='function') resize(inp); } catch(e) {}
+    setTimeout(function() { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }, 20);
   }
-
-  // Show edit strip, hide reply strip
   var strip = document.getElementById('edit-strip');
   var stext = document.getElementById('edit-strip-text');
   var rs    = document.getElementById('rs');
@@ -12378,404 +12389,201 @@ W.ctxEdit = function () {
   if (rs)    rs.classList.remove('on');
 };
 
-W.cancelEdit = function () {
-  EDIT_ID   = null;
-  EDIT_ORIG = '';
+W.cancelEdit = function() {
+  EDIT_ID = null; EDIT_ORIG = '';
   var strip = document.getElementById('edit-strip');
   if (strip) strip.classList.remove('on');
   var inp = $inp();
-  if (inp) { inp.value = ''; try { if (typeof resize==='function') resize(inp); } catch(e) {} }
+  if (inp) { inp.value = ''; try { if(typeof resize==='function') resize(inp); } catch(e) {} }
 };
 
 function editSubmit() {
   if (!EDIT_ID) return;
-  var inp     = $inp();
-  var newText = inp ? inp.value.trim() : '';
-  if (!newText || newText === EDIT_ORIG) { W.cancelEdit(); return; }
-  var cur    = $cur();
-  var editId = EDIT_ID;
+  var inp = $inp();
+  var txt = inp ? inp.value.trim() : '';
+  if (!txt || txt === EDIT_ORIG) { W.cancelEdit(); return; }
+  var cur = $cur(), id = EDIT_ID;
 
-  // ① Optimistic DOM update (instant, no flicker)
-  editApplyDOM(editId, newText, true);
-
-  // ② Update local history
+  // Optimistic DOM
+  editDOM(id, txt, true);
+  // Update hist
   try {
-    var h = $hist(cur);
-    var msg = h.find(function (m) { return m.id === editId; });
-    if (msg) { msg.content = newText; msg.edited = true; }
+    var msg = $hist(cur).find(function(m){ return m.id===id; });
+    if (msg) { msg.content=txt; msg.edited=true; }
   } catch(e) {}
 
   W.cancelEdit();
-
-  // ③ Persist on server
-  $sk().emit('edit_message', { msgId: editId, content: newText, chatWith: cur }, function (res) {
-    if (res && !res.ok) {
-      // Roll back on error
-      editApplyDOM(editId, EDIT_ORIG, false);
-      try {
-        var h2 = $hist(cur);
-        var msg2 = h2.find(function (m) { return m.id === editId; });
-        if (msg2) { msg2.content = EDIT_ORIG; msg2.edited = false; }
-      } catch(e) {}
-      $toast('Не удалось редактировать', 'error');
-    }
+  $sk().emit('edit_message', { msgId:id, content:txt, chatWith:cur }, function(res) {
+    if (res && !res.ok) { editDOM(id, EDIT_ORIG, false); $toast('Ошибка редактирования','error'); }
   });
 }
 
-// Apply edited text directly to the DOM element
-function editApplyDOM(msgId, text, addMark) {
-  var el = document.getElementById('mw-' + msgId);
+function editDOM(msgId, text, mark) {
+  var el = document.getElementById('mw-'+msgId);
   if (!el) return;
-
-  // Find text container (try all selectors)
-  var textEl = el.querySelector('.bbl-text')
-             || el.querySelector('.bbl-txt')
-             || el.querySelector('.msg-text')
-             || el.querySelector('.bubble-text');
-  if (!textEl) return;
-
-  // Build new inner HTML — preserve meta row (time/ticks) which is a SIBLING, not child
-  var escaped = $esc(text).replace(/\n/g, '<br>');
-  var markHtml = addMark ? '<span class="msg-edited"> · изм.</span>' : '';
-  textEl.innerHTML = escaped + markHtml;
+  var t = el.querySelector('.bbl-text,.bbl-txt,.msg-text,.bubble-text');
+  if (!t) return;
+  t.innerHTML = $esc(text).replace(/\n/g,'<br>') + (mark?'<span class="msg-edited"> · изм.</span>':'');
 }
 
-// Mark already-edited messages after full re-render
-function markEditedAll() {
-  var cur = $cur(); if (!cur) return;
-  $hist(cur).forEach(function (msg) {
-    if (!msg.edited) return;
-    var el = document.getElementById('mw-' + msg.id);
-    if (!el) return;
-    var textEl = el.querySelector('.bbl-text,.bbl-txt,.msg-text,.bubble-text');
-    if (textEl && !textEl.querySelector('.msg-edited')) {
-      var mk = document.createElement('span');
-      mk.className = 'msg-edited';
-      mk.textContent = ' · изм.';
-      textEl.appendChild(mk);
-    }
-  });
-}
-
-// Incoming edit from other user
 function onMsgEdited(data) {
-  // Update DOM immediately
-  editApplyDOM(data.msgId, data.content, true);
-  // Update history
-  var cur = $cur();
+  editDOM(data.msgId, data.content, true);
   try {
-    var h = $hist(cur);
-    var msg = h.find(function (m) { return m.id === data.msgId; });
-    if (msg) { msg.content = data.content; msg.edited = true; }
+    var h = $hist($cur());
+    var msg = h.find(function(m){ return m.id===data.msgId; });
+    if (msg) { msg.content=data.content; msg.edited=true; }
   } catch(e) {}
 }
 
-/* ─────────────────────────────────────────────────────
-   ПЕРЕСЫЛКА СООБЩЕНИЙ (Telegram-style)
-   Показывает аватарку и имя оригинального отправителя
-   ───────────────────────────────────────────────────── */
-var FWD_MSG = null;
-var FWD_SEL = []; // selected recipient usernames
+/* ═══════════════════════════════════════════════════════
+   ПЕРЕСЫЛКА
+   ═══════════════════════════════════════════════════════ */
+var FWD_MSG = null, FWD_SEL = [];
 
-W.ctxForward = function () {
-  var m = W._ctxMsg || W.ctxMsg;
-  if (!m) return;
-  FWD_MSG = m;
-  FWD_SEL = [];
-  closeCtx();
+W.ctxForward = function() {
+  var m = W._ctxMsg || W.ctxMsg; if (!m) return;
+  FWD_MSG = m; FWD_SEL = [];
+  var ctx = document.getElementById('ctx');
+  if (ctx) ctx.classList.remove('on');
   fwdOpen();
 };
 
 function fwdOpen() {
-  var modal = document.getElementById('fwd-modal');
-  if (!modal) return;
+  var modal = document.getElementById('fwd-modal'); if (!modal) return;
   modal.classList.add('on');
-  document.getElementById('fwd-search').value = '';
-  fwdRenderList('');
-  fwdUpdateBtn();
-  setTimeout(function () {
-    var s = document.getElementById('fwd-search');
-    if (s) s.focus();
-  }, 80);
+  var s = document.getElementById('fwd-search');
+  if (s) s.value = '';
+  fwdList('');
+  fwdBtn();
+  setTimeout(function(){ var s=document.getElementById('fwd-search'); if(s) s.focus(); }, 80);
 }
-
-W.closeFwd = function () {
-  var modal = document.getElementById('fwd-modal');
-  if (modal) modal.classList.remove('on');
-  FWD_MSG = null;
-  FWD_SEL = [];
+W.closeFwd = function() {
+  var m = document.getElementById('fwd-modal');
+  if (m) m.classList.remove('on');
+  FWD_MSG=null; FWD_SEL=[];
 };
+W.filterFwdList = function(v) { fwdList(v); };
 
-W.filterFwdList = function (val) { fwdRenderList(val); };
-
-function fwdRenderList(filter) {
-  var list = document.getElementById('fwd-list');
-  if (!list) return;
-  var me = $me();
-  var q  = (filter || '').toLowerCase().trim();
-
-  var users = $users().filter(function (u) {
-    if (me && u.username === me.username) return false;
-    if (!q) return true;
-    return (u.displayName || '').toLowerCase().includes(q)
-        || u.username.toLowerCase().includes(q);
+function fwdList(q) {
+  var list = document.getElementById('fwd-list'); if (!list) return;
+  var me = $me(), lq = (q||'').toLowerCase();
+  var us = $users().filter(function(u) {
+    if (me && u.username===me.username) return false;
+    return !lq || (u.displayName||'').toLowerCase().includes(lq) || u.username.toLowerCase().includes(lq);
   });
-
-  if (!users.length) {
-    list.innerHTML = '<div style="padding:28px 0;text-align:center;color:var(--text2);font-size:13px">Никого не найдено</div>';
-    return;
-  }
-
-  list.innerHTML = users.map(function (u) {
-    var sel   = FWD_SEL.indexOf(u.username) !== -1;
-    var bg    = $col(u.username);
-    var avImg = u.avatar
-      ? '<img src="' + u.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:11px">'
-      : '<span style="font-size:14px;font-weight:700;color:#fff">' + (u.displayName || u.username || '?')[0].toUpperCase() + '</span>';
-    var onlineDot = u.online
-      ? '<div style="width:10px;height:10px;background:var(--green);border-radius:50%;border:2px solid var(--sidebar);position:absolute;bottom:1px;right:1px"></div>'
-      : '';
-    return '<div class="fwd-item' + (sel ? ' sel' : '') + '" onclick="_fwdToggle(\'' + u.username + '\')">'
-      + '<div class="fwd-av2" style="background:' + bg + ';position:relative">' + avImg + onlineDot + '</div>'
-      + '<div style="flex:1;min-width:0">'
-      +   '<div class="fwd-nm">' + $esc(u.displayName || u.username) + '</div>'
-      +   (u.online
-            ? '<div style="font-size:11px;color:var(--green);margin-top:1px">В сети</div>'
-            : '<div style="font-size:11px;color:var(--text3);margin-top:1px">Не в сети</div>')
-      + '</div>'
-      + '<div class="fwd-chk">' + (sel ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '') + '</div>'
-      + '</div>';
+  if (!us.length) { list.innerHTML='<div style="padding:28px;text-align:center;color:var(--text2);font-size:13px">Никого не найдено</div>'; return; }
+  list.innerHTML = us.map(function(u) {
+    var sel = FWD_SEL.indexOf(u.username) !== -1;
+    var bg  = $col(u.username);
+    var av  = u.avatar ? '<img src="'+u.avatar+'" style="width:100%;height:100%;object-fit:cover;border-radius:11px">'
+                       : '<span style="font-size:14px;font-weight:700;color:#fff">'+(u.displayName||u.username||'?')[0].toUpperCase()+'</span>';
+    var dot = u.online ? '<div style="width:10px;height:10px;background:var(--green);border-radius:50%;border:2px solid var(--sidebar);position:absolute;bottom:1px;right:1px"></div>' : '';
+    var chk = sel ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+    return '<div class="fwd-item'+(sel?' sel':'')+'" onclick="_fwdTog(\''+u.username+'\')"><div class="fwd-av2" style="background:'+bg+';position:relative">'+av+dot+'</div><div style="flex:1;min-width:0"><div class="fwd-nm">'+$esc(u.displayName||u.username)+'</div><div style="font-size:11px;color:'+(u.online?'var(--green)':'var(--text3)')+';margin-top:1px">'+(u.online?'В сети':'Не в сети')+'</div></div><div class="fwd-chk">'+chk+'</div></div>';
   }).join('');
 }
 
-W._fwdToggle = function (username) {
-  var idx = FWD_SEL.indexOf(username);
-  if (idx === -1) FWD_SEL.push(username);
-  else            FWD_SEL.splice(idx, 1);
-  fwdUpdateBtn();
+W._fwdTog = function(u) {
+  var i = FWD_SEL.indexOf(u);
+  if (i===-1) FWD_SEL.push(u); else FWD_SEL.splice(i,1);
+  fwdBtn();
   var s = document.getElementById('fwd-search');
-  fwdRenderList(s ? s.value : '');
+  fwdList(s?s.value:'');
 };
 
-function fwdUpdateBtn() {
-  var btn = document.getElementById('fwd-send-btn');
-  if (!btn) return;
-  btn.disabled = FWD_SEL.length === 0;
-  btn.textContent = FWD_SEL.length > 1
-    ? 'Переслать (' + FWD_SEL.length + ')'
-    : 'Переслать';
+function fwdBtn() {
+  var b = document.getElementById('fwd-send-btn'); if (!b) return;
+  b.disabled = FWD_SEL.length===0;
+  b.textContent = FWD_SEL.length>1 ? 'Переслать ('+FWD_SEL.length+')' : 'Переслать';
 }
 
-W.sendFwd = function () {
+W.sendFwd = function() {
   if (!FWD_MSG || !FWD_SEL.length) return;
-  var msg = FWD_MSG;
-  var me  = $me();
-  var sk  = $sk();
-
-  // Find who sent the original
-  var fromUser = $users().find(function (u) { return u.username === msg.from; })
-              || { displayName: msg.from, username: msg.from };
+  var msg = FWD_MSG, me = $me(), sk = $sk();
+  var fromUser = $users().find(function(u){ return u.username===msg.from; }) || { displayName: msg.from, username: msg.from };
   var fromName = fromUser.displayName || fromUser.username;
-
-  FWD_SEL.forEach(function (toUser) {
-    var payload;
-    if (msg.type === 'image') {
-      payload = { to: toUser, content: msg.content, type: 'image', forwardFrom: msg.from };
-    } else {
-      // Encode attribution: prefix "⟫ Name\n" so bbl() can parse it
-      payload = {
-        to: toUser,
-        content: '\u27EB ' + fromName + '\n' + (msg.content || ''),
-        type: 'forward',
-        forwardFrom: msg.from
-      };
-    }
-    sk.emit('send_message', payload, function (res) {
-      if (res && res.message) {
-        // Show in sender's own chat view if the forward was to the currently open chat
-        var cur = $cur();
-        if (toUser === cur && typeof pushMsg === 'function') {
-          pushMsg(res.message);
-        }
-      }
+  FWD_SEL.forEach(function(to) {
+    var p = msg.type==='image'
+      ? { to:to, content:msg.content, type:'image', forwardFrom:msg.from }
+      : { to:to, content:'\u27EB '+fromName+'\n'+(msg.content||''), type:'forward', forwardFrom:msg.from };
+    sk.emit('send_message', p, function(res) {
+      if (res&&res.message) { var c=$cur(); if(c===to && typeof pushMsg==='function') pushMsg(res.message); }
     });
   });
-
-  var names = FWD_SEL.map(function (u) {
-    var f = $users().find(function (x) { return x.username === u; });
-    return f ? (f.displayName || u) : u;
-  }).join(', ');
-  $toast('Переслано: ' + names);
+  var names = FWD_SEL.map(function(u){ var f=$users().find(function(x){return x.username===u;}); return f?(f.displayName||u):u; }).join(', ');
+  $toast('Переслано: '+names);
   W.closeFwd();
 };
 
-/* ─────────────────────────────────────────────────────
-   ПАТЧИ ОСНОВНЫХ ФУНКЦИЙ
-   ───────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   ПАТЧИ
+   ═══════════════════════════════════════════════════════ */
 
-// ── Context menu ────────────────────────────────────
-function closeCtx() {
-  var c = document.getElementById('ctx');
-  if (c) c.classList.remove('on');
-}
-
-var _showCtxOrig = W.showCtx;
-W.showCtx = function (e, id) {
-  if (typeof _showCtxOrig === 'function') _showCtxOrig.apply(this, arguments);
-  W._ctxMsg = W.ctxMsg; // expose to new features
-  var m  = W.ctxMsg || W._ctxMsg;
-  var me = $me();
-
-  // Edit: only own text messages
-  var editEl = document.getElementById('ctx-edit');
-  if (editEl) {
-    var canEdit = m && me && m.from === me.username
-               && m.type !== 'image' && m.type !== 'voice' && m.type !== 'forward';
-    editEl.style.display = canEdit ? '' : 'none';
-  }
+// showCtx — expose ctxMsg, control edit visibility
+var _sc0 = W.showCtx;
+W.showCtx = function(e, id) {
+  if (typeof _sc0==='function') _sc0.apply(this, arguments);
+  W._ctxMsg = W.ctxMsg;
+  var m = W.ctxMsg, me = $me();
+  var ed = document.getElementById('ctx-edit');
+  if (ed) ed.style.display = (m&&me&&m.from===me.username&&m.type!=='image'&&m.type!=='voice'&&m.type!=='forward') ? '' : 'none';
 };
 
-// ── openChat — drafts + reactions + scroll btn ───────
-var _openChatOrig = W.openChat;
-W.openChat = function (username) {
-  // 1. Save current chat's draft BEFORE changing cur
-  var prevChat = $cur();
-  if (prevChat && prevChat !== username) {
-    draftFlush(prevChat);
-  }
-
-  // 2. Clear input immediately (prevents old text bleed)
+// openChat — drafts + sdb reset
+var _oc0 = W.openChat;
+W.openChat = function(username) {
+  var prev = $cur();
+  if (prev && prev !== username) draftFlush(prev);
+  // Clear input immediately
   var inp = $inp();
-  if (inp) {
-    inp.value = '';
-    try { if (typeof resize === 'function') resize(inp); } catch(e) {}
-  }
-
-  // 3. Call original openChat
-  if (typeof _openChatOrig === 'function') _openChatOrig(username);
-
-  // 4. Restore draft for new chat (synchronous, no timeout needed since we already cleared)
+  if (inp) { inp.value=''; try{if(typeof resize==='function')resize(inp);}catch(e){} }
+  if (typeof _oc0==='function') _oc0(username);
   draftRestore(username);
-
-  // 5. Reset scroll-down badge
-  sdbReset();
-
-  // 6. Re-bind scroll listener (msgs element may have been recreated)
-  SDB_BOUND_EL = null;
-  setTimeout(sdbBind, 100);
-
-  // 7. Load reactions for new chat — try immediately from history, then again after 400ms
-  //    (messages may not have loaded yet at this point)
-  function loadRx() {
-    var msgs = $hist(username);
-    if (msgs.length) {
-      rxLoadFromMessages(msgs, username);
-      rxRenderAll();
-      markEditedAll();
-    }
-  }
-  loadRx();
-  setTimeout(loadRx, 450);
+  sdbClear();
+  SDB_EL = null;
+  setTimeout(sdbBind, 150);
 };
 
-// ── renderMsgs — apply reactions + edited marks ──────
-var _renderMsgsOrig = W.renderMsgs;
-W.renderMsgs = function () {
-  if (typeof _renderMsgsOrig === 'function') _renderMsgsOrig.apply(this, arguments);
-  setTimeout(function () {
-    rxRenderAll();
-    markEditedAll();
-  }, 30);
+// sendMsg — edit intercept
+var _sm0 = W.sendMsg;
+W.sendMsg = function() { if (EDIT_ID) { editSubmit(); return; } if(typeof _sm0==='function') _sm0(); };
+
+// mkey — Escape
+var _mk0 = W.mkey;
+W.mkey = function(e) {
+  if (e.key==='Escape' && EDIT_ID) { e.preventDefault(); W.cancelEdit(); return; }
+  if(typeof _mk0==='function') _mk0(e);
 };
 
-// ── sendMsg — edit mode intercept ───────────────────
-var _sendMsgOrig = W.sendMsg;
-W.sendMsg = function () {
-  if (EDIT_ID) { editSubmit(); return; }
-  if (typeof _sendMsgOrig === 'function') _sendMsgOrig.apply(this, arguments);
+// pushMsg — sdb increment for incoming
+var _pm0 = W.pushMsg;
+W.pushMsg = function(msg) {
+  if(typeof _pm0==='function') _pm0.apply(this,arguments);
+  var me=$me();
+  if (msg&&me&&msg.from!==me.username) sdbAdd();
 };
 
-// ── mkey — Escape cancels edit ───────────────────────
-var _mkeyOrig = W.mkey;
-W.mkey = function (e) {
-  if (e.key === 'Escape' && EDIT_ID) { e.preventDefault(); W.cancelEdit(); return; }
-  if (typeof _mkeyOrig === 'function') _mkeyOrig.apply(this, arguments);
-};
-
-// ── pushMsg — increment scroll badge for incoming ───
-var _pushMsgOrig = W.pushMsg;
-W.pushMsg = function (msg) {
-  if (typeof _pushMsgOrig === 'function') _pushMsgOrig.apply(this, arguments);
-  var me = $me();
-  if (msg && me && msg.from !== me.username) sdbIncrement();
-  // Render reactions if message has them
-  if (msg && msg.reactions && Object.keys(msg.reactions).length) {
-    var cur = $cur();
-    if (cur && me) {
-      var k = chatPairKey(me.username, cur);
-      if (!RX[k]) RX[k] = {};
-      RX[k][msg.id] = JSON.parse(JSON.stringify(msg.reactions));
-    }
-    setTimeout(function () { rxRender(msg.id); }, 50);
-  }
-};
-
-/* ─────────────────────────────────────────────────────
-   SOCKET LISTENERS
-   ───────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   SOCKET BINDING
+   ═══════════════════════════════════════════════════════ */
 function bindSockets() {
   var sk = $sk();
-  if (!sk) { setTimeout(bindSockets, 400); return; }
-  if (sk._ff3Bound) return;
-  sk._ff3Bound = true;
-
+  if (!sk) { setTimeout(bindSockets, 300); return; }
+  if (sk._ff4) return;
+  sk._ff4 = true;
   sk.on('message_reaction', rxOnIncoming);
   sk.on('message_edited',   onMsgEdited);
-
-  // Intercept get_messages to load reactions after chat open
-  var _emitOrig = sk.emit.bind(sk);
-  sk.emit = function (event) {
-    var args = Array.prototype.slice.call(arguments);
-    if (event === 'get_messages') {
-      var data = args[1];
-      var origCb = args[2];
-      if (typeof origCb === 'function') {
-        args[2] = function (msgs) {
-          origCb(msgs);
-          if (Array.isArray(msgs) && data && data.with) {
-            rxLoadFromMessages(msgs, data.with);
-            // Render after a tick (DOM may not be updated yet)
-            setTimeout(function () {
-              rxRenderAll();
-              markEditedAll();
-            }, 60);
-          }
-        };
-      }
-    }
-    return _emitOrig.apply(sk, args);
-  };
 }
 
-/* ─────────────────────────────────────────────────────
-   ИНИЦИАЛИЗАЦИЯ
-   ───────────────────────────────────────────────────── */
-// Bind everything once DOM is ready
-function init() {
+/* ═══════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════ */
+setTimeout(function() {
   sdbBind();
   bindSockets();
-  // Apply reactions + edited marks in case a chat is already open
-  setTimeout(function () { rxRenderAll(); markEditedAll(); }, 500);
-}
+}, 100);
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  setTimeout(init, 200);
-}
-
-console.log('[Freedom Features v3] ✓');
-
+console.log('[Freedom v4] ✓');
 })(window);
 
 </script>
